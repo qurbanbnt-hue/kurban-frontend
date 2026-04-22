@@ -3,8 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kurban Digital - Portal Login</title>
+  <title>Kurban Digital - Login</title>
   <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* Portal choice modal */
+    .portal-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .portal-modal.active {
+      display: flex;
+    }
+    .portal-options {
+      background: white;
+      border-radius: 32px;
+      padding: 32px;
+      text-align: center;
+      max-width: 360px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .portal-options h3 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: var(--primary-dark);
+    }
+    .portal-btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      margin: 12px 0;
+      border: none;
+      border-radius: 60px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .portal-user {
+      background: var(--primary);
+      color: white;
+    }
+    .portal-admin {
+      background: var(--gold);
+      color: var(--text-dark);
+    }
+    .portal-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 <body>
   <div class="login-container">
@@ -15,12 +68,6 @@
         </div>
         <h1 class="login-title">Kurban Digital</h1>
         <p class="login-sub">Dokumentasi & Monitoring Hewan Kurban</p>
-      </div>
-
-      <!-- Portal Tabs -->
-      <div class="portal-tabs">
-        <button class="portal-tab user active" id="tabUser" data-portal="user">📱 Aplikasi User</button>
-        <button class="portal-tab admin" id="tabAdmin" data-portal="admin">⚙️ Admin Panel</button>
       </div>
 
       <form id="loginForm">
@@ -38,80 +85,79 @@
             <input type="password" class="form-control" id="password" placeholder="••••••••" required>
           </div>
         </div>
-        <button type="submit" class="btn-login user" id="loginBtn">Masuk ke Aplikasi User</button>
+        <button type="submit" class="btn-login user" id="loginBtn">Masuk</button>
         <div id="loginError" class="error-message"></div>
       </form>
     </div>
   </div>
 
+  <!-- Portal Choice Modal (only for admin) -->
+  <div class="portal-modal" id="portalModal">
+    <div class="portal-options">
+      <h3>Pilih Portal</h3>
+      <p style="margin-bottom: 20px; color: var(--text-muted);">Anda login sebagai Administrator</p>
+      <button class="portal-btn portal-user" id="goUserBtn">📱 Aplikasi User</button>
+      <button class="portal-btn portal-admin" id="goAdminBtn">⚙️ Admin Panel</button>
+      <button class="btn-outline" style="margin-top: 16px; width: 100%;" onclick="closePortalModal()">Batal</button>
+    </div>
+  </div>
+
   <script src="assets/js/api.js"></script>
   <script>
-    let selectedPortal = 'user';
-
-    // Tab switching
-    document.getElementById('tabUser').addEventListener('click', function() {
-      selectedPortal = 'user';
-      document.getElementById('tabUser').classList.add('active');
-      document.getElementById('tabAdmin').classList.remove('active');
-      document.getElementById('loginBtn').textContent = 'Masuk ke Aplikasi User';
-      document.getElementById('loginBtn').className = 'btn-login user';
-    });
-
-    document.getElementById('tabAdmin').addEventListener('click', function() {
-      selectedPortal = 'admin';
-      document.getElementById('tabAdmin').classList.add('active');
-      document.getElementById('tabUser').classList.remove('active');
-      document.getElementById('loginBtn').textContent = 'Masuk ke Admin Panel';
-      document.getElementById('loginBtn').className = 'btn-login admin';
-    });
-
-    // Cek session
-    (function checkAuth() {
+    // Cek session existing
+    (function checkExistingSession() {
       const email = localStorage.getItem('userEmail');
       const role = localStorage.getItem('userRole');
       const expiry = Number(localStorage.getItem('loginExpiry'));
       if (email && role && Date.now() < expiry) {
         if (role === 'admin') {
-          window.location.replace('/admin');
+          showPortalModal(email);
         } else {
           window.location.replace('/user');
         }
       }
     })();
 
-    // Login handler
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      const btn = document.getElementById('loginBtn');
-      const errorDiv = document.getElementById('loginError');
+    const loginForm = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorDiv = document.getElementById('loginError');
 
-      btn.disabled = true;
-      btn.textContent = 'Memproses...';
+    let pendingAdminEmail = null;
+    let pendingUsername = null;
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!email || !password) {
+        errorDiv.textContent = 'Email dan password harus diisi';
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Memverifikasi...';
       errorDiv.textContent = '';
 
       try {
         const result = await callApi('login', { email, password });
         
         if (result.success) {
-          // Validasi role sesuai portal yang dipilih
-          if (selectedPortal === 'admin' && result.role !== 'admin') {
-            throw new Error('Akun ini bukan admin. Gunakan portal User.');
-          }
-          if (selectedPortal === 'user' && result.role === 'admin') {
-            // Admin boleh masuk ke user portal (opsional)
-          }
-
+          // Simpan session
           localStorage.setItem('userEmail', result.email);
           localStorage.setItem('username', result.username);
           localStorage.setItem('userRole', result.role);
           localStorage.setItem('loginExpiry', Date.now() + (8 * 60 * 60 * 1000));
 
-          if (selectedPortal === 'admin') {
-            window.location.replace('/admin');
+          if (result.role === 'admin') {
+            // Tampilkan pilihan portal
+            pendingAdminEmail = result.email;
+            pendingUsername = result.username;
+            showPortalModal(result.username || result.email);
           } else {
+            // User biasa: langsung ke user app
             window.location.replace('/user');
           }
         } else {
@@ -119,8 +165,40 @@
         }
       } catch (err) {
         errorDiv.textContent = err.message;
-        btn.disabled = false;
-        btn.textContent = selectedPortal === 'user' ? 'Masuk ke Aplikasi User' : 'Masuk ke Admin Panel';
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Masuk';
+      }
+    });
+
+    function showPortalModal(displayName) {
+      document.getElementById('portalModal').classList.add('active');
+      // Reset form untuk keamanan
+      emailInput.value = '';
+      passwordInput.value = '';
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Masuk';
+    }
+
+    function closePortalModal() {
+      document.getElementById('portalModal').classList.remove('active');
+      // Jika user cancel, logout (clear session)
+      localStorage.clear();
+      pendingAdminEmail = null;
+      pendingUsername = null;
+    }
+
+    document.getElementById('goUserBtn').addEventListener('click', () => {
+      window.location.replace('/user');
+    });
+
+    document.getElementById('goAdminBtn').addEventListener('click', () => {
+      window.location.replace('/admin');
+    });
+
+    // Jika modal ditutup dengan klik di luar (opsional)
+    document.getElementById('portalModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('portalModal')) {
+        closePortalModal();
       }
     });
   </script>

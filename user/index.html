@@ -2,83 +2,521 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Kurban Digital - User</title>
   <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    /* Additional user portal specific styles */
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .upload-area {
+      border: 2px dashed var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 30px 20px;
+      text-align: center;
+      background: var(--bg-light);
+      cursor: pointer;
+      margin: 16px 0;
+    }
+    .preview-image {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: var(--radius-md);
+      margin-top: 16px;
+    }
+    .file-list {
+      margin-top: 16px;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      background: var(--white);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+      width: 100%;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border-light);
+      border-radius: 40px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .detail-row {
+      display: flex;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .detail-label {
+      width: 120px;
+      color: var(--text-muted);
+    }
+    .detail-value {
+      flex: 1;
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
     <div class="app-header">
       <div class="header-top">
-        <span class="header-greeting">Assalamu'alaikum</span>
+        <span class="header-greeting" id="greetingText">Assalamu'alaikum</span>
         <span style="font-size: 24px;">🐄</span>
       </div>
       <div class="header-name" id="userName">User</div>
     </div>
 
     <div class="content">
-      <div class="stats-grid">
-        <div class="stat-item"><div class="stat-value" id="totalHewan">-</div><div class="stat-label">Total</div></div>
-        <div class="stat-item"><div class="stat-value" id="selesai">-</div><div class="stat-label">Selesai</div></div>
-        <div class="stat-item"><div class="stat-value" id="proses">-</div><div class="stat-label">Proses</div></div>
+      <!-- SCREEN: BERANDA / DASHBOARD -->
+      <div id="screen-beranda" class="screen active">
+        <div class="stats-grid">
+          <div class="stat-item"><div class="stat-value" id="totalHewan">-</div><div class="stat-label">Total</div></div>
+          <div class="stat-item"><div class="stat-value" id="selesai">-</div><div class="stat-label">Selesai</div></div>
+          <div class="stat-item"><div class="stat-value" id="proses">-</div><div class="stat-label">Proses</div></div>
+        </div>
+        <div class="card">
+          <div class="section-title">🐮 Hewan Terbaru</div>
+          <div id="recentHewan"></div>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="section-title">🐮 Hewan Terbaru</div>
-        <div id="hewanList"></div>
+      <!-- SCREEN: DAFTAR HEWAN -->
+      <div id="screen-hewan" class="screen">
+        <div class="card">
+          <div class="section-title">🔍 Cari Hewan</div>
+          <input type="text" id="searchInput" placeholder="Nomor, Pekurban, Instansi..." class="form-control" style="margin-bottom:0;">
+        </div>
+        <div class="card" style="padding:0;">
+          <div id="allHewanList"></div>
+        </div>
+      </div>
+
+      <!-- SCREEN: UPLOAD FOTO -->
+      <div id="screen-upload" class="screen">
+        <div class="card">
+          <div class="section-title">📸 Pilih Hewan</div>
+          <select id="hewanSelect">
+            <option value="">-- Pilih Hewan --</option>
+          </select>
+        </div>
+        <div class="card" id="uploadDetailCard" style="display:none;">
+          <div class="section-title">🐄 Detail Hewan</div>
+          <div id="selectedHewanDetail"></div>
+        </div>
+        <div class="card" id="uploadPhotoCard" style="display:none;">
+          <div class="section-title">📷 Upload Foto</div>
+          <div class="foto-tabs" style="display:flex; gap:8px; margin-bottom:16px;">
+            <button class="foto-tab active" data-tab="hidup" style="flex:1;">Hidup</button>
+            <button class="foto-tab" data-tab="ditumbangkan" style="flex:1;">Ditumbangkan</button>
+            <button class="foto-tab" data-tab="mati" style="flex:1;">Mati</button>
+          </div>
+          <div class="upload-area" id="uploadArea">
+            <div style="font-size:32px;">📸</div>
+            <div>Ketuk untuk pilih foto</div>
+          </div>
+          <input type="file" id="fotoInput" accept="image/*" style="display:none;">
+          <img id="previewImg" class="preview-image" style="display:none;">
+          <button class="btn" id="uploadBtn" style="margin-top:16px;">Upload Foto</button>
+        </div>
+      </div>
+
+      <!-- SCREEN: DOKUMENTASI INSTANSI -->
+      <div id="screen-dokumentasi" class="screen">
+        <div class="card">
+          <div class="section-title">📂 Pilih Instansi</div>
+          <select id="dokInstansiSelect">
+            <option value="">-- Pilih Instansi --</option>
+          </select>
+          <input type="text" id="dokWilayah" placeholder="Wilayah" readonly style="background:#f0f0f0;">
+          <select id="dokJenis">
+            <option value="Pencacahan">🔪 Pencacahan</option>
+            <option value="Penyaluran">📦 Penyaluran</option>
+          </select>
+        </div>
+        <div class="card" id="dokUploadCard" style="display:none;">
+          <div class="section-title">📁 Upload File</div>
+          <div class="upload-area" id="dokUploadArea">
+            <div style="font-size:32px;">📁</div>
+            <div>Ketuk untuk pilih file (foto/video)</div>
+            <div style="font-size:12px; margin-top:8px;">Bisa pilih banyak file</div>
+          </div>
+          <input type="file" id="dokFileInput" accept="image/*,video/*" multiple style="display:none;">
+          <div id="dokFileList" class="file-list"></div>
+          <button class="btn" id="dokUploadBtn">Upload Dokumentasi</button>
+        </div>
+        <div class="card">
+          <div class="section-title">📋 Riwayat Dokumentasi</div>
+          <div id="dokRiwayat"></div>
+        </div>
+      </div>
+
+      <!-- SCREEN: AKUN -->
+      <div id="screen-akun" class="screen">
+        <div class="card">
+          <div class="section-title">👤 Profil</div>
+          <div class="detail-row"><span class="detail-label">Username</span><span class="detail-value" id="profileUsername">-</span></div>
+          <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value" id="profileEmail">-</span></div>
+          <div class="detail-row"><span class="detail-label">Role</span><span class="detail-value" id="profileRole">-</span></div>
+        </div>
+        <div class="card">
+          <div class="section-title">ℹ️ Informasi</div>
+          <p>Kurban Digital v2.0</p>
+          <p style="margin-top:8px;">© 2025 · Dokumentasi Kurban</p>
+        </div>
+        <button class="btn btn-outline" onclick="logout()" style="margin-top:16px;">🚪 Keluar</button>
       </div>
     </div>
 
+    <!-- Bottom Navigation -->
     <div class="bottom-nav">
-      <button class="nav-item active">🏠<span>Beranda</span></button>
-      <button class="nav-item">📋<span>Hewan</span></button>
-      <button class="nav-item">📸<span>Upload</span></button>
-      <button class="nav-item">📂<span>Dokumentasi</span></button>
-      <button class="nav-item" onclick="logout()">🚪<span>Keluar</span></button>
+      <button class="nav-item active" data-screen="beranda"><span class="nav-icon">🏠</span><span>Beranda</span></button>
+      <button class="nav-item" data-screen="hewan"><span class="nav-icon">📋</span><span>Hewan</span></button>
+      <button class="nav-item" data-screen="upload"><span class="nav-icon">📸</span><span>Upload</span></button>
+      <button class="nav-item" data-screen="dokumentasi"><span class="nav-icon">📂</span><span>Dok</span></button>
+      <button class="nav-item" data-screen="akun"><span class="nav-icon">👤</span><span>Akun</span></button>
     </div>
   </div>
 
   <script src="../assets/js/api.js"></script>
   <script>
+    // ==================== GLOBAL STATE ====================
+    let allHewan = [];
+    let selectedHewan = null;
+    let currentTab = 'hidup';
+    let dokInstansiList = [];
+
     const email = localStorage.getItem('userEmail');
     const username = localStorage.getItem('username');
+    const role = localStorage.getItem('userRole');
+
     if (!email) window.location.href = '/';
     document.getElementById('userName').textContent = username || email;
+    document.getElementById('greetingText').textContent = `Assalamu'alaikum, ${username || email.split('@')[0]}`;
+    document.getElementById('profileUsername').textContent = username || '-';
+    document.getElementById('profileEmail').textContent = email;
+    document.getElementById('profileRole').textContent = role === 'admin' ? 'Administrator' : 'Panitia';
+
+    // ==================== NAVIGATION ====================
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const screen = item.dataset.screen;
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(`screen-${screen}`).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        if (screen === 'beranda') loadDashboard();
+        else if (screen === 'hewan') renderAllHewan();
+        else if (screen === 'upload') initUploadScreen();
+        else if (screen === 'dokumentasi') initDokScreen();
+      });
+    });
+
+    // ==================== DATA LOADING ====================
+    async function loadAllHewan() {
+      const result = await callApi('getHewan', { email });
+      if (result.success) {
+        allHewan = result.data;
+        return allHewan;
+      }
+      return [];
+    }
+
+    async function loadDashboard() {
+      const hewan = await loadAllHewan();
+      const total = hewan.length;
+      const selesai = hewan.filter(h => h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati).length;
+      const proses = hewan.filter(h => (h.status.url_hidup || h.status.url_ditumbangkan || h.status.url_mati) && 
+                   !(h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati)).length;
+      
+      document.getElementById('totalHewan').textContent = total;
+      document.getElementById('selesai').textContent = selesai;
+      document.getElementById('proses').textContent = proses;
+
+      const recent = hewan.slice(0, 5);
+      const html = recent.map(h => `
+        <div class="animal-row">
+          <div class="animal-avatar">${getEmoji(h.jenis_hewan)}</div>
+          <div class="animal-info">
+            <h4>${h.nomor_hewan}</h4>
+            <p>${h.instansi} · ${h.wilayah}</p>
+          </div>
+          <span class="status-badge ${getPhaseCount(h.status)===3 ? 'badge-done' : 'badge-progress'}">
+            ${getPhaseCount(h.status)}/3
+          </span>
+        </div>
+      `).join('');
+      document.getElementById('recentHewan').innerHTML = html || '<p style="padding:20px;text-align:center;">Belum ada data</p>';
+    }
+
+    function getEmoji(jenis) {
+      const j = (jenis || '').toLowerCase();
+      if (j.includes('kambing') || j.includes('domba')) return '🐑';
+      if (j.includes('kerbau')) return '🐃';
+      return '🐄';
+    }
+
+    function getPhaseCount(status) {
+      return [status.url_hidup, status.url_ditumbangkan, status.url_mati].filter(Boolean).length;
+    }
+
+    // ==================== HEWAN LIST ====================
+    async function renderAllHewan() {
+      const hewan = await loadAllHewan();
+      const searchInput = document.getElementById('searchInput');
+      const filterAndRender = () => {
+        const q = searchInput.value.toLowerCase();
+        const filtered = hewan.filter(h => 
+          h.nomor_hewan.toLowerCase().includes(q) ||
+          h.daftar_pekurban.toLowerCase().includes(q) ||
+          h.instansi.toLowerCase().includes(q) ||
+          h.wilayah.toLowerCase().includes(q)
+        );
+        const html = filtered.map(h => `
+          <div class="animal-row">
+            <div class="animal-avatar">${getEmoji(h.jenis_hewan)}</div>
+            <div class="animal-info">
+              <h4>${h.nomor_hewan} · ${h.jenis_hewan}</h4>
+              <p>${h.daftar_pekurban}</p>
+              <p style="font-size:12px;">${h.instansi} · ${h.wilayah}</p>
+            </div>
+            <span class="status-badge ${getPhaseCount(h.status)===3 ? 'badge-done' : 'badge-progress'}">
+              ${getPhaseCount(h.status)}/3
+            </span>
+          </div>
+        `).join('');
+        document.getElementById('allHewanList').innerHTML = html || '<p style="padding:20px;text-align:center;">Tidak ditemukan</p>';
+      };
+      searchInput.addEventListener('input', filterAndRender);
+      filterAndRender();
+    }
+
+    // ==================== UPLOAD FOTO ====================
+    async function initUploadScreen() {
+      const hewan = await loadAllHewan();
+      const select = document.getElementById('hewanSelect');
+      select.innerHTML = '<option value="">-- Pilih Hewan --</option>';
+      hewan.forEach(h => {
+        const option = document.createElement('option');
+        option.value = h.nomor_hewan;
+        option.textContent = `${h.nomor_hewan} - ${h.jenis_hewan} (${h.instansi})`;
+        select.appendChild(option);
+      });
+
+      select.onchange = async function() {
+        const nomor = this.value;
+        selectedHewan = hewan.find(h => h.nomor_hewan === nomor);
+        if (!selectedHewan) {
+          document.getElementById('uploadDetailCard').style.display = 'none';
+          document.getElementById('uploadPhotoCard').style.display = 'none';
+          return;
+        }
+        document.getElementById('uploadDetailCard').style.display = 'block';
+        document.getElementById('uploadPhotoCard').style.display = 'block';
+        renderSelectedHewanDetail();
+        updateUploadUI();
+      };
+    }
+
+    function renderSelectedHewanDetail() {
+      if (!selectedHewan) return;
+      const s = selectedHewan.status;
+      const html = `
+        <div class="detail-row"><span class="detail-label">Nomor</span><span class="detail-value">${selectedHewan.nomor_hewan}</span></div>
+        <div class="detail-row"><span class="detail-label">Jenis</span><span class="detail-value">${selectedHewan.jenis_hewan}</span></div>
+        <div class="detail-row"><span class="detail-label">Pekurban</span><span class="detail-value">${selectedHewan.daftar_pekurban}</span></div>
+        <div class="detail-row"><span class="detail-label">Instansi</span><span class="detail-value">${selectedHewan.instansi}</span></div>
+        <div class="detail-row"><span class="detail-label">Wilayah</span><span class="detail-value">${selectedHewan.wilayah}</span></div>
+        <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${getPhaseCount(s)}/3 tahap</span></div>
+      `;
+      document.getElementById('selectedHewanDetail').innerHTML = html;
+    }
+
+    function updateUploadUI() {
+      const s = selectedHewan.status;
+      // Update tabs
+      document.querySelectorAll('.foto-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      if (!s.url_hidup) currentTab = 'hidup';
+      else if (!s.url_ditumbangkan) currentTab = 'ditumbangkan';
+      else if (!s.url_mati) currentTab = 'mati';
+      else currentTab = 'hidup';
+      document.querySelector(`.foto-tab[data-tab="${currentTab}"]`).classList.add('active');
+    }
+
+    // Tab switching
+    document.querySelectorAll('.foto-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        currentTab = tab.dataset.tab;
+        document.querySelectorAll('.foto-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+      });
+    });
+
+    // Upload area
+    const uploadArea = document.getElementById('uploadArea');
+    const fotoInput = document.getElementById('fotoInput');
+    const previewImg = document.getElementById('previewImg');
+    uploadArea.addEventListener('click', () => fotoInput.click());
+    fotoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          previewImg.src = ev.target.result;
+          previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('uploadBtn').addEventListener('click', async () => {
+      if (!selectedHewan) return alert('Pilih hewan terlebih dahulu');
+      const file = fotoInput.files[0];
+      if (!file) return alert('Pilih foto');
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result.split(',')[1];
+        const btn = document.getElementById('uploadBtn');
+        btn.disabled = true;
+        btn.textContent = 'Mengupload...';
+        const result = await callApi('uploadFoto', {
+          email, username, nomor_hewan: selectedHewan.nomor_hewan,
+          jenis_foto: currentTab, base64Data: base64, mimeType: file.type
+        });
+        if (result.success) {
+          alert('Upload berhasil!');
+          // Refresh data
+          await loadAllHewan();
+          selectedHewan = allHewan.find(h => h.nomor_hewan === selectedHewan.nomor_hewan);
+          updateUploadUI();
+          previewImg.style.display = 'none';
+          fotoInput.value = '';
+        } else {
+          alert('Gagal: ' + result.error);
+        }
+        btn.disabled = false;
+        btn.textContent = 'Upload Foto';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ==================== DOKUMENTASI INSTANSI ====================
+    async function initDokScreen() {
+      const hewan = await loadAllHewan();
+      const instSet = new Set();
+      hewan.forEach(h => { if (h.instansi && h.wilayah) instSet.add(JSON.stringify({instansi: h.instansi, wilayah: h.wilayah})); });
+      dokInstansiList = Array.from(instSet).map(s => JSON.parse(s));
+      const select = document.getElementById('dokInstansiSelect');
+      select.innerHTML = '<option value="">-- Pilih Instansi --</option>';
+      dokInstansiList.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.instansi;
+        opt.textContent = `${item.instansi} (${item.wilayah})`;
+        opt.dataset.wilayah = item.wilayah;
+        select.appendChild(opt);
+      });
+      select.onchange = function() {
+        const opt = this.options[this.selectedIndex];
+        if (opt.value) {
+          document.getElementById('dokWilayah').value = opt.dataset.wilayah;
+          document.getElementById('dokUploadCard').style.display = 'block';
+        } else {
+          document.getElementById('dokWilayah').value = '';
+          document.getElementById('dokUploadCard').style.display = 'none';
+        }
+      };
+      loadDokRiwayat();
+    }
+
+    // Dok upload
+    const dokArea = document.getElementById('dokUploadArea');
+    const dokInput = document.getElementById('dokFileInput');
+    dokArea.addEventListener('click', () => dokInput.click());
+    dokInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      const listDiv = document.getElementById('dokFileList');
+      listDiv.innerHTML = files.map(f => `<div class="file-item">📄 ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('');
+    });
+
+    document.getElementById('dokUploadBtn').addEventListener('click', async () => {
+      const instansi = document.getElementById('dokInstansiSelect').value;
+      const wilayah = document.getElementById('dokWilayah').value;
+      const jenis = document.getElementById('dokJenis').value;
+      if (!instansi) return alert('Pilih instansi');
+      const files = dokInput.files;
+      if (files.length === 0) return alert('Pilih file');
+      
+      const filePromises = Array.from(files).map(f => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve({
+          base64Data: e.target.result.split(',')[1],
+          mimeType: f.type,
+          fileName: f.name
+        });
+        reader.readAsDataURL(f);
+      }));
+      
+      const btn = document.getElementById('dokUploadBtn');
+      btn.disabled = true;
+      btn.textContent = 'Mengupload...';
+      const fileData = await Promise.all(filePromises);
+      const result = await callApi('uploadDokumentasi', {
+        email, username: username || email, instansi, wilayah, jenis_dokumentasi: jenis, files: fileData
+      });
+      if (result.success) {
+        alert(`Berhasil upload ${result.fotoCount || 0} foto, ${result.videoCount || 0} video`);
+        dokInput.value = '';
+        document.getElementById('dokFileList').innerHTML = '';
+        loadDokRiwayat();
+      } else {
+        alert('Gagal: ' + result.error);
+      }
+      btn.disabled = false;
+      btn.textContent = 'Upload Dokumentasi';
+    });
+
+    async function loadDokRiwayat() {
+      const result = await callApi('getDokumentasi', { email });
+      if (result.success && result.data) {
+        const html = result.data.map(d => `
+          <div class="detail-row">
+            <div style="flex:1">
+              <strong>${d.instansi} (${d.wilayah})</strong><br>
+              <small>${d.jenis} · ${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'}</small>
+            </div>
+            <a href="${d.folderUrl}" target="_blank" style="color:var(--primary);">📂 Buka</a>
+          </div>
+        `).join('');
+        document.getElementById('dokRiwayat').innerHTML = html || '<p>Belum ada dokumentasi</p>';
+      }
+    }
 
     function logout() {
       localStorage.clear();
       window.location.href = '/';
     }
 
-    async function loadUserData() {
-      const result = await callApi('getHewan', { email });
-      if (result.success && result.data) {
-        const hewan = result.data;
-        const selesai = hewan.filter(h => h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati).length;
-        const proses = hewan.filter(h => (h.status.url_hidup || h.status.url_ditumbangkan || h.status.url_mati) && 
-                         !(h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati)).length;
-        
-        document.getElementById('totalHewan').textContent = hewan.length;
-        document.getElementById('selesai').textContent = selesai;
-        document.getElementById('proses').textContent = proses;
-
-        const listHtml = hewan.slice(0, 5).map(h => `
-          <div class="animal-row">
-            <div class="animal-avatar">${h.jenis_hewan === 'Sapi' ? '🐄' : '🐑'}</div>
-            <div class="animal-info">
-              <h4>${h.nomor_hewan}</h4>
-              <p>${h.instansi} · ${h.wilayah}</p>
-            </div>
-            <span class="status-badge ${(h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati) ? 'badge-done' : 'badge-progress'}">
-              ${(h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati) ? 'Selesai' : 'Proses'}
-            </span>
-          </div>
-        `).join('');
-        document.getElementById('hewanList').innerHTML = listHtml || '<p style="padding:20px;text-align:center;">Belum ada data</p>';
-      }
-    }
-
-    loadUserData();
+    // Initial load
+    loadDashboard();
   </script>
 </body>
 </html>

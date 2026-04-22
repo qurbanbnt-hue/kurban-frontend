@@ -5,81 +5,400 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel - Kurban Digital</title>
   <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    /* Admin specific styles */
+    .admin-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .header-actions { display: flex; gap: 12px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+    .btn-danger { background: var(--danger); }
+    .btn-small { padding: 6px 12px; font-size: 13px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 24px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; }
+    .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border-light); border-radius: 40px; }
+    .table-container { overflow-x: auto; margin-top: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+    .action-buttons { display: flex; gap: 8px; }
+    .tab-nav { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px; }
+    .tab-btn { padding: 10px 20px; background: none; border: none; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 40px; }
+    .tab-btn.active { background: var(--primary); color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
 </head>
 <body>
   <div class="admin-layout">
+    <!-- Sidebar -->
     <div class="admin-sidebar">
       <div class="admin-logo"><span>🐄</span> Kurban Digital</div>
       <ul class="sidebar-menu">
-        <li class="sidebar-item active"><span>📊</span> Dashboard</li>
-        <li class="sidebar-item"><span>👥</span> Pengguna</li>
-        <li class="sidebar-item"><span>🐮</span> Hewan</li>
-        <li class="sidebar-item"><span>📁</span> Dokumentasi</li>
+        <li class="sidebar-item active" data-tab="dashboard"><span>📊</span> Dashboard</li>
+        <li class="sidebar-item" data-tab="users"><span>👥</span> Pengguna</li>
+        <li class="sidebar-item" data-tab="hewan"><span>🐮</span> Hewan</li>
+        <li class="sidebar-item" data-tab="dokumentasi"><span>📁</span> Dokumentasi</li>
         <li class="sidebar-item" onclick="logout()"><span>🚪</span> Keluar</li>
       </ul>
     </div>
 
+    <!-- Main Content -->
     <div class="admin-main">
       <div class="admin-header">
-        <h1>Dashboard Admin</h1>
-        <div><span id="adminName"></span> · <a href="/" style="color:var(--primary);">User App</a></div>
-      </div>
-
-      <div class="admin-stats">
-        <div class="stat-card"><div class="value" id="totalHewan">-</div><div class="label">Total Hewan</div></div>
-        <div class="stat-card"><div class="value" id="totalUser">-</div><div class="label">Total Pengguna</div></div>
-        <div class="stat-card"><div class="value" id="selesai">-</div><div class="label">Dokumentasi Selesai</div></div>
-      </div>
-
-      <div class="data-table">
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-          <h3>Daftar Hewan</h3>
-          <button class="btn-icon" onclick="loadAdminData()" title="Refresh">🔄</button>
+        <h1 id="pageTitle">Dashboard</h1>
+        <div class="header-actions">
+          <span id="adminName"></span>
+          <button class="btn-outline" onclick="window.location.href='/'">📱 User App</button>
         </div>
-        <table>
-          <thead><tr><th>Nomor</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th></tr></thead>
-          <tbody id="hewanTable"></tbody>
-        </table>
       </div>
 
-      <div class="data-table" style="margin-top:24px;">
-        <h3 style="margin-bottom:20px;">Daftar Pengguna</h3>
-        <table>
-          <thead><tr><th>Email</th><th>Username</th><th>Role</th></tr></thead>
-          <tbody id="userTable"></tbody>
-        </table>
+      <!-- DASHBOARD TAB -->
+      <div id="tab-dashboard" class="tab-content active">
+        <div class="admin-stats">
+          <div class="stat-card"><div class="value" id="totalHewan">-</div><div class="label">Total Hewan</div></div>
+          <div class="stat-card"><div class="value" id="totalUser">-</div><div class="label">Total Pengguna</div></div>
+          <div class="stat-card"><div class="value" id="selesai">-</div><div class="label">Selesai</div></div>
+        </div>
+        <div class="data-table">
+          <h3>Ringkasan Hewan</h3>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Nomor</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th><th>Progress</th></tr></thead>
+              <tbody id="dashboardHewanTable"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
+
+      <!-- USERS TAB -->
+      <div id="tab-users" class="tab-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3>Manajemen Pengguna</h3>
+          <button class="btn" onclick="openUserModal()">+ Tambah Pengguna</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Aksi</th></tr></thead>
+            <tbody id="userTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HEWAN TAB -->
+      <div id="tab-hewan" class="tab-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3>Manajemen Hewan</h3>
+          <button class="btn" onclick="openHewanModal()">+ Tambah Hewan</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Nomor</th><th>Jenis</th><th>Pekurban</th><th>Jumlah</th><th>Instansi</th><th>Wilayah</th><th>Aksi</th></tr></thead>
+            <tbody id="hewanTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DOKUMENTASI TAB -->
+      <div id="tab-dokumentasi" class="tab-content">
+        <h3>Dokumentasi Instansi</h3>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Instansi</th><th>Wilayah</th><th>Jenis</th><th>Folder</th><th>Uploader</th><th>Tanggal</th></tr></thead>
+            <tbody id="dokTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: User Form -->
+  <div class="modal" id="userModal">
+    <div class="modal-content">
+      <h3 id="userModalTitle">Tambah Pengguna</h3>
+      <form id="userForm">
+        <input type="hidden" id="userId">
+        <div class="form-group"><label>Email</label><input type="email" id="userEmail" required></div>
+        <div class="form-group"><label>Username</label><input type="text" id="userUsername" required></div>
+        <div class="form-group"><label>Password</label><input type="password" id="userPassword"></div>
+        <div class="form-group"><label>Role</label><select id="userRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
+        <div style="display:flex; gap:12px; margin-top:24px;">
+          <button type="submit" class="btn">Simpan</button>
+          <button type="button" class="btn-outline" onclick="closeUserModal()">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Hewan Form -->
+  <div class="modal" id="hewanModal">
+    <div class="modal-content">
+      <h3 id="hewanModalTitle">Tambah Hewan</h3>
+      <form id="hewanForm">
+        <input type="hidden" id="hewanId">
+        <div class="form-group"><label>Nomor Hewan</label><input type="text" id="hewanNomor" required></div>
+        <div class="form-group"><label>Jenis Hewan</label><input type="text" id="hewanJenis" value="Sapi" required></div>
+        <div class="form-group"><label>Daftar Pekurban</label><input type="text" id="hewanPekurban" required></div>
+        <div class="form-group"><label>Jumlah Pekurban</label><input type="number" id="hewanJumlah" value="1" required></div>
+        <div class="form-group"><label>Instansi</label><input type="text" id="hewanInstansi" required></div>
+        <div class="form-group"><label>Wilayah</label><input type="text" id="hewanWilayah" required></div>
+        <div style="display:flex; gap:12px; margin-top:24px;">
+          <button type="submit" class="btn">Simpan</button>
+          <button type="button" class="btn-outline" onclick="closeHewanModal()">Batal</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script src="../assets/js/api.js"></script>
   <script>
+    // ==================== GLOBAL & AUTH ====================
     const email = localStorage.getItem('userEmail');
     const role = localStorage.getItem('userRole');
     if (!email || role !== 'admin') window.location.href = '/';
     document.getElementById('adminName').textContent = localStorage.getItem('username') || email;
+
+    let currentTab = 'dashboard';
+    let allUsers = [], allHewan = [], allDok = [];
+
+    // ==================== NAVIGATION ====================
+    document.querySelectorAll('.sidebar-item[data-tab]').forEach(item => {
+      item.addEventListener('click', () => {
+        const tab = item.dataset.tab;
+        switchTab(tab);
+      });
+    });
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+      document.querySelector(`.sidebar-item[data-tab="${tab}"]`).classList.add('active');
+      document.getElementById('pageTitle').textContent = 
+        tab === 'dashboard' ? 'Dashboard' : tab === 'users' ? 'Manajemen Pengguna' : tab === 'hewan' ? 'Manajemen Hewan' : 'Dokumentasi Instansi';
+      
+      if (tab === 'dashboard') loadDashboardData();
+      else if (tab === 'users') renderUserTable();
+      else if (tab === 'hewan') renderHewanTable();
+      else if (tab === 'dokumentasi') renderDokTable();
+    }
+
+    // ==================== DATA LOADING ====================
+    async function loadAllData() {
+      const result = await callApi('getAdminData', { email });
+      if (result.success) {
+        allUsers = result.users || [];
+        allHewan = result.hewan || [];
+        document.getElementById('totalHewan').textContent = result.stats.totalHewan;
+        document.getElementById('totalUser').textContent = result.stats.totalUsers;
+        document.getElementById('selesai').textContent = result.stats.selesai || 0;
+      }
+      // Load dokumentasi
+      const dokResult = await callApi('getDokumentasi', { email });
+      if (dokResult.success) allDok = dokResult.data || [];
+    }
+
+    async function loadDashboardData() {
+      await loadAllData();
+      renderDashboardHewan();
+    }
+
+    function renderDashboardHewan() {
+      const tbody = document.getElementById('dashboardHewanTable');
+      tbody.innerHTML = allHewan.slice(0, 10).map(h => {
+        const progress = (h.status?.url_hidup ? 1 : 0) + (h.status?.url_ditumbangkan ? 1 : 0) + (h.status?.url_mati ? 1 : 0);
+        return `<tr><td>${h.nomor_hewan}</td><td>${h.jenis_hewan}</td><td>${h.daftar_pekurban}</td><td>${h.instansi}</td><td>${h.wilayah}</td><td>${progress}/3</td></tr>`;
+      }).join('');
+    }
+
+    // ==================== USERS CRUD ====================
+    async function renderUserTable() {
+      await loadAllData();
+      const tbody = document.getElementById('userTable');
+      tbody.innerHTML = allUsers.map(u => `
+        <tr>
+          <td>${u.email}</td>
+          <td>${u.username}</td>
+          <td>${u.role}</td>
+          <td class="action-buttons">
+            <button class="btn-small" onclick="editUser('${u.email}')">✏️</button>
+            <button class="btn-small btn-danger" onclick="deleteUser('${u.email}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.editUser = (email) => {
+      const user = allUsers.find(u => u.email === email);
+      if (!user) return;
+      document.getElementById('userModalTitle').textContent = 'Edit Pengguna';
+      document.getElementById('userId').value = user.email;
+      document.getElementById('userEmail').value = user.email;
+      document.getElementById('userEmail').disabled = true;
+      document.getElementById('userUsername').value = user.username;
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userRole').value = user.role;
+      document.getElementById('userModal').classList.add('active');
+    };
+
+    window.deleteUser = async (email) => {
+      if (!confirm('Hapus pengguna ini?')) return;
+      // Panggil API delete user (perlu ditambahkan di backend)
+      const result = await callApi('deleteUser', { email: email, targetEmail: email });
+      if (result.success) {
+        await loadAllData();
+        renderUserTable();
+      } else {
+        alert('Gagal: ' + result.error);
+      }
+    };
+
+    function openUserModal() {
+      document.getElementById('userModalTitle').textContent = 'Tambah Pengguna';
+      document.getElementById('userId').value = '';
+      document.getElementById('userEmail').disabled = false;
+      document.getElementById('userForm').reset();
+      document.getElementById('userModal').classList.add('active');
+    }
+
+    function closeUserModal() {
+      document.getElementById('userModal').classList.remove('active');
+    }
+
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('userId').value;
+      const email = document.getElementById('userEmail').value;
+      const username = document.getElementById('userUsername').value;
+      const password = document.getElementById('userPassword').value;
+      const role = document.getElementById('userRole').value;
+
+      let result;
+      if (id) {
+        // Update user
+        result = await callApi('updateUser', { email: email, username, role, password: password || undefined });
+      } else {
+        // Add user
+        result = await callApi('addUser', { email, username, password, role });
+      }
+      if (result.success) {
+        closeUserModal();
+        await loadAllData();
+        renderUserTable();
+      } else {
+        alert('Gagal: ' + result.error);
+      }
+    });
+
+    // ==================== HEWAN CRUD ====================
+    async function renderHewanTable() {
+      await loadAllData();
+      const tbody = document.getElementById('hewanTable');
+      tbody.innerHTML = allHewan.map(h => `
+        <tr>
+          <td>${h.nomor_hewan}</td>
+          <td>${h.jenis_hewan}</td>
+          <td>${h.daftar_pekurban}</td>
+          <td>${h.jumlah_pekurban || 1}</td>
+          <td>${h.instansi}</td>
+          <td>${h.wilayah}</td>
+          <td class="action-buttons">
+            <button class="btn-small" onclick="editHewan('${h.nomor_hewan}')">✏️</button>
+            <button class="btn-small btn-danger" onclick="deleteHewan('${h.nomor_hewan}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.editHewan = (nomor) => {
+      const h = allHewan.find(h => h.nomor_hewan === nomor);
+      if (!h) return;
+      document.getElementById('hewanModalTitle').textContent = 'Edit Hewan';
+      document.getElementById('hewanId').value = h.nomor_hewan;
+      document.getElementById('hewanNomor').value = h.nomor_hewan;
+      document.getElementById('hewanJenis').value = h.jenis_hewan;
+      document.getElementById('hewanPekurban').value = h.daftar_pekurban;
+      document.getElementById('hewanJumlah').value = h.jumlah_pekurban || 1;
+      document.getElementById('hewanInstansi').value = h.instansi;
+      document.getElementById('hewanWilayah').value = h.wilayah;
+      document.getElementById('hewanModal').classList.add('active');
+    };
+
+    window.deleteHewan = async (nomor) => {
+      if (!confirm('Hapus hewan ini?')) return;
+      const result = await callApi('deleteHewan', { email, nomor_hewan: nomor });
+      if (result.success) {
+        await loadAllData();
+        renderHewanTable();
+      } else {
+        alert('Gagal: ' + result.error);
+      }
+    };
+
+    function openHewanModal() {
+      document.getElementById('hewanModalTitle').textContent = 'Tambah Hewan';
+      document.getElementById('hewanId').value = '';
+      document.getElementById('hewanForm').reset();
+      document.getElementById('hewanModal').classList.add('active');
+    }
+
+    function closeHewanModal() {
+      document.getElementById('hewanModal').classList.remove('active');
+    }
+
+    document.getElementById('hewanForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('hewanId').value;
+      const hewan = {
+        nomor_hewan: document.getElementById('hewanNomor').value,
+        jenis_hewan: document.getElementById('hewanJenis').value,
+        daftar_pekurban: document.getElementById('hewanPekurban').value,
+        jumlah_pekurban: parseInt(document.getElementById('hewanJumlah').value) || 1,
+        instansi: document.getElementById('hewanInstansi').value,
+        wilayah: document.getElementById('hewanWilayah').value
+      };
+      let result;
+      if (id) {
+        result = await callApi('updateHewan', { email, hewan });
+      } else {
+        result = await callApi('addHewan', { email, hewan });
+      }
+      if (result.success) {
+        closeHewanModal();
+        await loadAllData();
+        renderHewanTable();
+        if (currentTab === 'dashboard') renderDashboardHewan();
+      } else {
+        alert('Gagal: ' + result.error);
+      }
+    });
+
+    // ==================== DOKUMENTASI ====================
+    async function renderDokTable() {
+      const dokResult = await callApi('getDokumentasi', { email });
+      if (dokResult.success) allDok = dokResult.data || [];
+      const tbody = document.getElementById('dokTable');
+      tbody.innerHTML = allDok.map(d => `
+        <tr>
+          <td>${d.instansi}</td>
+          <td>${d.wilayah}</td>
+          <td>${d.jenis}</td>
+          <td><a href="${d.folderUrl}" target="_blank">📂 Buka</a></td>
+          <td>${d.uploader}</td>
+          <td>${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'}</td>
+        </tr>
+      `).join('');
+    }
 
     function logout() {
       localStorage.clear();
       window.location.href = '/';
     }
 
-    async function loadAdminData() {
-      const result = await callApi('getAdminData', { email });
-      if (result.success) {
-        document.getElementById('totalHewan').textContent = result.stats.totalHewan;
-        document.getElementById('totalUser').textContent = result.stats.totalUsers;
-        document.getElementById('selesai').textContent = result.stats.selesai || 0;
-
-        const hewanHtml = result.hewan.map(h => `<tr><td>${h.nomor_hewan}</td><td>${h.jenis_hewan}</td><td>${h.daftar_pekurban}</td><td>${h.instansi}</td><td>${h.wilayah}</td></tr>`).join('');
-        document.getElementById('hewanTable').innerHTML = hewanHtml || '<tr><td colspan="5">Belum ada data</td></tr>';
-
-        const userHtml = result.users.map(u => `<tr><td>${u.email}</td><td>${u.username}</td><td>${u.role}</td></tr>`).join('');
-        document.getElementById('userTable').innerHTML = userHtml;
-      }
-    }
-
-    loadAdminData();
+    // Initial load
+    loadDashboardData();
   </script>
 </body>
 </html>
