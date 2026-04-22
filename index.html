@@ -111,9 +111,7 @@
 
   <!-- API Config -->
   <script>
-    // Konfigurasi sementara (ganti dengan file api.js nanti)
-    const API_BASE_URL = 'https://script.google.com/macros/s/AKfycby2yiAAUlTnZuzVOi2qkzgDV7zBV0SqzsCbZ6yc7ZzJ23n6zILxiMFr4s214pcIVDymxg/exec';
-
+  
     async function callApi(action, data = {}) {
       try {
         const response = await fetch(API_BASE_URL + '?action=' + action, {
