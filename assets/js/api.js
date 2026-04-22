@@ -1,3 +1,4 @@
+// Konfigurasi API - panggil proxy Vercel
 const API_BASE_URL = '/api/proxy';
 
 async function callApi(action, data = {}) {

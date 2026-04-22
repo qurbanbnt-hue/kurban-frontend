@@ -127,88 +127,80 @@
     }
   </script>
 
-  <script src="assets/js/api.js"></script>
+<script src="assets/js/api.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    
+    function checkAuth() {
+      const email = localStorage.getItem('userEmail');
+      const role = localStorage.getItem('userRole');
+      const expiry = Number(localStorage.getItem('loginExpiry'));
+      if (!email || !role || isNaN(expiry) || Date.now() > expiry) {
+        localStorage.clear();
+        return null;
+      }
+      return { email, role, username: localStorage.getItem('username') };
+    }
 
-  <script>
-    // Jalankan setelah DOM siap
-    document.addEventListener('DOMContentLoaded', function() {
+    const auth = checkAuth();
+    if (auth) {
+      if (auth.role === 'admin') {
+        window.location.replace('/admin');
+      } else {
+        window.location.replace('/user');
+      }
+      return;
+    }
+
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const btn = document.getElementById('loginBtn');
+    const errorDiv = document.getElementById('loginError');
+
+    async function handleLogin(e) {
+      e.preventDefault();
       
-      // Fungsi cek auth
-      function checkAuth() {
-        const email = localStorage.getItem('userEmail');
-        const role = localStorage.getItem('userRole');
-        const expiry = Number(localStorage.getItem('loginExpiry'));
-
-        if (!email || !role || isNaN(expiry) || Date.now() > expiry) {
-          localStorage.clear();
-          return null;
-        }
-        return { email, role, username: localStorage.getItem('username') };
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      
+      if (!email || !password) {
+        errorDiv.textContent = 'Email dan password harus diisi';
+        return;
       }
 
-      // Cek session saat ini
-      const auth = checkAuth();
-      if (auth) {
-        if (auth.role === 'admin') {
-          window.location.replace('/admin');
-        } else {
-          window.location.replace('/user');
-        }
-        return; // Hentikan eksekusi
-      }
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+      errorDiv.textContent = '';
 
-      // Ambil elemen form (pastikan sudah ada)
-      const form = document.getElementById('loginForm');
-      const emailInput = document.getElementById('email');
-      const passwordInput = document.getElementById('password');
-      const btn = document.getElementById('loginBtn');
-      const errorDiv = document.getElementById('loginError');
-
-      // Fungsi login
-      async function handleLogin(e) {
-        e.preventDefault();
+      try {
+        const result = await callApi('login', { email, password });
         
-        const email = emailInput.value.trim();
-        const password = passwordInput.value;
-        
-        if (!email || !password) {
-          errorDiv.textContent = 'Email dan password harus diisi';
-          return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = 'Memproses...';
-        errorDiv.textContent = '';
-
-        try {
-          const result = await callApi('login', { email, password });
+        if (result.success) {
+          localStorage.setItem('userEmail', result.email);
+          localStorage.setItem('username', result.username);
+          localStorage.setItem('userRole', result.role);
+          localStorage.setItem('loginExpiry', Date.now() + (8 * 60 * 60 * 1000));
           
-          if (result.success) {
-            localStorage.setItem('userEmail', result.email);
-            localStorage.setItem('username', result.username);
-            localStorage.setItem('userRole', result.role);
-            localStorage.setItem('loginExpiry', Date.now() + (8 * 60 * 60 * 1000));
-            
-            if (result.role === 'admin') {
-              window.location.replace('/admin');
-            } else {
-              window.location.replace('/user');
-            }
+          if (result.role === 'admin') {
+            window.location.replace('/admin');
           } else {
-            errorDiv.textContent = result.error || 'Login gagal';
-            btn.disabled = false;
-            btn.textContent = 'Masuk';
+            window.location.replace('/user');
           }
-        } catch (err) {
-          errorDiv.textContent = 'Gagal terhubung ke server';
+        } else {
+          errorDiv.textContent = result.error || 'Login gagal';
           btn.disabled = false;
           btn.textContent = 'Masuk';
         }
+      } catch (err) {
+        errorDiv.textContent = 'Gagal terhubung ke server';
+        btn.disabled = false;
+        btn.textContent = 'Masuk';
       }
+    }
 
-      // Pasang event listener
-      form.addEventListener('submit', handleLogin);
-    });
-  </script>
+    form.addEventListener('submit', handleLogin);
+  });
+</script>
 </body>
 </html>
