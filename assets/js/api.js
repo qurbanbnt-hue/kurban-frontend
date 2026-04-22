@@ -1,12 +1,11 @@
-// assets/js/api.js
-const API_BASE_URL = '/api/proxy'; // Panggil proxy Vercel
+const API_BASE_URL = '/api/proxy';
 
 async function callApi(action, data = {}) {
   try {
     const response = await fetch(`${API_BASE_URL}?action=${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(data)
     });
     return await response.json();
   } catch (error) {
