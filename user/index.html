@@ -3,20 +3,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User - Kurban Digital</title>
+  <title>Kurban Digital - User</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
-  <h1>Halaman User (Panitia)</h1>
-  <p>Selamat datang, <span id="username"></span>!</p>
-  <button onclick="logout()">Logout</button>
+  <div class="app-shell">
+    <div class="app-header">
+      <div class="header-top">
+        <span class="header-greeting">Assalamu'alaikum</span>
+        <span style="font-size: 24px;">🐄</span>
+      </div>
+      <div class="header-name" id="userName">User</div>
+    </div>
+
+    <div class="content">
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-value" id="totalHewan">-</div><div class="stat-label">Total</div></div>
+        <div class="stat-item"><div class="stat-value" id="selesai">-</div><div class="stat-label">Selesai</div></div>
+        <div class="stat-item"><div class="stat-value" id="proses">-</div><div class="stat-label">Proses</div></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🐮 Hewan Terbaru</div>
+        <div id="hewanList"></div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <button class="nav-item active">🏠<span>Beranda</span></button>
+      <button class="nav-item">📋<span>Hewan</span></button>
+      <button class="nav-item">📸<span>Upload</span></button>
+      <button class="nav-item">📂<span>Dokumentasi</span></button>
+      <button class="nav-item" onclick="logout()">🚪<span>Keluar</span></button>
+    </div>
+  </div>
 
   <script src="../assets/js/api.js"></script>
   <script>
-    const auth = checkAuth();
-    if (!auth || auth.role === 'admin') {
+    const email = localStorage.getItem('userEmail');
+    const username = localStorage.getItem('username');
+    if (!email) window.location.href = '/';
+    document.getElementById('userName').textContent = username || email;
+
+    function logout() {
+      localStorage.clear();
       window.location.href = '/';
     }
-    document.getElementById('username').textContent = auth.username;
+
+    async function loadUserData() {
+      const result = await callApi('getHewan', { email });
+      if (result.success && result.data) {
+        const hewan = result.data;
+        const selesai = hewan.filter(h => h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati).length;
+        const proses = hewan.filter(h => (h.status.url_hidup || h.status.url_ditumbangkan || h.status.url_mati) && 
+                         !(h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati)).length;
+        
+        document.getElementById('totalHewan').textContent = hewan.length;
+        document.getElementById('selesai').textContent = selesai;
+        document.getElementById('proses').textContent = proses;
+
+        const listHtml = hewan.slice(0, 5).map(h => `
+          <div class="animal-row">
+            <div class="animal-avatar">${h.jenis_hewan === 'Sapi' ? '🐄' : '🐑'}</div>
+            <div class="animal-info">
+              <h4>${h.nomor_hewan}</h4>
+              <p>${h.instansi} · ${h.wilayah}</p>
+            </div>
+            <span class="status-badge ${(h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati) ? 'badge-done' : 'badge-progress'}">
+              ${(h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati) ? 'Selesai' : 'Proses'}
+            </span>
+          </div>
+        `).join('');
+        document.getElementById('hewanList').innerHTML = listHtml || '<p style="padding:20px;text-align:center;">Belum ada data</p>';
+      }
+    }
+
+    loadUserData();
   </script>
 </body>
 </html>

@@ -5,97 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel - Kurban Digital</title>
   <link rel="stylesheet" href="../assets/css/style.css">
-  <style>
-    .admin-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .admin-header h1 { color: #1B5432; }
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
-    .stat-value { font-size: 32px; font-weight: 700; color: #1B5432; }
-    .stat-label { font-size: 14px; color: #666; margin-top: 4px; }
-    .section-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .section-title { font-size: 18px; font-weight: 600; color: #1B5432; margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-    th { color: #666; font-weight: 600; font-size: 13px; }
-    .badge { padding: 4px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-    .badge-admin { background: #C49A3C; color: white; }
-    .badge-user { background: #e0e0e0; color: #333; }
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    .btn-primary { background: #1B5432; color: white; }
-    .btn-outline { background: transparent; border: 1px solid #1B5432; color: #1B5432; }
-    .btn-danger { background: #C94040; color: white; }
-    .action-bar { display: flex; gap: 12px; margin-top: 20px; }
-    .loading { text-align: center; padding: 40px; color: #666; }
-  </style>
 </head>
 <body>
-  <div class="admin-container">
-    <div class="admin-header">
-      <h1>🐄 Admin Panel - Kurban Digital</h1>
-      <div>
-        <span id="adminName" style="margin-right: 16px; color: #666;"></span>
-        <button class="btn btn-outline" onclick="window.location.href='/'">📱 User App</button>
-        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
-      </div>
+  <div class="admin-layout">
+    <div class="admin-sidebar">
+      <div class="admin-logo"><span>🐄</span> Kurban Digital</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-item active"><span>📊</span> Dashboard</li>
+        <li class="sidebar-item"><span>👥</span> Pengguna</li>
+        <li class="sidebar-item"><span>🐮</span> Hewan</li>
+        <li class="sidebar-item"><span>📁</span> Dokumentasi</li>
+        <li class="sidebar-item" onclick="logout()"><span>🚪</span> Keluar</li>
+      </ul>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value" id="stat-total-hewan">-</div>
-        <div class="stat-label">Total Hewan</div>
+    <div class="admin-main">
+      <div class="admin-header">
+        <h1>Dashboard Admin</h1>
+        <div><span id="adminName"></span> · <a href="/" style="color:var(--primary);">User App</a></div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value" id="stat-total-user">-</div>
-        <div class="stat-label">Total Pengguna</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="stat-selesai">-</div>
-        <div class="stat-label">Dokumentasi Selesai</div>
-      </div>
-    </div>
 
-    <div class="section-card">
-      <div class="section-title">👥 Daftar Pengguna</div>
-      <div style="max-height: 300px; overflow-y: auto;">
+      <div class="admin-stats">
+        <div class="stat-card"><div class="value" id="totalHewan">-</div><div class="label">Total Hewan</div></div>
+        <div class="stat-card"><div class="value" id="totalUser">-</div><div class="label">Total Pengguna</div></div>
+        <div class="stat-card"><div class="value" id="selesai">-</div><div class="label">Dokumentasi Selesai</div></div>
+      </div>
+
+      <div class="data-table">
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+          <h3>Daftar Hewan</h3>
+          <button class="btn-icon" onclick="loadAdminData()" title="Refresh">🔄</button>
+        </div>
         <table>
-          <thead>
-            <tr><th>Email</th><th>Username</th><th>Role</th></tr>
-          </thead>
-          <tbody id="user-table-body"></tbody>
+          <thead><tr><th>Nomor</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th></tr></thead>
+          <tbody id="hewanTable"></tbody>
         </table>
       </div>
-    </div>
 
-    <div class="section-card">
-      <div class="section-title">🐮 Daftar Hewan</div>
-      <div style="max-height: 400px; overflow-y: auto;">
+      <div class="data-table" style="margin-top:24px;">
+        <h3 style="margin-bottom:20px;">Daftar Pengguna</h3>
         <table>
-          <thead>
-            <tr><th>Nomor</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th></tr>
-          </thead>
-          <tbody id="hewan-table-body"></tbody>
+          <thead><tr><th>Email</th><th>Username</th><th>Role</th></tr></thead>
+          <tbody id="userTable"></tbody>
         </table>
       </div>
-    </div>
-
-    <div class="action-bar">
-      <button class="btn btn-primary" onclick="loadAdminData()">🔄 Refresh Data</button>
     </div>
   </div>
 
   <script src="../assets/js/api.js"></script>
   <script>
-    // Cek session
     const email = localStorage.getItem('userEmail');
-    const username = localStorage.getItem('username');
     const role = localStorage.getItem('userRole');
-
-    if (!email || role !== 'admin') {
-      window.location.href = '/';
-    }
-
-    document.getElementById('adminName').textContent = username || email;
+    if (!email || role !== 'admin') window.location.href = '/';
+    document.getElementById('adminName').textContent = localStorage.getItem('username') || email;
 
     function logout() {
       localStorage.clear();
@@ -103,53 +65,20 @@
     }
 
     async function loadAdminData() {
-      // Tampilkan loading
-      document.getElementById('user-table-body').innerHTML = '<tr><td colspan="3" class="loading">Memuat...</td></tr>';
-      document.getElementById('hewan-table-body').innerHTML = '<tr><td colspan="5" class="loading">Memuat...</td></tr>';
-
-      const result = await callApi('getAdminData', { email: email });
-      
+      const result = await callApi('getAdminData', { email });
       if (result.success) {
-        // Update stats
-        document.getElementById('stat-total-hewan').textContent = result.stats.totalHewan;
-        document.getElementById('stat-total-user').textContent = result.stats.totalUsers;
-        document.getElementById('stat-selesai').textContent = result.stats.selesai || 0;
+        document.getElementById('totalHewan').textContent = result.stats.totalHewan;
+        document.getElementById('totalUser').textContent = result.stats.totalUsers;
+        document.getElementById('selesai').textContent = result.stats.selesai || 0;
 
-        // Render users
-        const userBody = document.getElementById('user-table-body');
-        if (result.users.length === 0) {
-          userBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">Belum ada pengguna</td></tr>';
-        } else {
-          userBody.innerHTML = result.users.map(u => `
-            <tr>
-              <td>${u.email}</td>
-              <td>${u.username || '-'}</td>
-              <td><span class="badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role}</span></td>
-            </tr>
-          `).join('');
-        }
+        const hewanHtml = result.hewan.map(h => `<tr><td>${h.nomor_hewan}</td><td>${h.jenis_hewan}</td><td>${h.daftar_pekurban}</td><td>${h.instansi}</td><td>${h.wilayah}</td></tr>`).join('');
+        document.getElementById('hewanTable').innerHTML = hewanHtml || '<tr><td colspan="5">Belum ada data</td></tr>';
 
-        // Render hewan
-        const hewanBody = document.getElementById('hewan-table-body');
-        if (result.hewan.length === 0) {
-          hewanBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Belum ada data hewan</td></tr>';
-        } else {
-          hewanBody.innerHTML = result.hewan.map(h => `
-            <tr>
-              <td>${h.nomor_hewan}</td>
-              <td>${h.jenis_hewan}</td>
-              <td>${h.daftar_pekurban}</td>
-              <td>${h.instansi}</td>
-              <td>${h.wilayah}</td>
-            </tr>
-          `).join('');
-        }
-      } else {
-        alert('Gagal memuat data: ' + (result.error || 'Unknown error'));
+        const userHtml = result.users.map(u => `<tr><td>${u.email}</td><td>${u.username}</td><td>${u.role}</td></tr>`).join('');
+        document.getElementById('userTable').innerHTML = userHtml;
       }
     }
 
-    // Load data saat halaman dibuka
     loadAdminData();
   </script>
 </body>
