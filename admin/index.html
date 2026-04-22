@@ -3,20 +3,154 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Kurban Digital</title>
+  <title>Admin Panel - Kurban Digital</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .admin-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .admin-header h1 { color: #1B5432; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
+    .stat-value { font-size: 32px; font-weight: 700; color: #1B5432; }
+    .stat-label { font-size: 14px; color: #666; margin-top: 4px; }
+    .section-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .section-title { font-size: 18px; font-weight: 600; color: #1B5432; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th { color: #666; font-weight: 600; font-size: 13px; }
+    .badge { padding: 4px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-admin { background: #C49A3C; color: white; }
+    .badge-user { background: #e0e0e0; color: #333; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: #1B5432; color: white; }
+    .btn-outline { background: transparent; border: 1px solid #1B5432; color: #1B5432; }
+    .btn-danger { background: #C94040; color: white; }
+    .action-bar { display: flex; gap: 12px; margin-top: 20px; }
+    .loading { text-align: center; padding: 40px; color: #666; }
+  </style>
 </head>
 <body>
-  <h1>Halaman Admin</h1>
-  <p>Selamat datang, <span id="username"></span> (Admin)!</p>
-  <button onclick="logout()">Logout</button>
+  <div class="admin-container">
+    <div class="admin-header">
+      <h1>🐄 Admin Panel - Kurban Digital</h1>
+      <div>
+        <span id="adminName" style="margin-right: 16px; color: #666;"></span>
+        <button class="btn btn-outline" onclick="window.location.href='/'">📱 User App</button>
+        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total-hewan">-</div>
+        <div class="stat-label">Total Hewan</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total-user">-</div>
+        <div class="stat-label">Total Pengguna</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-selesai">-</div>
+        <div class="stat-label">Dokumentasi Selesai</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">👥 Daftar Pengguna</div>
+      <div style="max-height: 300px; overflow-y: auto;">
+        <table>
+          <thead>
+            <tr><th>Email</th><th>Username</th><th>Role</th></tr>
+          </thead>
+          <tbody id="user-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">🐮 Daftar Hewan</div>
+      <div style="max-height: 400px; overflow-y: auto;">
+        <table>
+          <thead>
+            <tr><th>Nomor</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th></tr>
+          </thead>
+          <tbody id="hewan-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="loadAdminData()">🔄 Refresh Data</button>
+    </div>
+  </div>
 
   <script src="../assets/js/api.js"></script>
   <script>
-    const auth = checkAuth();
-    if (!auth || auth.role !== 'admin') {
+    // Cek session
+    const email = localStorage.getItem('userEmail');
+    const username = localStorage.getItem('username');
+    const role = localStorage.getItem('userRole');
+
+    if (!email || role !== 'admin') {
       window.location.href = '/';
     }
-    document.getElementById('username').textContent = auth.username;
+
+    document.getElementById('adminName').textContent = username || email;
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+
+    async function loadAdminData() {
+      // Tampilkan loading
+      document.getElementById('user-table-body').innerHTML = '<tr><td colspan="3" class="loading">Memuat...</td></tr>';
+      document.getElementById('hewan-table-body').innerHTML = '<tr><td colspan="5" class="loading">Memuat...</td></tr>';
+
+      const result = await callApi('getAdminData', { email: email });
+      
+      if (result.success) {
+        // Update stats
+        document.getElementById('stat-total-hewan').textContent = result.stats.totalHewan;
+        document.getElementById('stat-total-user').textContent = result.stats.totalUsers;
+        document.getElementById('stat-selesai').textContent = result.stats.selesai || 0;
+
+        // Render users
+        const userBody = document.getElementById('user-table-body');
+        if (result.users.length === 0) {
+          userBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">Belum ada pengguna</td></tr>';
+        } else {
+          userBody.innerHTML = result.users.map(u => `
+            <tr>
+              <td>${u.email}</td>
+              <td>${u.username || '-'}</td>
+              <td><span class="badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role}</span></td>
+            </tr>
+          `).join('');
+        }
+
+        // Render hewan
+        const hewanBody = document.getElementById('hewan-table-body');
+        if (result.hewan.length === 0) {
+          hewanBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Belum ada data hewan</td></tr>';
+        } else {
+          hewanBody.innerHTML = result.hewan.map(h => `
+            <tr>
+              <td>${h.nomor_hewan}</td>
+              <td>${h.jenis_hewan}</td>
+              <td>${h.daftar_pekurban}</td>
+              <td>${h.instansi}</td>
+              <td>${h.wilayah}</td>
+            </tr>
+          `).join('');
+        }
+      } else {
+        alert('Gagal memuat data: ' + (result.error || 'Unknown error'));
+      }
+    }
+
+    // Load data saat halaman dibuka
+    loadAdminData();
   </script>
 </body>
 </html>
