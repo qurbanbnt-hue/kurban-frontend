@@ -2,8 +2,5 @@
   "rewrites": [
     { "source": "/user", "destination": "/user/index.html" },
     { "source": "/admin", "destination": "/admin/index.html" }
-  ],
-  "env": {
-    "APPS_SCRIPT_URL": "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
-  }
+  ]
 }
