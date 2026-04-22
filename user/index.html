@@ -6,76 +6,158 @@
   <title>Kurban Digital - User</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <style>
-    /* Additional user portal specific styles */
-    .screen { display: none; }
-    .screen.active { display: block; }
-    .upload-area {
-      border: 2px dashed var(--border-light);
-      border-radius: var(--radius-lg);
-      padding: 30px 20px;
-      text-align: center;
-      background: var(--bg-light);
-      cursor: pointer;
-      margin: 16px 0;
+    /* User Portal specific enhancements */
+    .screen {
+      display: none;
+      animation: fade 0.2s ease;
     }
-    .preview-image {
-      max-width: 100%;
-      max-height: 200px;
-      border-radius: var(--radius-md);
-      margin-top: 16px;
+    .screen.active {
+      display: block;
     }
-    .file-list {
-      margin-top: 16px;
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .file-item {
+
+    .hero-card {
+      background: linear-gradient(145deg, var(--primary) 0%, var(--primary-dark) 100%);
+      border-radius: 28px;
+      padding: 24px 20px;
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .progress-steps {
       display: flex;
       align-items: center;
-      padding: 8px;
-      background: var(--white);
-      border-radius: 8px;
-      margin-bottom: 8px;
-      font-size: 14px;
+      margin: 20px 0;
     }
-    .btn {
-      padding: 12px 24px;
-      border: none;
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    .step-circle {
+      width: 40px;
+      height: 40px;
       border-radius: 40px;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .step-circle.done {
+      background: var(--gold);
+      color: var(--text-dark);
+    }
+    .step-line {
+      height: 3px;
+      background: rgba(255,255,255,0.2);
+      flex: 1;
+      margin: 0 4px;
+      margin-bottom: 22px;
+    }
+    .step-line.done {
+      background: var(--gold);
+    }
+
+    .search-box {
+      background: white;
+      border-radius: 60px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .search-box input {
+      border: none;
+      padding: 12px 8px;
+      font-size: 16px;
+      width: 100%;
+      outline: none;
+    }
+
+    .upload-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: var(--bg-light);
+      padding: 6px;
+      border-radius: 60px;
+    }
+    .upload-tab {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      border-radius: 60px;
       font-weight: 600;
       cursor: pointer;
+    }
+    .upload-tab.active {
       background: var(--primary);
       color: white;
-      width: 100%;
     }
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--primary);
-      color: var(--primary);
+
+    .preview-container {
+      position: relative;
+      margin-top: 16px;
     }
-    select, input[type="text"] {
+    .preview-image {
       width: 100%;
-      padding: 12px 16px;
-      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      max-height: 250px;
+      object-fit: cover;
+    }
+    .remove-preview {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 36px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .file-badge {
+      background: var(--bg-light);
       border-radius: 40px;
-      font-size: 14px;
-      margin-bottom: 16px;
-    }
-    .detail-row {
+      padding: 10px 16px;
+      margin: 8px 0;
       display: flex;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border-light);
+      align-items: center;
+      gap: 12px;
     }
-    .detail-label {
-      width: 120px;
+
+    .btn-icon-large {
+      width: 48px;
+      height: 48px;
+      border-radius: 48px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .empty-illustration {
+      text-align: center;
+      padding: 40px 20px;
       color: var(--text-muted);
-    }
-    .detail-value {
-      flex: 1;
-      font-weight: 500;
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
+    <!-- Header -->
     <div class="app-header">
       <div class="header-top">
         <span class="header-greeting" id="greetingText">Assalamu'alaikum</span>
@@ -84,6 +166,7 @@
       <div class="header-name" id="userName">User</div>
     </div>
 
+    <!-- Main Content Area (Screens) -->
     <div class="content">
       <!-- SCREEN: BERANDA / DASHBOARD -->
       <div id="screen-beranda" class="screen active">
@@ -92,78 +175,105 @@
           <div class="stat-item"><div class="stat-value" id="selesai">-</div><div class="stat-label">Selesai</div></div>
           <div class="stat-item"><div class="stat-value" id="proses">-</div><div class="stat-label">Proses</div></div>
         </div>
+        <div class="hero-card">
+          <h3 style="margin-bottom: 16px;">Progress Dokumentasi</h3>
+          <div class="progress-steps">
+            <div class="step"><div class="step-circle" id="stepHidup">1</div><span style="font-size:12px;">Hidup</span></div>
+            <div class="step-line" id="line1"></div>
+            <div class="step"><div class="step-circle" id="stepTumbang">2</div><span style="font-size:12px;">Ditumbangkan</span></div>
+            <div class="step-line" id="line2"></div>
+            <div class="step"><div class="step-circle" id="stepMati">3</div><span style="font-size:12px;">Mati</span></div>
+          </div>
+          <div style="margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span>📷 Hidup</span><span id="countHidup">0</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span>🔪 Ditumbangkan</span><span id="countTumbang">0</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span>✅ Mati</span><span id="countMati">0</span>
+            </div>
+          </div>
+        </div>
         <div class="card">
-          <div class="section-title">🐮 Hewan Terbaru</div>
+          <div class="section-title">🐮 Hewan Terbaru <span style="margin-left:auto; font-size:14px; color:var(--primary);" onclick="switchScreen('hewan')">Lihat Semua →</span></div>
           <div id="recentHewan"></div>
         </div>
       </div>
 
       <!-- SCREEN: DAFTAR HEWAN -->
       <div id="screen-hewan" class="screen">
-        <div class="card">
-          <div class="section-title">🔍 Cari Hewan</div>
-          <input type="text" id="searchInput" placeholder="Nomor, Pekurban, Instansi..." class="form-control" style="margin-bottom:0;">
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="searchInput" placeholder="Cari nomor, pekurban, instansi...">
         </div>
-        <div class="card" style="padding:0;">
-          <div id="allHewanList"></div>
-        </div>
+        <div id="allHewanList"></div>
       </div>
 
       <!-- SCREEN: UPLOAD FOTO -->
       <div id="screen-upload" class="screen">
         <div class="card">
-          <div class="section-title">📸 Pilih Hewan</div>
-          <select id="hewanSelect">
+          <div class="section-title">Pilih Hewan</div>
+          <select id="hewanSelect" class="form-control" style="margin-bottom:0;">
             <option value="">-- Pilih Hewan --</option>
           </select>
         </div>
-        <div class="card" id="uploadDetailCard" style="display:none;">
-          <div class="section-title">🐄 Detail Hewan</div>
-          <div id="selectedHewanDetail"></div>
-        </div>
-        <div class="card" id="uploadPhotoCard" style="display:none;">
-          <div class="section-title">📷 Upload Foto</div>
-          <div class="foto-tabs" style="display:flex; gap:8px; margin-bottom:16px;">
-            <button class="foto-tab active" data-tab="hidup" style="flex:1;">Hidup</button>
-            <button class="foto-tab" data-tab="ditumbangkan" style="flex:1;">Ditumbangkan</button>
-            <button class="foto-tab" data-tab="mati" style="flex:1;">Mati</button>
+        <div id="uploadDetailCard" style="display:none;">
+          <div class="card">
+            <div class="section-title">Detail Hewan</div>
+            <div id="selectedHewanDetail"></div>
           </div>
-          <div class="upload-area" id="uploadArea">
-            <div style="font-size:32px;">📸</div>
-            <div>Ketuk untuk pilih foto</div>
+          <div class="card">
+            <div class="section-title">Status Upload</div>
+            <div id="uploadStatusDisplay"></div>
+            <div class="upload-tabs">
+              <button class="upload-tab active" data-tab="hidup">📷 Hidup</button>
+              <button class="upload-tab" data-tab="ditumbangkan">🔪 Ditumbangkan</button>
+              <button class="upload-tab" data-tab="mati">✅ Mati</button>
+            </div>
+            <div class="upload-area" id="uploadArea">
+              <div style="font-size:32px;">📸</div>
+              <div>Ketuk untuk pilih foto</div>
+            </div>
+            <input type="file" id="fotoInput" accept="image/*" style="display:none;">
+            <div class="preview-container" id="previewContainer" style="display:none;">
+              <img id="previewImg" class="preview-image">
+              <button class="remove-preview" id="removePreview">✕</button>
+            </div>
+            <button class="btn" id="uploadBtn" style="margin-top:16px;">Upload Foto</button>
           </div>
-          <input type="file" id="fotoInput" accept="image/*" style="display:none;">
-          <img id="previewImg" class="preview-image" style="display:none;">
-          <button class="btn" id="uploadBtn" style="margin-top:16px;">Upload Foto</button>
         </div>
       </div>
 
       <!-- SCREEN: DOKUMENTASI INSTANSI -->
       <div id="screen-dokumentasi" class="screen">
         <div class="card">
-          <div class="section-title">📂 Pilih Instansi</div>
-          <select id="dokInstansiSelect">
+          <div class="section-title">Pilih Instansi</div>
+          <select id="dokInstansiSelect" class="form-control">
             <option value="">-- Pilih Instansi --</option>
           </select>
-          <input type="text" id="dokWilayah" placeholder="Wilayah" readonly style="background:#f0f0f0;">
-          <select id="dokJenis">
+          <input type="text" id="dokWilayah" class="form-control" placeholder="Wilayah" readonly style="background:#f5f5f5;">
+          <select id="dokJenis" class="form-control">
             <option value="Pencacahan">🔪 Pencacahan</option>
             <option value="Penyaluran">📦 Penyaluran</option>
           </select>
         </div>
-        <div class="card" id="dokUploadCard" style="display:none;">
-          <div class="section-title">📁 Upload File</div>
-          <div class="upload-area" id="dokUploadArea">
-            <div style="font-size:32px;">📁</div>
-            <div>Ketuk untuk pilih file (foto/video)</div>
-            <div style="font-size:12px; margin-top:8px;">Bisa pilih banyak file</div>
+        <div id="dokUploadCard" style="display:none;">
+          <div class="card">
+            <div class="section-title">Upload File</div>
+            <div class="upload-area" id="dokUploadArea">
+              <div style="font-size:32px;">📁</div>
+              <div>Ketuk untuk pilih file (foto/video)</div>
+              <div style="font-size:12px; margin-top:8px;">Bisa pilih banyak file sekaligus</div>
+            </div>
+            <input type="file" id="dokFileInput" accept="image/*,video/*" multiple style="display:none;">
+            <div id="dokFileList"></div>
+            <button class="btn" id="dokUploadBtn" style="margin-top:16px;">Upload Dokumentasi</button>
           </div>
-          <input type="file" id="dokFileInput" accept="image/*,video/*" multiple style="display:none;">
-          <div id="dokFileList" class="file-list"></div>
-          <button class="btn" id="dokUploadBtn">Upload Dokumentasi</button>
         </div>
         <div class="card">
-          <div class="section-title">📋 Riwayat Dokumentasi</div>
+          <div class="section-title">Riwayat Dokumentasi</div>
           <div id="dokRiwayat"></div>
         </div>
       </div>
@@ -171,17 +281,17 @@
       <!-- SCREEN: AKUN -->
       <div id="screen-akun" class="screen">
         <div class="card">
-          <div class="section-title">👤 Profil</div>
+          <div class="section-title">Profil Saya</div>
           <div class="detail-row"><span class="detail-label">Username</span><span class="detail-value" id="profileUsername">-</span></div>
           <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value" id="profileEmail">-</span></div>
           <div class="detail-row"><span class="detail-label">Role</span><span class="detail-value" id="profileRole">-</span></div>
         </div>
         <div class="card">
-          <div class="section-title">ℹ️ Informasi</div>
-          <p>Kurban Digital v2.0</p>
-          <p style="margin-top:8px;">© 2025 · Dokumentasi Kurban</p>
+          <div class="section-title">Aplikasi</div>
+          <div class="detail-row"><span class="detail-label">Versi</span><span class="detail-value">2.0.0</span></div>
+          <div class="detail-row"><span class="detail-label">Update</span><span class="detail-value">April 2025</span></div>
         </div>
-        <button class="btn btn-outline" onclick="logout()" style="margin-top:16px;">🚪 Keluar</button>
+        <button class="btn-outline" onclick="logout()" style="width:100%; margin-top:16px;">🚪 Keluar</button>
       </div>
     </div>
 
@@ -200,7 +310,7 @@
     // ==================== GLOBAL STATE ====================
     let allHewan = [];
     let selectedHewan = null;
-    let currentTab = 'hidup';
+    let currentUploadTab = 'hidup';
     let dokInstansiList = [];
 
     const email = localStorage.getItem('userEmail');
@@ -215,18 +325,21 @@
     document.getElementById('profileRole').textContent = role === 'admin' ? 'Administrator' : 'Panitia';
 
     // ==================== NAVIGATION ====================
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(`screen-${screenId}`).classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelector(`.nav-item[data-screen="${screenId}"]`).classList.add('active');
+      
+      // Load data when switching screens
+      if (screenId === 'beranda') loadDashboard();
+      else if (screenId === 'hewan') renderAllHewan();
+      else if (screenId === 'upload') initUploadScreen();
+      else if (screenId === 'dokumentasi') initDokScreen();
+    }
+
     document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const screen = item.dataset.screen;
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(`screen-${screen}`).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        item.classList.add('active');
-        if (screen === 'beranda') loadDashboard();
-        else if (screen === 'hewan') renderAllHewan();
-        else if (screen === 'upload') initUploadScreen();
-        else if (screen === 'dokumentasi') initDokScreen();
-      });
+      item.addEventListener('click', () => switchScreen(item.dataset.screen));
     });
 
     // ==================== DATA LOADING ====================
@@ -242,17 +355,38 @@
     async function loadDashboard() {
       const hewan = await loadAllHewan();
       const total = hewan.length;
+      const hidup = hewan.filter(h => h.status.url_hidup).length;
+      const tumbang = hewan.filter(h => h.status.url_ditumbangkan).length;
+      const mati = hewan.filter(h => h.status.url_mati).length;
       const selesai = hewan.filter(h => h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati).length;
-      const proses = hewan.filter(h => (h.status.url_hidup || h.status.url_ditumbangkan || h.status.url_mati) && 
-                   !(h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati)).length;
-      
+      const proses = total - selesai;
+
       document.getElementById('totalHewan').textContent = total;
       document.getElementById('selesai').textContent = selesai;
       document.getElementById('proses').textContent = proses;
+      document.getElementById('countHidup').textContent = hidup;
+      document.getElementById('countTumbang').textContent = tumbang;
+      document.getElementById('countMati').textContent = mati;
+
+      // Update step indicators
+      if (hidup > 0) {
+        document.getElementById('stepHidup').classList.add('done');
+        document.getElementById('stepHidup').textContent = '✓';
+        document.getElementById('line1').classList.add('done');
+      }
+      if (tumbang > 0) {
+        document.getElementById('stepTumbang').classList.add('done');
+        document.getElementById('stepTumbang').textContent = '✓';
+        document.getElementById('line2').classList.add('done');
+      }
+      if (mati > 0) {
+        document.getElementById('stepMati').classList.add('done');
+        document.getElementById('stepMati').textContent = '✓';
+      }
 
       const recent = hewan.slice(0, 5);
-      const html = recent.map(h => `
-        <div class="animal-row">
+      document.getElementById('recentHewan').innerHTML = recent.map(h => `
+        <div class="animal-row" onclick="selectHewanFromList('${h.nomor_hewan}')">
           <div class="animal-avatar">${getEmoji(h.jenis_hewan)}</div>
           <div class="animal-info">
             <h4>${h.nomor_hewan}</h4>
@@ -262,13 +396,12 @@
             ${getPhaseCount(h.status)}/3
           </span>
         </div>
-      `).join('');
-      document.getElementById('recentHewan').innerHTML = html || '<p style="padding:20px;text-align:center;">Belum ada data</p>';
+      `).join('') || '<div class="empty-illustration">Belum ada data hewan</div>';
     }
 
     function getEmoji(jenis) {
       const j = (jenis || '').toLowerCase();
-      if (j.includes('kambing') || j.includes('domba')) return '🐑';
+      if (j.includes('kambing')||j.includes('domba')) return '🐑';
       if (j.includes('kerbau')) return '🐃';
       return '🐄';
     }
@@ -277,7 +410,7 @@
       return [status.url_hidup, status.url_ditumbangkan, status.url_mati].filter(Boolean).length;
     }
 
-    // ==================== HEWAN LIST ====================
+    // ==================== HEWAN LIST & SEARCH ====================
     async function renderAllHewan() {
       const hewan = await loadAllHewan();
       const searchInput = document.getElementById('searchInput');
@@ -289,8 +422,8 @@
           h.instansi.toLowerCase().includes(q) ||
           h.wilayah.toLowerCase().includes(q)
         );
-        const html = filtered.map(h => `
-          <div class="animal-row">
+        document.getElementById('allHewanList').innerHTML = filtered.map(h => `
+          <div class="animal-row" onclick="selectHewanFromList('${h.nomor_hewan}')">
             <div class="animal-avatar">${getEmoji(h.jenis_hewan)}</div>
             <div class="animal-info">
               <h4>${h.nomor_hewan} · ${h.jenis_hewan}</h4>
@@ -301,12 +434,19 @@
               ${getPhaseCount(h.status)}/3
             </span>
           </div>
-        `).join('');
-        document.getElementById('allHewanList').innerHTML = html || '<p style="padding:20px;text-align:center;">Tidak ditemukan</p>';
+        `).join('') || '<div class="empty-illustration">Tidak ditemukan</div>';
       };
       searchInput.addEventListener('input', filterAndRender);
       filterAndRender();
     }
+
+    window.selectHewanFromList = (nomor) => {
+      selectedHewan = allHewan.find(h => h.nomor_hewan === nomor);
+      if (selectedHewan) {
+        switchScreen('upload');
+        renderUploadDetail();
+      }
+    };
 
     // ==================== UPLOAD FOTO ====================
     async function initUploadScreen() {
@@ -320,61 +460,64 @@
         select.appendChild(option);
       });
 
-      select.onchange = async function() {
-        const nomor = this.value;
-        selectedHewan = hewan.find(h => h.nomor_hewan === nomor);
-        if (!selectedHewan) {
+      select.onchange = function() {
+        selectedHewan = hewan.find(h => h.nomor_hewan === this.value);
+        if (selectedHewan) {
+          document.getElementById('uploadDetailCard').style.display = 'block';
+          renderUploadDetail();
+        } else {
           document.getElementById('uploadDetailCard').style.display = 'none';
-          document.getElementById('uploadPhotoCard').style.display = 'none';
-          return;
         }
-        document.getElementById('uploadDetailCard').style.display = 'block';
-        document.getElementById('uploadPhotoCard').style.display = 'block';
-        renderSelectedHewanDetail();
-        updateUploadUI();
       };
+
+      if (selectedHewan) {
+        select.value = selectedHewan.nomor_hewan;
+        document.getElementById('uploadDetailCard').style.display = 'block';
+        renderUploadDetail();
+      }
     }
 
-    function renderSelectedHewanDetail() {
+    function renderUploadDetail() {
       if (!selectedHewan) return;
       const s = selectedHewan.status;
-      const html = `
-        <div class="detail-row"><span class="detail-label">Nomor</span><span class="detail-value">${selectedHewan.nomor_hewan}</span></div>
-        <div class="detail-row"><span class="detail-label">Jenis</span><span class="detail-value">${selectedHewan.jenis_hewan}</span></div>
-        <div class="detail-row"><span class="detail-label">Pekurban</span><span class="detail-value">${selectedHewan.daftar_pekurban}</span></div>
-        <div class="detail-row"><span class="detail-label">Instansi</span><span class="detail-value">${selectedHewan.instansi}</span></div>
-        <div class="detail-row"><span class="detail-label">Wilayah</span><span class="detail-value">${selectedHewan.wilayah}</span></div>
-        <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${getPhaseCount(s)}/3 tahap</span></div>
+      document.getElementById('selectedHewanDetail').innerHTML = `
+        <div class="detail-row"><span>Nomor</span><span>${selectedHewan.nomor_hewan}</span></div>
+        <div class="detail-row"><span>Jenis</span><span>${selectedHewan.jenis_hewan}</span></div>
+        <div class="detail-row"><span>Pekurban</span><span>${selectedHewan.daftar_pekurban}</span></div>
+        <div class="detail-row"><span>Instansi</span><span>${selectedHewan.instansi}</span></div>
+        <div class="detail-row"><span>Wilayah</span><span>${selectedHewan.wilayah}</span></div>
       `;
-      document.getElementById('selectedHewanDetail').innerHTML = html;
+      document.getElementById('uploadStatusDisplay').innerHTML = `
+        <div class="detail-row"><span>Hidup</span><span>${s.url_hidup ? '✅ ' + new Date(s.tgl_hidup).toLocaleDateString('id-ID') : '❌ Belum'}</span></div>
+        <div class="detail-row"><span>Ditumbangkan</span><span>${s.url_ditumbangkan ? '✅ ' + new Date(s.tgl_ditumbangkan).toLocaleDateString('id-ID') : '❌ Belum'}</span></div>
+        <div class="detail-row"><span>Mati</span><span>${s.url_mati ? '✅ ' + new Date(s.tgl_mati).toLocaleDateString('id-ID') : '❌ Belum'}</span></div>
+      `;
+      
+      // Set active tab based on what's missing
+      if (!s.url_hidup) currentUploadTab = 'hidup';
+      else if (!s.url_ditumbangkan) currentUploadTab = 'ditumbangkan';
+      else if (!s.url_mati) currentUploadTab = 'mati';
+      else currentUploadTab = 'hidup';
+      
+      document.querySelectorAll('.upload-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.upload-tab[data-tab="${currentUploadTab}"]`).classList.add('active');
     }
 
-    function updateUploadUI() {
-      const s = selectedHewan.status;
-      // Update tabs
-      document.querySelectorAll('.foto-tab').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      if (!s.url_hidup) currentTab = 'hidup';
-      else if (!s.url_ditumbangkan) currentTab = 'ditumbangkan';
-      else if (!s.url_mati) currentTab = 'mati';
-      else currentTab = 'hidup';
-      document.querySelector(`.foto-tab[data-tab="${currentTab}"]`).classList.add('active');
-    }
-
-    // Tab switching
-    document.querySelectorAll('.foto-tab').forEach(tab => {
+    // Upload tab switching
+    document.querySelectorAll('.upload-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        currentTab = tab.dataset.tab;
-        document.querySelectorAll('.foto-tab').forEach(t => t.classList.remove('active'));
+        currentUploadTab = tab.dataset.tab;
+        document.querySelectorAll('.upload-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
       });
     });
 
-    // Upload area
     const uploadArea = document.getElementById('uploadArea');
     const fotoInput = document.getElementById('fotoInput');
+    const previewContainer = document.getElementById('previewContainer');
     const previewImg = document.getElementById('previewImg');
+    const removePreview = document.getElementById('removePreview');
+
     uploadArea.addEventListener('click', () => fotoInput.click());
     fotoInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -382,10 +525,16 @@
         const reader = new FileReader();
         reader.onload = (ev) => {
           previewImg.src = ev.target.result;
-          previewImg.style.display = 'block';
+          previewContainer.style.display = 'block';
+          uploadArea.style.display = 'none';
         };
         reader.readAsDataURL(file);
       }
+    });
+    removePreview.addEventListener('click', () => {
+      previewContainer.style.display = 'none';
+      uploadArea.style.display = 'block';
+      fotoInput.value = '';
     });
 
     document.getElementById('uploadBtn').addEventListener('click', async () => {
@@ -399,17 +548,21 @@
         btn.disabled = true;
         btn.textContent = 'Mengupload...';
         const result = await callApi('uploadFoto', {
-          email, username, nomor_hewan: selectedHewan.nomor_hewan,
-          jenis_foto: currentTab, base64Data: base64, mimeType: file.type
+          email, username: username || email,
+          nomor_hewan: selectedHewan.nomor_hewan,
+          jenis_foto: currentUploadTab,
+          base64Data: base64,
+          mimeType: file.type
         });
         if (result.success) {
           alert('Upload berhasil!');
-          // Refresh data
           await loadAllHewan();
           selectedHewan = allHewan.find(h => h.nomor_hewan === selectedHewan.nomor_hewan);
-          updateUploadUI();
-          previewImg.style.display = 'none';
+          renderUploadDetail();
+          previewContainer.style.display = 'none';
+          uploadArea.style.display = 'block';
           fotoInput.value = '';
+          loadDashboard(); // Update dashboard stats
         } else {
           alert('Gagal: ' + result.error);
         }
@@ -447,14 +600,13 @@
       loadDokRiwayat();
     }
 
-    // Dok upload
     const dokArea = document.getElementById('dokUploadArea');
     const dokInput = document.getElementById('dokFileInput');
     dokArea.addEventListener('click', () => dokInput.click());
     dokInput.addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       const listDiv = document.getElementById('dokFileList');
-      listDiv.innerHTML = files.map(f => `<div class="file-item">📄 ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('');
+      listDiv.innerHTML = files.map(f => `<div class="file-badge">📄 ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('');
     });
 
     document.getElementById('dokUploadBtn').addEventListener('click', async () => {
@@ -506,7 +658,7 @@
             <a href="${d.folderUrl}" target="_blank" style="color:var(--primary);">📂 Buka</a>
           </div>
         `).join('');
-        document.getElementById('dokRiwayat').innerHTML = html || '<p>Belum ada dokumentasi</p>';
+        document.getElementById('dokRiwayat').innerHTML = html || '<div class="empty-illustration">Belum ada dokumentasi</div>';
       }
     }
 
