@@ -3,402 +3,151 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Kurban Digital - User</title>
+  <title>Kurban Digital · Panitia</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <style>
-    /* User Portal specific enhancements */
-    .screen {
-      display: none;
-      animation: fade 0.2s ease;
+    /* 补充样式：用于上传区域、预览等 */
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      text-align: center;
+      background: var(--bg);
+      cursor: pointer;
+      margin: 16px 0;
+      transition: border-color 0.2s;
     }
-    .screen.active {
-      display: block;
+    .upload-area:hover { border-color: var(--blue); }
+    .preview-image {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: var(--r-md);
+      margin-top: 12px;
     }
-    @keyframes fade {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .hero-card {
-      background: linear-gradient(145deg, var(--primary) 0%, var(--primary-dark) 100%);
-      border-radius: 28px;
-      padding: 24px 20px;
-      color: white;
-      margin-bottom: 20px;
-    }
-
-    .progress-steps {
+    .file-list { margin-top: 12px; }
+    .file-item {
       display: flex;
       align-items: center;
-      margin: 20px 0;
-    }
-    .step {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex: 1;
-    }
-    .step-circle {
-      width: 40px;
-      height: 40px;
-      border-radius: 40px;
-      background: rgba(255,255,255,0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
+      padding: 8px 12px;
+      background: var(--white);
+      border-radius: var(--r-sm);
       margin-bottom: 6px;
+      font-size: 13px;
+      border: 1px solid var(--border);
     }
-    .step-circle.done {
-      background: var(--gold);
-      color: var(--text-dark);
-    }
-    .step-line {
-      height: 3px;
-      background: rgba(255,255,255,0.2);
-      flex: 1;
-      margin: 0 4px;
-      margin-bottom: 22px;
-    }
-    .step-line.done {
-      background: var(--gold);
-    }
-
-    .search-box {
-      background: white;
-      border-radius: 60px;
-      padding: 8px 16px;
+    .detail-row {
       display: flex;
-      align-items: center;
-      margin-bottom: 20px;
-      box-shadow: var(--shadow-sm);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
     }
-    .search-box input {
-      border: none;
-      padding: 12px 8px;
-      font-size: 16px;
-      width: 100%;
-      outline: none;
-    }
-
-    .upload-tabs {
+    .detail-label { width: 100px; color: var(--muted); font-weight: 500; }
+    .detail-value { flex: 1; font-weight: 600; }
+    .tabs {
       display: flex;
       gap: 8px;
-      margin-bottom: 20px;
-      background: var(--bg-light);
-      padding: 6px;
-      border-radius: 60px;
+      margin-bottom: 16px;
     }
-    .upload-tab {
+    .tab {
       flex: 1;
-      padding: 12px;
+      padding: 10px;
+      text-align: center;
+      background: var(--bg);
+      border-radius: var(--pill);
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+    }
+    .tab.active {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+    }
+    .btn {
+      padding: 12px 20px;
+      background: var(--blue);
+      color: white;
       border: none;
-      background: transparent;
-      border-radius: 60px;
+      border-radius: var(--pill);
       font-weight: 600;
       cursor: pointer;
-    }
-    .upload-tab.active {
-      background: var(--primary);
-      color: white;
-    }
-
-    .preview-container {
-      position: relative;
-      margin-top: 16px;
-    }
-    .preview-image {
       width: 100%;
-      border-radius: 20px;
-      max-height: 250px;
-      object-fit: cover;
+      transition: all 0.2s;
     }
-    .remove-preview {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      border: none;
-      width: 36px;
-      height: 36px;
-      border-radius: 36px;
-      font-size: 20px;
-      cursor: pointer;
-    }
-
-    .file-badge {
-      background: var(--bg-light);
-      border-radius: 40px;
-      padding: 10px 16px;
-      margin: 8px 0;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .btn-icon-large {
-      width: 48px;
-      height: 48px;
-      border-radius: 48px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-    }
-
-    .empty-illustration {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-muted);
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--blue);
+      color: var(--blue);
     }
   </style>
 </head>
-<body>
-  <div class="app-shell">
-    <!-- Header -->
-    <div class="app-header">
-      <div class="header-top">
-        <span class="header-greeting" id="greetingText">Assalamu'alaikum</span>
-        <span style="font-size: 24px;">🐄</span>
+<body class="user-frame">
+<div class="phone-shell">
+
+  <!-- 头部（动态显示用户名等） -->
+  <div class="u-header">
+    <div class="u-topbar">
+      <div class="u-brand">
+        <div class="u-brand-icon">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAF3CAYAAAAfNHZBAAABAGlDQ1BJQ0MgcHJvZmlsZQAAeJx9kT1Lw0AYx79Wq0VFHKQ4ZKhOLogf4iZVKEWLUO2wmkUwCZo2ooloah3cCjoLPoyr4OQHcHFwc3BwcBD8AK4uTg6u4oL8X1Jaa+N4uOPufncfuEtQpnnOMABhWJ3p2Vk9lV7RhRBiiGAK4xJz4mW5JkBrw4nRAJ1bdJzje70yXoPcCJE5xjuJUTcRlngmC7asdoaXvHcE+SWSs6z2X8QiFUu8KJmK9DzxjKhVxBdEq7X8D8lprVJY4qy1jrGNpHp7cnKxpWwFjggsI4cMElbJUDCmkFImk7SOnEwaeXkZz8Z5l7z/Ou9r4bne62f7dG6Yc0O0x4n5hAGCOdZsHzdrd8cCjCT2R8u9LBCAIQ0sBmMsONaTxiSw6UoR6e/l8V3gfRdA5Vqgsi4wy5o1u2a0O2cT9D6G+0jI+1AciMPwj/n7AYCufljbjQAAAAAAAAAASUVORK5CYII=" alt="BNT">
+        </div>
+        <div>
+          <div class="u-brand-name">Kurban Digital</div>
+          <div class="u-brand-sub">Yayasan BNT 1446 H</div>
+        </div>
       </div>
-      <div class="header-name" id="userName">User</div>
+      <div class="u-avatar" id="avatarInitial">👤</div>
     </div>
-
-    <!-- Main Content Area (Screens) -->
-    <div class="content">
-      <!-- SCREEN: BERANDA / DASHBOARD -->
-      <div id="screen-beranda" class="screen active">
-        <div class="stats-grid">
-          <div class="stat-item"><div class="stat-value" id="totalHewan">-</div><div class="stat-label">Total</div></div>
-          <div class="stat-item"><div class="stat-value" id="selesai">-</div><div class="stat-label">Selesai</div></div>
-          <div class="stat-item"><div class="stat-value" id="proses">-</div><div class="stat-label">Proses</div></div>
-        </div>
-        <div class="hero-card">
-          <h3 style="margin-bottom: 16px;">Progress Dokumentasi</h3>
-          <div class="progress-steps">
-            <div class="step"><div class="step-circle" id="stepHidup">1</div><span style="font-size:12px;">Hidup</span></div>
-            <div class="step-line" id="line1"></div>
-            <div class="step"><div class="step-circle" id="stepTumbang">2</div><span style="font-size:12px;">Ditumbangkan</span></div>
-            <div class="step-line" id="line2"></div>
-            <div class="step"><div class="step-circle" id="stepMati">3</div><span style="font-size:12px;">Mati</span></div>
-          </div>
-          <div style="margin-top:20px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-              <span>📷 Hidup</span><span id="countHidup">0</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-              <span>🔪 Ditumbangkan</span><span id="countTumbang">0</span>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-              <span>✅ Mati</span><span id="countMati">0</span>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="section-title">🐮 Hewan Terbaru <span style="margin-left:auto; font-size:14px; color:var(--primary);" onclick="switchScreen('hewan')">Lihat Semua →</span></div>
-          <div id="recentHewan"></div>
-        </div>
-      </div>
-
-      <!-- SCREEN: DAFTAR HEWAN -->
-      <div id="screen-hewan" class="screen">
-        <div class="search-box">
-          <span>🔍</span>
-          <input type="text" id="searchInput" placeholder="Cari nomor, pekurban, instansi...">
-        </div>
-        <div id="allHewanList"></div>
-      </div>
-
-      <!-- SCREEN: UPLOAD FOTO -->
-      <div id="screen-upload" class="screen">
-        <div class="card">
-          <div class="section-title">Pilih Hewan</div>
-          <select id="hewanSelect" class="form-control" style="margin-bottom:0;">
-            <option value="">-- Pilih Hewan --</option>
-          </select>
-        </div>
-        <div id="uploadDetailCard" style="display:none;">
-          <div class="card">
-            <div class="section-title">Detail Hewan</div>
-            <div id="selectedHewanDetail"></div>
-          </div>
-          <div class="card">
-            <div class="section-title">Status Upload</div>
-            <div id="uploadStatusDisplay"></div>
-            <div class="upload-tabs">
-              <button class="upload-tab active" data-tab="hidup">📷 Hidup</button>
-              <button class="upload-tab" data-tab="ditumbangkan">🔪 Ditumbangkan</button>
-              <button class="upload-tab" data-tab="mati">✅ Mati</button>
-            </div>
-            <div class="upload-area" id="uploadArea">
-              <div style="font-size:32px;">📸</div>
-              <div>Ketuk untuk pilih foto</div>
-            </div>
-            <input type="file" id="fotoInput" accept="image/*" style="display:none;">
-            <div class="preview-container" id="previewContainer" style="display:none;">
-              <img id="previewImg" class="preview-image">
-              <button class="remove-preview" id="removePreview">✕</button>
-            </div>
-            <button class="btn" id="uploadBtn" style="margin-top:16px;">Upload Foto</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- SCREEN: DOKUMENTASI INSTANSI -->
-      <div id="screen-dokumentasi" class="screen">
-        <div class="card">
-          <div class="section-title">Pilih Instansi</div>
-          <select id="dokInstansiSelect" class="form-control">
-            <option value="">-- Pilih Instansi --</option>
-          </select>
-          <input type="text" id="dokWilayah" class="form-control" placeholder="Wilayah" readonly style="background:#f5f5f5;">
-          <select id="dokJenis" class="form-control">
-            <option value="Pencacahan">🔪 Pencacahan</option>
-            <option value="Penyaluran">📦 Penyaluran</option>
-          </select>
-        </div>
-        <div id="dokUploadCard" style="display:none;">
-          <div class="card">
-            <div class="section-title">Upload File</div>
-            <div class="upload-area" id="dokUploadArea">
-              <div style="font-size:32px;">📁</div>
-              <div>Ketuk untuk pilih file (foto/video)</div>
-              <div style="font-size:12px; margin-top:8px;">Bisa pilih banyak file sekaligus</div>
-            </div>
-            <input type="file" id="dokFileInput" accept="image/*,video/*" multiple style="display:none;">
-            <div id="dokFileList"></div>
-            <button class="btn" id="dokUploadBtn" style="margin-top:16px;">Upload Dokumentasi</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="section-title">Riwayat Dokumentasi</div>
-          <div id="dokRiwayat"></div>
-        </div>
-      </div>
-
-      <!-- SCREEN: AKUN -->
-      <div id="screen-akun" class="screen">
-        <div class="card">
-          <div class="section-title">Profil Saya</div>
-          <div class="detail-row"><span class="detail-label">Username</span><span class="detail-value" id="profileUsername">-</span></div>
-          <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value" id="profileEmail">-</span></div>
-          <div class="detail-row"><span class="detail-label">Role</span><span class="detail-value" id="profileRole">-</span></div>
-        </div>
-        <div class="card">
-          <div class="section-title">Aplikasi</div>
-          <div class="detail-row"><span class="detail-label">Versi</span><span class="detail-value">2.0.0</span></div>
-          <div class="detail-row"><span class="detail-label">Update</span><span class="detail-value">April 2025</span></div>
-        </div>
-        <button class="btn-outline" onclick="logout()" style="width:100%; margin-top:16px;">🚪 Keluar</button>
-      </div>
+    <div class="u-greet">
+      <div class="u-hi">Assalamu'alaikum,</div>
+      <div class="u-name" id="userName">User</div>
     </div>
-
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-      <button class="nav-item active" data-screen="beranda"><span class="nav-icon">🏠</span><span>Beranda</span></button>
-      <button class="nav-item" data-screen="hewan"><span class="nav-icon">📋</span><span>Hewan</span></button>
-      <button class="nav-item" data-screen="upload"><span class="nav-icon">📸</span><span>Upload</span></button>
-      <button class="nav-item" data-screen="dokumentasi"><span class="nav-icon">📂</span><span>Dok</span></button>
-      <button class="nav-item" data-screen="akun"><span class="nav-icon">👤</span><span>Akun</span></button>
+    <div class="u-kpi">
+      <div class="u-kpi-item"><div class="u-kpi-num" id="totalHewan">-</div><div class="u-kpi-lbl">Total</div></div>
+      <div class="u-kpi-item"><div class="u-kpi-num" id="selesai">-</div><div class="u-kpi-lbl">Selesai</div></div>
+      <div class="u-kpi-item"><div class="u-kpi-num" id="proses">-</div><div class="u-kpi-lbl">Proses</div></div>
     </div>
   </div>
 
-  <script src="../assets/js/api.js"></script>
-  <script>
-    // ==================== GLOBAL STATE ====================
+  <!-- 屏幕容器 -->
+  <div id="screen-beranda" class="screen active"></div>
+  <div id="screen-hewan" class="screen"></div>
+  <div id="screen-upload" class="screen"></div>
+  <div id="screen-dokumentasi" class="screen"></div>
+  <div id="screen-akun" class="screen"></div>
+
+  <!-- 底部导航 -->
+  <div class="u-nav">
+    <button class="nav-item on" data-screen="beranda"><span class="ni">🏠</span>Beranda</button>
+    <button class="nav-item" data-screen="hewan"><span class="ni">📋</span>Hewan</button>
+    <button class="nav-item" data-screen="upload"><span class="ni">📸</span>Upload</button>
+    <button class="nav-item" data-screen="dokumentasi"><span class="ni">📂</span>Dok</button>
+    <button class="nav-item" data-screen="akun"><span class="ni">👤</span>Akun</button>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+  (function(){
+    // ---------- 全局变量 ----------
     let allHewan = [];
     let selectedHewan = null;
     let currentUploadTab = 'hidup';
     let dokInstansiList = [];
 
     const email = localStorage.getItem('userEmail');
-    const username = localStorage.getItem('username');
+    const username = localStorage.getItem('username') || email.split('@')[0];
     const role = localStorage.getItem('userRole');
 
     if (!email) window.location.href = '/';
-    document.getElementById('userName').textContent = username || email;
-    document.getElementById('greetingText').textContent = `Assalamu'alaikum, ${username || email.split('@')[0]}`;
-    document.getElementById('profileUsername').textContent = username || '-';
-    document.getElementById('profileEmail').textContent = email;
-    document.getElementById('profileRole').textContent = role === 'admin' ? 'Administrator' : 'Panitia';
 
-    // ==================== NAVIGATION ====================
-    function switchScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(`screen-${screenId}`).classList.add('active');
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.querySelector(`.nav-item[data-screen="${screenId}"]`).classList.add('active');
-      
-      // Load data when switching screens
-      if (screenId === 'beranda') loadDashboard();
-      else if (screenId === 'hewan') renderAllHewan();
-      else if (screenId === 'upload') initUploadScreen();
-      else if (screenId === 'dokumentasi') initDokScreen();
-    }
+    // 设置头部信息
+    document.getElementById('userName').textContent = username;
+    document.getElementById('avatarInitial').textContent = username.charAt(0).toUpperCase();
 
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', () => switchScreen(item.dataset.screen));
-    });
-
-    // ==================== DATA LOADING ====================
-    async function loadAllHewan() {
-      const result = await callApi('getHewan', { email });
-      if (result.success) {
-        allHewan = result.data;
-        return allHewan;
-      }
-      return [];
-    }
-
-    async function loadDashboard() {
-      const hewan = await loadAllHewan();
-      const total = hewan.length;
-      const hidup = hewan.filter(h => h.status.url_hidup).length;
-      const tumbang = hewan.filter(h => h.status.url_ditumbangkan).length;
-      const mati = hewan.filter(h => h.status.url_mati).length;
-      const selesai = hewan.filter(h => h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati).length;
-      const proses = total - selesai;
-
-      document.getElementById('totalHewan').textContent = total;
-      document.getElementById('selesai').textContent = selesai;
-      document.getElementById('proses').textContent = proses;
-      document.getElementById('countHidup').textContent = hidup;
-      document.getElementById('countTumbang').textContent = tumbang;
-      document.getElementById('countMati').textContent = mati;
-
-      // Update step indicators
-      if (hidup > 0) {
-        document.getElementById('stepHidup').classList.add('done');
-        document.getElementById('stepHidup').textContent = '✓';
-        document.getElementById('line1').classList.add('done');
-      }
-      if (tumbang > 0) {
-        document.getElementById('stepTumbang').classList.add('done');
-        document.getElementById('stepTumbang').textContent = '✓';
-        document.getElementById('line2').classList.add('done');
-      }
-      if (mati > 0) {
-        document.getElementById('stepMati').classList.add('done');
-        document.getElementById('stepMati').textContent = '✓';
-      }
-
-      const recent = hewan.slice(0, 5);
-      document.getElementById('recentHewan').innerHTML = recent.map(h => `
-        <div class="animal-row" onclick="selectHewanFromList('${h.nomor_hewan}')">
-          <div class="animal-avatar">${getEmoji(h.jenis_hewan)}</div>
-          <div class="animal-info">
-            <h4>${h.nomor_hewan}</h4>
-            <p>${h.instansi} · ${h.wilayah}</p>
-          </div>
-          <span class="status-badge ${getPhaseCount(h.status)===3 ? 'badge-done' : 'badge-progress'}">
-            ${getPhaseCount(h.status)}/3
-          </span>
-        </div>
-      `).join('') || '<div class="empty-illustration">Belum ada data hewan</div>';
-    }
-
+    // ---------- 辅助函数 ----------
     function getEmoji(jenis) {
       const j = (jenis || '').toLowerCase();
       if (j.includes('kambing')||j.includes('domba')) return '🐑';
@@ -410,265 +159,376 @@
       return [status.url_hidup, status.url_ditumbangkan, status.url_mati].filter(Boolean).length;
     }
 
-    // ==================== HEWAN LIST & SEARCH ====================
-    async function renderAllHewan() {
-      const hewan = await loadAllHewan();
-      const searchInput = document.getElementById('searchInput');
-      const filterAndRender = () => {
-        const q = searchInput.value.toLowerCase();
-        const filtered = hewan.filter(h => 
-          h.nomor_hewan.toLowerCase().includes(q) ||
-          h.daftar_pekurban.toLowerCase().includes(q) ||
-          h.instansi.toLowerCase().includes(q) ||
-          h.wilayah.toLowerCase().includes(q)
-        );
-        document.getElementById('allHewanList').innerHTML = filtered.map(h => `
-          <div class="animal-row" onclick="selectHewanFromList('${h.nomor_hewan}')">
-            <div class="animal-avatar">${getEmoji(h.jenis_hewan)}</div>
-            <div class="animal-info">
-              <h4>${h.nomor_hewan} · ${h.jenis_hewan}</h4>
-              <p>${h.daftar_pekurban}</p>
-              <p style="font-size:12px;">${h.instansi} · ${h.wilayah}</p>
-            </div>
-            <span class="status-badge ${getPhaseCount(h.status)===3 ? 'badge-done' : 'badge-progress'}">
-              ${getPhaseCount(h.status)}/3
-            </span>
-          </div>
-        `).join('') || '<div class="empty-illustration">Tidak ditemukan</div>';
-      };
-      searchInput.addEventListener('input', filterAndRender);
-      filterAndRender();
+    // ---------- 加载所有动物数据 ----------
+    async function loadAllHewan() {
+      const result = await callApi('getHewan', { email });
+      if (result.success) {
+        allHewan = result.data;
+        return allHewan;
+      }
+      return [];
     }
 
-    window.selectHewanFromList = (nomor) => {
-      selectedHewan = allHewan.find(h => h.nomor_hewan === nomor);
-      if (selectedHewan) {
-        switchScreen('upload');
-        renderUploadDetail();
-      }
+    // ---------- 屏幕切换 ----------
+    const screens = {
+      beranda: document.getElementById('screen-beranda'),
+      hewan: document.getElementById('screen-hewan'),
+      upload: document.getElementById('screen-upload'),
+      dokumentasi: document.getElementById('screen-dokumentasi'),
+      akun: document.getElementById('screen-akun')
     };
 
-    // ==================== UPLOAD FOTO ====================
-    async function initUploadScreen() {
+    function switchScreen(screenId) {
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[screenId].classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
+      document.querySelector(`.nav-item[data-screen="${screenId}"]`).classList.add('on');
+
+      // 加载对应屏幕数据
+      if (screenId === 'beranda') renderBeranda();
+      else if (screenId === 'hewan') renderHewanList();
+      else if (screenId === 'upload') renderUploadScreen();
+      else if (screenId === 'dokumentasi') renderDokScreen();
+      else if (screenId === 'akun') renderAkunScreen();
+    }
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => switchScreen(item.dataset.screen));
+    });
+
+    // ---------- 渲染仪表盘 ----------
+    async function renderBeranda() {
       const hewan = await loadAllHewan();
-      const select = document.getElementById('hewanSelect');
-      select.innerHTML = '<option value="">-- Pilih Hewan --</option>';
-      hewan.forEach(h => {
-        const option = document.createElement('option');
-        option.value = h.nomor_hewan;
-        option.textContent = `${h.nomor_hewan} - ${h.jenis_hewan} (${h.instansi})`;
-        select.appendChild(option);
-      });
+      const total = hewan.length;
+      const hidup = hewan.filter(h => h.status.url_hidup).length;
+      const tumbang = hewan.filter(h => h.status.url_ditumbangkan).length;
+      const mati = hewan.filter(h => h.status.url_mati).length;
+      const selesai = hewan.filter(h => getPhaseCount(h.status) === 3).length;
+      const proses = total - selesai;
 
-      select.onchange = function() {
-        selectedHewan = hewan.find(h => h.nomor_hewan === this.value);
-        if (selectedHewan) {
-          document.getElementById('uploadDetailCard').style.display = 'block';
-          renderUploadDetail();
-        } else {
-          document.getElementById('uploadDetailCard').style.display = 'none';
-        }
-      };
+      document.getElementById('totalHewan').textContent = total;
+      document.getElementById('selesai').textContent = selesai;
+      document.getElementById('proses').textContent = proses;
 
-      if (selectedHewan) {
-        select.value = selectedHewan.nomor_hewan;
-        document.getElementById('uploadDetailCard').style.display = 'block';
-        renderUploadDetail();
-      }
+      let html = `
+        <div class="u-content">
+          <div class="quick-actions">
+            <div class="qa-chip" data-action="hewan"><div class="qa-icon">📋</div><div class="qa-lbl">Daftar Hewan</div></div>
+            <div class="qa-chip" data-action="upload"><div class="qa-icon">📸</div><div class="qa-lbl">Upload Foto</div></div>
+            <div class="qa-chip" data-action="dok"><div class="qa-icon">📂</div><div class="qa-lbl">Dokumentasi</div></div>
+          </div>
+          <div class="phase-card">
+            <div class="phase-title">📊 Progress Fase Dokumentasi</div>
+            <div class="phase-steps">
+              <div class="pstep"><div class="pstep-dot ${hidup>0?'done':''}">${hidup>0?'✓':'1'}</div><div class="pstep-lbl ${hidup>0?'done':''}">Hidup</div></div>
+              <div class="pline ${hidup>0?'done':''}"></div>
+              <div class="pstep"><div class="pstep-dot ${tumbang>0?'done':''}">${tumbang>0?'✓':'2'}</div><div class="pstep-lbl ${tumbang>0?'done':''}">Ditumbangkan</div></div>
+              <div class="pline ${tumbang>0?'done':''}"></div>
+              <div class="pstep"><div class="pstep-dot ${mati>0?'done':''}">${mati>0?'✓':'3'}</div><div class="pstep-lbl ${mati>0?'done':''}">Mati</div></div>
+            </div>
+            <div class="phase-counts">
+              <div class="pc"><div class="pc-num">${hidup}</div><div class="pc-lbl">📷 Hidup</div></div>
+              <div class="pc"><div class="pc-num">${tumbang}</div><div class="pc-lbl">🔪 Tumbang</div></div>
+              <div class="pc"><div class="pc-num">${mati}</div><div class="pc-lbl">✅ Mati</div></div>
+            </div>
+          </div>
+          <div class="ucard">
+            <div class="card-head"><div class="card-title">🐮 Hewan Terbaru</div><span class="see-all" data-action="hewan">Lihat Semua →</span></div>
+            ${hewan.slice(0,3).map(h => `
+              <div class="a-row" data-nomor="${h.nomor_hewan}">
+                <div class="a-ava ${h.jenis_hewan.includes('Kambing')?'green':''}">${getEmoji(h.jenis_hewan)}</div>
+                <div class="a-info"><div class="aname">${h.nomor_hewan} · ${h.jenis_hewan}</div><div class="asub">${h.instansi} · ${h.wilayah}</div></div>
+                <span class="abadge ${getPhaseCount(h.status)===3?'ab-done':getPhaseCount(h.status)===0?'ab-pend':'ab-prgs'}">${getPhaseCount(h.status)}/3</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      screens.beranda.innerHTML = html;
+      attachBerandaEvents();
     }
 
-    function renderUploadDetail() {
-      if (!selectedHewan) return;
-      const s = selectedHewan.status;
-      document.getElementById('selectedHewanDetail').innerHTML = `
-        <div class="detail-row"><span>Nomor</span><span>${selectedHewan.nomor_hewan}</span></div>
-        <div class="detail-row"><span>Jenis</span><span>${selectedHewan.jenis_hewan}</span></div>
-        <div class="detail-row"><span>Pekurban</span><span>${selectedHewan.daftar_pekurban}</span></div>
-        <div class="detail-row"><span>Instansi</span><span>${selectedHewan.instansi}</span></div>
-        <div class="detail-row"><span>Wilayah</span><span>${selectedHewan.wilayah}</span></div>
-      `;
-      document.getElementById('uploadStatusDisplay').innerHTML = `
-        <div class="detail-row"><span>Hidup</span><span>${s.url_hidup ? '✅ ' + new Date(s.tgl_hidup).toLocaleDateString('id-ID') : '❌ Belum'}</span></div>
-        <div class="detail-row"><span>Ditumbangkan</span><span>${s.url_ditumbangkan ? '✅ ' + new Date(s.tgl_ditumbangkan).toLocaleDateString('id-ID') : '❌ Belum'}</span></div>
-        <div class="detail-row"><span>Mati</span><span>${s.url_mati ? '✅ ' + new Date(s.tgl_mati).toLocaleDateString('id-ID') : '❌ Belum'}</span></div>
-      `;
-      
-      // Set active tab based on what's missing
-      if (!s.url_hidup) currentUploadTab = 'hidup';
-      else if (!s.url_ditumbangkan) currentUploadTab = 'ditumbangkan';
-      else if (!s.url_mati) currentUploadTab = 'mati';
-      else currentUploadTab = 'hidup';
-      
-      document.querySelectorAll('.upload-tab').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.upload-tab[data-tab="${currentUploadTab}"]`).classList.add('active');
-    }
-
-    // Upload tab switching
-    document.querySelectorAll('.upload-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        currentUploadTab = tab.dataset.tab;
-        document.querySelectorAll('.upload-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-      });
-    });
-
-    const uploadArea = document.getElementById('uploadArea');
-    const fotoInput = document.getElementById('fotoInput');
-    const previewContainer = document.getElementById('previewContainer');
-    const previewImg = document.getElementById('previewImg');
-    const removePreview = document.getElementById('removePreview');
-
-    uploadArea.addEventListener('click', () => fotoInput.click());
-    fotoInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          previewImg.src = ev.target.result;
-          previewContainer.style.display = 'block';
-          uploadArea.style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-    removePreview.addEventListener('click', () => {
-      previewContainer.style.display = 'none';
-      uploadArea.style.display = 'block';
-      fotoInput.value = '';
-    });
-
-    document.getElementById('uploadBtn').addEventListener('click', async () => {
-      if (!selectedHewan) return alert('Pilih hewan terlebih dahulu');
-      const file = fotoInput.files[0];
-      if (!file) return alert('Pilih foto');
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const base64 = e.target.result.split(',')[1];
-        const btn = document.getElementById('uploadBtn');
-        btn.disabled = true;
-        btn.textContent = 'Mengupload...';
-        const result = await callApi('uploadFoto', {
-          email, username: username || email,
-          nomor_hewan: selectedHewan.nomor_hewan,
-          jenis_foto: currentUploadTab,
-          base64Data: base64,
-          mimeType: file.type
+    function attachBerandaEvents() {
+      document.querySelectorAll('.qa-chip, .see-all').forEach(el => {
+        el.addEventListener('click', () => {
+          const action = el.dataset.action;
+          if (action === 'hewan') switchScreen('hewan');
+          else if (action === 'upload') switchScreen('upload');
+          else if (action === 'dok') switchScreen('dokumentasi');
         });
-        if (result.success) {
-          alert('Upload berhasil!');
-          await loadAllHewan();
-          selectedHewan = allHewan.find(h => h.nomor_hewan === selectedHewan.nomor_hewan);
-          renderUploadDetail();
+      });
+      document.querySelectorAll('.a-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const nomor = row.dataset.nomor;
+          selectedHewan = allHewan.find(h => h.nomor_hewan === nomor);
+          if (selectedHewan) switchScreen('upload');
+        });
+      });
+    }
+
+    // ---------- 渲染动物列表 ----------
+    async function renderHewanList() {
+      const hewan = await loadAllHewan();
+      let html = `<div class="u-content"><div class="search-chip" style="margin-bottom:16px;"><input type="text" id="searchInput" placeholder="Cari nomor, pekurban..." style="border:none;background:transparent;width:100%;outline:none;"></div>`;
+      const renderList = (filter = '') => {
+        const filtered = hewan.filter(h => 
+          h.nomor_hewan.includes(filter) || h.daftar_pekurban.toLowerCase().includes(filter) || h.instansi.toLowerCase().includes(filter)
+        );
+        return filtered.map(h => `
+          <div class="a-row" data-nomor="${h.nomor_hewan}">
+            <div class="a-ava ${h.jenis_hewan.includes('Kambing')?'green':''}">${getEmoji(h.jenis_hewan)}</div>
+            <div class="a-info"><div class="aname">${h.nomor_hewan} · ${h.jenis_hewan}</div><div class="asub">${h.instansi} · ${h.wilayah}</div></div>
+            <span class="abadge ${getPhaseCount(h.status)===3?'ab-done':getPhaseCount(h.status)===0?'ab-pend':'ab-prgs'}">${getPhaseCount(h.status)}/3</span>
+          </div>
+        `).join('');
+      };
+      html += `<div id="hewanListContainer">${renderList()}</div></div>`;
+      screens.hewan.innerHTML = html;
+
+      const searchInput = document.getElementById('searchInput');
+      const container = document.getElementById('hewanListContainer');
+      searchInput.addEventListener('input', (e) => {
+        container.innerHTML = renderList(e.target.value.toLowerCase());
+        attachHewanRowEvents();
+      });
+      attachHewanRowEvents();
+    }
+
+    function attachHewanRowEvents() {
+      document.querySelectorAll('#hewanListContainer .a-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const nomor = row.dataset.nomor;
+          selectedHewan = allHewan.find(h => h.nomor_hewan === nomor);
+          if (selectedHewan) switchScreen('upload');
+        });
+      });
+    }
+
+    // ---------- 渲染上传屏幕 ----------
+    function renderUploadScreen() {
+      let html = `<div class="u-content">`;
+      html += `<select id="hewanSelect" class="field" style="margin-bottom:16px;"><option value="">-- Pilih Hewan --</option>${allHewan.map(h => `<option value="${h.nomor_hewan}" ${selectedHewan && selectedHewan.nomor_hewan===h.nomor_hewan?'selected':''}>${h.nomor_hewan} - ${h.jenis_hewan}</option>`).join('')}</select>`;
+      if (selectedHewan) {
+        const s = selectedHewan.status;
+        html += `
+          <div class="ucard"><div class="card-title">Detail Hewan</div>
+            <div class="detail-row"><span class="detail-label">Nomor</span><span class="detail-value">${selectedHewan.nomor_hewan}</span></div>
+            <div class="detail-row"><span class="detail-label">Jenis</span><span class="detail-value">${selectedHewan.jenis_hewan}</span></div>
+            <div class="detail-row"><span class="detail-label">Pekurban</span><span class="detail-value">${selectedHewan.daftar_pekurban}</span></div>
+            <div class="detail-row"><span class="detail-label">Instansi</span><span class="detail-value">${selectedHewan.instansi}</span></div>
+          </div>
+          <div class="ucard">
+            <div class="tabs">
+              <div class="tab ${!s.url_hidup?'active':''}" data-tab="hidup">📷 Hidup</div>
+              <div class="tab ${!s.url_ditumbangkan && s.url_hidup?'active':''}" data-tab="ditumbangkan">🔪 Ditumbangkan</div>
+              <div class="tab ${!s.url_mati && s.url_ditumbangkan?'active':''}" data-tab="mati">✅ Mati</div>
+            </div>
+            <div class="upload-area" id="uploadArea">📸 Ketuk untuk pilih foto</div>
+            <input type="file" id="fotoInput" accept="image/*" style="display:none;">
+            <div id="previewContainer" style="display:none;"><img id="previewImg" class="preview-image"><button id="removePreview" class="btn-outline" style="margin-top:8px;">Hapus</button></div>
+            <button class="btn" id="uploadBtn">Upload Foto</button>
+          </div>
+        `;
+      }
+      html += `</div>`;
+      screens.upload.innerHTML = html;
+      attachUploadEvents();
+    }
+
+    function attachUploadEvents() {
+      const select = document.getElementById('hewanSelect');
+      if (select) {
+        select.addEventListener('change', (e) => {
+          selectedHewan = allHewan.find(h => h.nomor_hewan === e.target.value);
+          renderUploadScreen();
+        });
+      }
+      const tabs = document.querySelectorAll('.tab');
+      const uploadArea = document.getElementById('uploadArea');
+      const fotoInput = document.getElementById('fotoInput');
+      const previewContainer = document.getElementById('previewContainer');
+      const previewImg = document.getElementById('previewImg');
+      const removeBtn = document.getElementById('removePreview');
+      const uploadBtn = document.getElementById('uploadBtn');
+
+      if (tabs.length) {
+        tabs.forEach(tab => tab.addEventListener('click', () => {
+          currentUploadTab = tab.dataset.tab;
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+        }));
+        // 设置默认active
+        currentUploadTab = document.querySelector('.tab.active')?.dataset.tab || 'hidup';
+      }
+
+      if (uploadArea) {
+        uploadArea.addEventListener('click', () => fotoInput.click());
+        fotoInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              previewImg.src = ev.target.result;
+              previewContainer.style.display = 'block';
+              uploadArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+        removeBtn.addEventListener('click', () => {
           previewContainer.style.display = 'none';
           uploadArea.style.display = 'block';
           fotoInput.value = '';
-          loadDashboard(); // Update dashboard stats
-        } else {
-          alert('Gagal: ' + result.error);
-        }
-        btn.disabled = false;
-        btn.textContent = 'Upload Foto';
-      };
-      reader.readAsDataURL(file);
-    });
+        });
+      }
 
-    // ==================== DOKUMENTASI INSTANSI ====================
-    async function initDokScreen() {
+      if (uploadBtn) {
+        uploadBtn.addEventListener('click', async () => {
+          if (!selectedHewan) { alert('Pilih hewan'); return; }
+          const file = fotoInput.files[0];
+          if (!file) { alert('Pilih foto'); return; }
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Mengupload...';
+            const base64 = e.target.result.split(',')[1];
+            const result = await callApi('uploadFoto', {
+              email, username, nomor_hewan: selectedHewan.nomor_hewan,
+              jenis_foto: currentUploadTab, base64Data: base64, mimeType: file.type
+            });
+            if (result.success) {
+              alert('Upload berhasil!');
+              await loadAllHewan();
+              selectedHewan = allHewan.find(h => h.nomor_hewan === selectedHewan.nomor_hewan);
+              renderUploadScreen();
+            } else {
+              alert('Gagal: ' + result.error);
+            }
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload Foto';
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    }
+
+    // ---------- 渲染文档屏幕 ----------
+    async function renderDokScreen() {
       const hewan = await loadAllHewan();
       const instSet = new Set();
       hewan.forEach(h => { if (h.instansi && h.wilayah) instSet.add(JSON.stringify({instansi: h.instansi, wilayah: h.wilayah})); });
       dokInstansiList = Array.from(instSet).map(s => JSON.parse(s));
-      const select = document.getElementById('dokInstansiSelect');
-      select.innerHTML = '<option value="">-- Pilih Instansi --</option>';
-      dokInstansiList.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item.instansi;
-        opt.textContent = `${item.instansi} (${item.wilayah})`;
-        opt.dataset.wilayah = item.wilayah;
-        select.appendChild(opt);
-      });
-      select.onchange = function() {
-        const opt = this.options[this.selectedIndex];
-        if (opt.value) {
-          document.getElementById('dokWilayah').value = opt.dataset.wilayah;
-          document.getElementById('dokUploadCard').style.display = 'block';
-        } else {
-          document.getElementById('dokWilayah').value = '';
-          document.getElementById('dokUploadCard').style.display = 'none';
-        }
-      };
+      let html = `<div class="u-content">`;
+      html += `<select id="dokInstansiSelect" class="field"><option value="">-- Pilih Instansi --</option>${dokInstansiList.map(item => `<option value="${item.instansi}" data-wilayah="${item.wilayah}">${item.instansi} (${item.wilayah})</option>`).join('')}</select>`;
+      html += `<input type="text" id="dokWilayah" class="field" placeholder="Wilayah" readonly>`;
+      html += `<select id="dokJenis" class="field"><option value="Pencacahan">🔪 Pencacahan</option><option value="Penyaluran">📦 Penyaluran</option></select>`;
+      html += `<div id="dokUploadCard" style="display:none;"><div class="upload-area" id="dokUploadArea">📁 Ketuk untuk pilih file (foto/video)</div><input type="file" id="dokFileInput" accept="image/*,video/*" multiple style="display:none;"><div id="dokFileList" class="file-list"></div><button class="btn" id="dokUploadBtn">Upload Dokumentasi</button></div>`;
+      html += `<div class="ucard" style="margin-top:16px;"><div class="card-title">Riwayat Dokumentasi</div><div id="dokRiwayat"></div></div>`;
+      html += `</div>`;
+      screens.dokumentasi.innerHTML = html;
+      attachDokEvents();
       loadDokRiwayat();
     }
 
-    const dokArea = document.getElementById('dokUploadArea');
-    const dokInput = document.getElementById('dokFileInput');
-    dokArea.addEventListener('click', () => dokInput.click());
-    dokInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      const listDiv = document.getElementById('dokFileList');
-      listDiv.innerHTML = files.map(f => `<div class="file-badge">📄 ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('');
-    });
+    function attachDokEvents() {
+      const select = document.getElementById('dokInstansiSelect');
+      const wilayahInput = document.getElementById('dokWilayah');
+      const uploadCard = document.getElementById('dokUploadCard');
+      const dokArea = document.getElementById('dokUploadArea');
+      const dokInput = document.getElementById('dokFileInput');
+      const fileListDiv = document.getElementById('dokFileList');
+      const uploadBtn = document.getElementById('dokUploadBtn');
 
-    document.getElementById('dokUploadBtn').addEventListener('click', async () => {
-      const instansi = document.getElementById('dokInstansiSelect').value;
-      const wilayah = document.getElementById('dokWilayah').value;
-      const jenis = document.getElementById('dokJenis').value;
-      if (!instansi) return alert('Pilih instansi');
-      const files = dokInput.files;
-      if (files.length === 0) return alert('Pilih file');
-      
-      const filePromises = Array.from(files).map(f => new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve({
-          base64Data: e.target.result.split(',')[1],
-          mimeType: f.type,
-          fileName: f.name
-        });
-        reader.readAsDataURL(f);
-      }));
-      
-      const btn = document.getElementById('dokUploadBtn');
-      btn.disabled = true;
-      btn.textContent = 'Mengupload...';
-      const fileData = await Promise.all(filePromises);
-      const result = await callApi('uploadDokumentasi', {
-        email, username: username || email, instansi, wilayah, jenis_dokumentasi: jenis, files: fileData
+      select.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        if (opt.value) {
+          wilayahInput.value = opt.dataset.wilayah;
+          uploadCard.style.display = 'block';
+        } else {
+          wilayahInput.value = '';
+          uploadCard.style.display = 'none';
+        }
       });
-      if (result.success) {
-        alert(`Berhasil upload ${result.fotoCount || 0} foto, ${result.videoCount || 0} video`);
-        dokInput.value = '';
-        document.getElementById('dokFileList').innerHTML = '';
-        loadDokRiwayat();
-      } else {
-        alert('Gagal: ' + result.error);
-      }
-      btn.disabled = false;
-      btn.textContent = 'Upload Dokumentasi';
-    });
+
+      dokArea.addEventListener('click', () => dokInput.click());
+      dokInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        fileListDiv.innerHTML = files.map(f => `<div class="file-item">📄 ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('');
+      });
+
+      uploadBtn.addEventListener('click', async () => {
+        const instansi = select.value;
+        const wilayah = wilayahInput.value;
+        const jenis = document.getElementById('dokJenis').value;
+        if (!instansi) { alert('Pilih instansi'); return; }
+        const files = dokInput.files;
+        if (files.length === 0) { alert('Pilih file'); return; }
+        const filePromises = Array.from(files).map(f => new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = e => resolve({ base64Data: e.target.result.split(',')[1], mimeType: f.type, fileName: f.name });
+          reader.readAsDataURL(f);
+        }));
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Mengupload...';
+        const fileData = await Promise.all(filePromises);
+        const result = await callApi('uploadDokumentasi', { email, username, instansi, wilayah, jenis_dokumentasi: jenis, files: fileData });
+        if (result.success) {
+          alert(`Berhasil upload ${result.fotoCount} foto, ${result.videoCount} video`);
+          dokInput.value = '';
+          fileListDiv.innerHTML = '';
+          loadDokRiwayat();
+        } else {
+          alert('Gagal: ' + result.error);
+        }
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload Dokumentasi';
+      });
+    }
 
     async function loadDokRiwayat() {
       const result = await callApi('getDokumentasi', { email });
+      const container = document.getElementById('dokRiwayat');
       if (result.success && result.data) {
-        const html = result.data.map(d => `
+        container.innerHTML = result.data.map(d => `
           <div class="detail-row">
-            <div style="flex:1">
-              <strong>${d.instansi} (${d.wilayah})</strong><br>
-              <small>${d.jenis} · ${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'}</small>
-            </div>
-            <a href="${d.folderUrl}" target="_blank" style="color:var(--primary);">📂 Buka</a>
+            <div style="flex:1"><strong>${d.instansi} (${d.wilayah})</strong><br><small>${d.jenis} · ${d.tglUpload?new Date(d.tglUpload).toLocaleDateString('id-ID'):'-'}</small></div>
+            <a href="${d.folderUrl}" target="_blank">📂 Buka</a>
           </div>
-        `).join('');
-        document.getElementById('dokRiwayat').innerHTML = html || '<div class="empty-illustration">Belum ada dokumentasi</div>';
+        `).join('') || '<p>Belum ada dokumentasi</p>';
       }
     }
 
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/';
+    // ---------- 渲染账户屏幕 ----------
+    function renderAkunScreen() {
+      screens.akun.innerHTML = `
+        <div class="u-content">
+          <div class="ucard">
+            <div class="card-title">Profil Saya</div>
+            <div class="detail-row"><span class="detail-label">Username</span><span class="detail-value">${username}</span></div>
+            <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${email}</span></div>
+            <div class="detail-row"><span class="detail-label">Role</span><span class="detail-value">${role==='admin'?'Administrator':'Panitia'}</span></div>
+          </div>
+          <div class="ucard">
+            <div class="card-title">Aplikasi</div>
+            <p>Versi 2.0 · Yayasan Bhakti Nusa Tenggara</p>
+          </div>
+          <button class="btn-outline" style="width:100%; margin-top:16px;" onclick="logout()">🚪 Keluar</button>
+        </div>
+      `;
     }
 
-    // Initial load
-    loadDashboard();
-  </script>
+    window.logout = function() {
+      localStorage.clear();
+      window.location.href = '/';
+    };
+
+    // 初始化
+    (async function init() {
+      await loadAllHewan();
+      renderBeranda();
+    })();
+
+  })();
+</script>
 </body>
 </html>

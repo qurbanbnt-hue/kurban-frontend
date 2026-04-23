@@ -3,204 +3,267 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kurban Digital - Login</title>
+  <title>Kurban Digital · Yayasan Bhakti Nusa Tenggara</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    /* Portal choice modal */
-    .portal-modal {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    .portal-modal.active {
-      display: flex;
-    }
-    .portal-options {
-      background: white;
-      border-radius: 32px;
-      padding: 32px;
+    /* Tambahan kecil untuk transisi halus */
+    .portal-choice {
+      margin-top: 20px;
       text-align: center;
-      max-width: 360px;
-      width: 90%;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
     }
-    .portal-options h3 {
-      font-size: 20px;
+    .portal-choice p {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--slate);
       margin-bottom: 16px;
-      color: var(--primary-dark);
+    }
+    .portal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
     }
     .portal-btn {
-      display: block;
-      width: 100%;
-      padding: 16px;
-      margin: 12px 0;
+      flex: 1;
+      padding: 14px;
       border: none;
-      border-radius: 60px;
+      border-radius: var(--pill);
       font-weight: 700;
-      font-size: 16px;
+      font-size: 14px;
       cursor: pointer;
       transition: all 0.2s;
     }
-    .portal-user {
-      background: var(--primary);
+    .portal-btn.panitia {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--sky) 100%);
       color: white;
+      box-shadow: var(--sh-sm);
     }
-    .portal-admin {
-      background: var(--gold);
-      color: var(--text-dark);
+    .portal-btn.admin {
+      background: linear-gradient(135deg, var(--amber-dk) 0%, var(--amber) 100%);
+      color: var(--ink);
+      box-shadow: var(--sh-amb);
     }
     .portal-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      box-shadow: var(--sh-md);
+    }
+    .hidden {
+      display: none !important;
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <div class="login-logo">
-          <span>🐄</span>
-        </div>
-        <h1 class="login-title">Kurban Digital</h1>
-        <p class="login-sub">Dokumentasi & Monitoring Hewan Kurban</p>
-      </div>
 
+<!-- Logo Base64 (embedded) -->
+<img id="bnt-logo-src" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAF3CAYAAAAfNHZBAAABAGlDQ1BJQ0MgcHJvZmlsZQAAeJx9kT1Lw0AYx79Wq0VFHKQ4ZKhOLogf4iZVKEWLUO2wmkUwCZo2ooloah3cCjoLPoyr4OQHcHFwc3BwcBD8AK4uTg6u4oL8X1Jaa+N4uOPufncfuEtQpnnOMABhWJ3p2Vk9lV7RhRBiiGAK4xJz4mW5JkBrw4nRAJ1bdJzje70yXoPcCJE5xjuJUTcRlngmC7asdoaXvHcE+SWSs6z2X8QiFUu8KJmK9DzxjKhVxBdEq7X8D8lprVJY4qy1jrGNpHp7cnKxpWwFjggsI4cMElbJUDCmkFImk7SOnEwaeXkZz8Z5l7z/Ou9r4bne62f7dG6Yc0O0x4n5hAGCOdZsHzdrd8cCjCT2R8u9LBCAIQ0sBmMsONaTxiSw6UoR6e/l8V3gfRdA5Vqgsi4wy5o1u2a0O2cT9D6G+0jI+1AciMPwj/n7AYCufljbjQAAAAAAAAAASUVORK5CYII=" style="display:none;">
+
+<div class="login-wrap">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- Left Panel -->
+  <div class="login-left">
+    <div class="bnt-logo-row">
+      <img class="bnt-logo-img" id="logo-left" src="" alt="BNT">
+      <div>
+        <div class="bnt-name">Yayasan Bhakti<br>Nusa Tenggara</div>
+        <div class="bnt-tagline">Kurban Digital · 1446 H</div>
+      </div>
+    </div>
+    <div>
+      <div class="login-headline">Dokumentasi <span class="accent-blue">Qurban</span> yang <span class="accent-green">Terdigital</span></div>
+      <p class="login-desc">Platform terpadu untuk mengelola dan memantau proses penyembelihan hewan qurban secara real-time.</p>
+    </div>
+    <div class="stats-band">
+      <div class="stat-item"><div class="stat-num" id="statHewan">—</div><div class="stat-lbl">Hewan Terdaftar</div></div>
+      <div class="stat-item"><div class="stat-num" id="statInstansi">—</div><div class="stat-lbl">Instansi Aktif</div></div>
+      <div class="stat-item"><div class="stat-num" id="statSelesai">—</div><div class="stat-lbl">Terverifikasi</div></div>
+    </div>
+  </div>
+
+  <!-- Right Card -->
+  <div class="login-right">
+    <div class="lcard">
+      <div class="lcard-logo">
+        <div class="lcard-icon">🐄</div>
+        <div>
+          <div class="lcard-brand-name">Kurban Digital</div>
+          <div class="lcard-brand-sub">Yayasan BNT</div>
+        </div>
+      </div>
+      <div class="lcard-title">Selamat Datang</div>
+      <div class="lcard-sub">Masuk dengan akun Anda</div>
+
+      <!-- Form Login (selalu tampil) -->
       <form id="loginForm">
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <div class="input-wrapper">
-            <span class="input-icon">📧</span>
-            <input type="email" class="form-control" id="email" placeholder="nama@email.com" required autocomplete="off">
+        <div class="fgroup">
+          <label class="flabel">Email</label>
+          <div class="field-wrap">
+            <span class="field-icon">✉</span>
+            <input class="field" type="email" id="email" placeholder="email@bnt.or.id" required autocomplete="off">
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <div class="input-wrapper">
-            <span class="input-icon">🔒</span>
-            <input type="password" class="form-control" id="password" placeholder="••••••••" required>
+        <div class="fgroup">
+          <label class="flabel">Kata Sandi</label>
+          <div class="field-wrap">
+            <span class="field-icon">🔒</span>
+            <input class="field" type="password" id="password" placeholder="••••••••" required>
           </div>
         </div>
-        <button type="submit" class="btn-login user" id="loginBtn">Masuk</button>
+        <button type="submit" class="btn-submit panitia" id="loginBtn">Lanjutkan →</button>
         <div id="loginError" class="error-message"></div>
       </form>
+
+      <!-- Portal Choice (awalnya tersembunyi) -->
+      <div id="portalChoice" class="portal-choice hidden">
+        <p>Anda login sebagai <strong id="loggedUser"></strong></p>
+        <div class="portal-buttons">
+          <button class="portal-btn panitia" id="goUser">📱 Panitia</button>
+          <button class="portal-btn admin" id="goAdmin">⚙️ Administrator</button>
+        </div>
+        <button class="btn-ghost" style="margin-top:16px; width:100%;" id="logoutAfterChoice">↩ Ganti Akun</button>
+      </div>
+
+      <div class="lcard-foot">
+        Dikelola oleh <strong>Yayasan Bhakti Nusa Tenggara</strong><br>
+        Idul Adha 1446 H · 2025 M
+      </div>
     </div>
   </div>
+</div>
 
-  <!-- Portal Choice Modal (only for admin) -->
-  <div class="portal-modal" id="portalModal">
-    <div class="portal-options">
-      <h3>Pilih Portal</h3>
-      <p style="margin-bottom: 20px; color: var(--text-muted);">Anda login sebagai Administrator</p>
-      <button class="portal-btn portal-user" id="goUserBtn">📱 Aplikasi User</button>
-      <button class="portal-btn portal-admin" id="goAdminBtn">⚙️ Admin Panel</button>
-      <button class="btn-outline" style="margin-top: 16px; width: 100%;" onclick="closePortalModal()">Batal</button>
-    </div>
-  </div>
+<script src="assets/js/api.js"></script>
+<script>
+  // Inject logo
+  document.getElementById('logo-left').src = document.getElementById('bnt-logo-src').src;
 
-  <script src="assets/js/api.js"></script>
-  <script>
-    // Cek session existing
-    (function checkExistingSession() {
-      const email = localStorage.getItem('userEmail');
-      const role = localStorage.getItem('userRole');
-      const expiry = Number(localStorage.getItem('loginExpiry'));
-      if (email && role && Date.now() < expiry) {
-        if (role === 'admin') {
-          showPortalModal(email);
-        } else {
-          window.location.replace('/user');
-        }
+  // Elements
+  const loginForm = document.getElementById('loginForm');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const loginBtn = document.getElementById('loginBtn');
+  const errorDiv = document.getElementById('loginError');
+  const portalChoice = document.getElementById('portalChoice');
+  const loggedUserSpan = document.getElementById('loggedUser');
+  const goUserBtn = document.getElementById('goUser');
+  const goAdminBtn = document.getElementById('goAdmin');
+  const logoutAfterChoice = document.getElementById('logoutAfterChoice');
+
+  let currentUser = null; // menyimpan { email, username, role }
+
+  // Cek session existing (jika sudah login, langsung tampilkan pilihan portal)
+  function checkExistingSession() {
+    const email = localStorage.getItem('userEmail');
+    const role = localStorage.getItem('userRole');
+    const expiry = Number(localStorage.getItem('loginExpiry'));
+    if (email && role && Date.now() < expiry) {
+      currentUser = {
+        email: email,
+        username: localStorage.getItem('username') || email.split('@')[0],
+        role: role
+      };
+      showPortalChoice();
+    }
+  }
+
+  // Tampilkan pilihan portal, sembunyikan form login
+  function showPortalChoice() {
+    loginForm.classList.add('hidden');
+    portalChoice.classList.remove('hidden');
+    loggedUserSpan.textContent = `${currentUser.username} (${currentUser.role === 'admin' ? 'Administrator' : 'Panitia'})`;
+    // Tombol admin hanya muncul jika role admin
+    if (currentUser.role !== 'admin') {
+      goAdminBtn.style.display = 'none';
+    } else {
+      goAdminBtn.style.display = 'block';
+    }
+  }
+
+  // Sembunyikan portal choice, tampilkan form login (logout lokal)
+  function resetToLogin() {
+    localStorage.clear();
+    currentUser = null;
+    loginForm.classList.remove('hidden');
+    portalChoice.classList.add('hidden');
+    emailInput.value = '';
+    passwordInput.value = '';
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Lanjutkan →';
+  }
+
+  // Handler login
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      errorDiv.textContent = 'Email dan password harus diisi';
+      return;
+    }
+
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Memverifikasi...';
+    errorDiv.textContent = '';
+
+    try {
+      const result = await callApi('login', { email, password });
+      if (result.success) {
+        // Simpan session
+        localStorage.setItem('userEmail', result.email);
+        localStorage.setItem('username', result.username);
+        localStorage.setItem('userRole', result.role);
+        localStorage.setItem('loginExpiry', Date.now() + 8*60*60*1000);
+
+        currentUser = {
+          email: result.email,
+          username: result.username,
+          role: result.role
+        };
+
+        showPortalChoice();
+      } else {
+        throw new Error(result.error || 'Login gagal');
       }
-    })();
-
-    const loginForm = document.getElementById('loginForm');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const loginBtn = document.getElementById('loginBtn');
-    const errorDiv = document.getElementById('loginError');
-
-    let pendingAdminEmail = null;
-    let pendingUsername = null;
-
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
-
-      if (!email || !password) {
-        errorDiv.textContent = 'Email dan password harus diisi';
-        return;
-      }
-
-      loginBtn.disabled = true;
-      loginBtn.textContent = 'Memverifikasi...';
-      errorDiv.textContent = '';
-
-      try {
-        const result = await callApi('login', { email, password });
-        
-        if (result.success) {
-          // Simpan session
-          localStorage.setItem('userEmail', result.email);
-          localStorage.setItem('username', result.username);
-          localStorage.setItem('userRole', result.role);
-          localStorage.setItem('loginExpiry', Date.now() + (8 * 60 * 60 * 1000));
-
-          if (result.role === 'admin') {
-            // Tampilkan pilihan portal
-            pendingAdminEmail = result.email;
-            pendingUsername = result.username;
-            showPortalModal(result.username || result.email);
-          } else {
-            // User biasa: langsung ke user app
-            window.location.replace('/user');
-          }
-        } else {
-          throw new Error(result.error || 'Login gagal');
-        }
-      } catch (err) {
-        errorDiv.textContent = err.message;
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Masuk';
-      }
-    });
-
-    function showPortalModal(displayName) {
-      document.getElementById('portalModal').classList.add('active');
-      // Reset form untuk keamanan
-      emailInput.value = '';
-      passwordInput.value = '';
+    } catch (err) {
+      errorDiv.textContent = err.message;
       loginBtn.disabled = false;
-      loginBtn.textContent = 'Masuk';
+      loginBtn.textContent = 'Lanjutkan →';
     }
+  });
 
-    function closePortalModal() {
-      document.getElementById('portalModal').classList.remove('active');
-      // Jika user cancel, logout (clear session)
-      localStorage.clear();
-      pendingAdminEmail = null;
-      pendingUsername = null;
-    }
+  // Pilihan portal
+  goUserBtn.addEventListener('click', () => {
+    window.location.href = '/user';
+  });
 
-    document.getElementById('goUserBtn').addEventListener('click', () => {
-      window.location.replace('/user');
-    });
+  goAdminBtn.addEventListener('click', () => {
+    window.location.href = '/admin';
+  });
 
-    document.getElementById('goAdminBtn').addEventListener('click', () => {
-      window.location.replace('/admin');
-    });
+  // Ganti akun (logout dari tampilan)
+  logoutAfterChoice.addEventListener('click', resetToLogin);
 
-    // Jika modal ditutup dengan klik di luar (opsional)
-    document.getElementById('portalModal').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('portalModal')) {
-        closePortalModal();
+  // Load stats untuk left panel (opsional, bisa menggunakan endpoint publik)
+  async function loadStats() {
+    try {
+      // Kamu bisa membuat endpoint khusus yang tidak perlu autentikasi,
+      // atau memanggil getAdminData dengan kredensial publik.
+      const result = await callApi('getAdminData', { email: 'public@bnt.or.id' });
+      if (result.success) {
+        document.getElementById('statHewan').textContent = result.stats.totalHewan || 0;
+        const instansiSet = new Set(result.hewan.map(h => h.instansi));
+        document.getElementById('statInstansi').textContent = instansiSet.size || 0;
+        document.getElementById('statSelesai').textContent = result.stats.selesai || 0;
       }
-    });
-  </script>
+    } catch (e) {
+      // biarkan default —
+    }
+  }
+
+  // Initial check
+  checkExistingSession();
+  loadStats();
+</script>
 </body>
 </html>
