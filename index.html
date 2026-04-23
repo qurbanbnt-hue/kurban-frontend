@@ -5,56 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kurban Digital · Yayasan Bhakti Nusa Tenggara</title>
   <link rel="stylesheet" href="assets/css/style.css">
-  <style>
-    /* Tambahan kecil untuk transisi halus */
-    .portal-choice {
-      margin-top: 20px;
-      text-align: center;
-    }
-    .portal-choice p {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--slate);
-      margin-bottom: 16px;
-    }
-    .portal-buttons {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-    }
-    .portal-btn {
-      flex: 1;
-      padding: 14px;
-      border: none;
-      border-radius: var(--pill);
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .portal-btn.panitia {
-      background: linear-gradient(135deg, var(--blue) 0%, var(--sky) 100%);
-      color: white;
-      box-shadow: var(--sh-sm);
-    }
-    .portal-btn.admin {
-      background: linear-gradient(135deg, var(--amber-dk) 0%, var(--amber) 100%);
-      color: var(--ink);
-      box-shadow: var(--sh-amb);
-    }
-    .portal-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--sh-md);
-    }
-    .hidden {
-      display: none !important;
-    }
-  </style>
 </head>
 <body>
-
-<!-- Logo Base64 (embedded) -->
-<img id="bnt-logo-src" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAF3CAYAAAAfNHZBAAABAGlDQ1BJQ0MgcHJvZmlsZQAAeJx9kT1Lw0AYx79Wq0VFHKQ4ZKhOLogf4iZVKEWLUO2wmkUwCZo2ooloah3cCjoLPoyr4OQHcHFwc3BwcBD8AK4uTg6u4oL8X1Jaa+N4uOPufncfuEtQpnnOMABhWJ3p2Vk9lV7RhRBiiGAK4xJz4mW5JkBrw4nRAJ1bdJzje70yXoPcCJE5xjuJUTcRlngmC7asdoaXvHcE+SWSs6z2X8QiFUu8KJmK9DzxjKhVxBdEq7X8D8lprVJY4qy1jrGNpHp7cnKxpWwFjggsI4cMElbJUDCmkFImk7SOnEwaeXkZz8Z5l7z/Ou9r4bne62f7dG6Yc0O0x4n5hAGCOdZsHzdrd8cCjCT2R8u9LBCAIQ0sBmMsONaTxiSw6UoR6e/l8V3gfRdA5Vqgsi4wy5o1u2a0O2cT9D6G+0jI+1AciMPwj/n7AYCufljbjQAAAAAAAAAASUVORK5CYII=" style="display:none;">
 
 <div class="login-wrap">
   <div class="orb orb-1"></div>
@@ -64,7 +16,7 @@
   <!-- Left Panel -->
   <div class="login-left">
     <div class="bnt-logo-row">
-      <img class="bnt-logo-img" id="logo-left" src="" alt="BNT">
+      <img class="bnt-logo-img" src="assets/images/logo-bnt.png" alt="Yayasan Bhakti Nusa Tenggara">
       <div>
         <div class="bnt-name">Yayasan Bhakti<br>Nusa Tenggara</div>
         <div class="bnt-tagline">Kurban Digital · 1446 H</div>
@@ -85,7 +37,9 @@
   <div class="login-right">
     <div class="lcard">
       <div class="lcard-logo">
-        <div class="lcard-icon">🐄</div>
+        <div class="lcard-icon">
+          <img src="assets/images/logo-bnt.png" alt="BNT">
+        </div>
         <div>
           <div class="lcard-brand-name">Kurban Digital</div>
           <div class="lcard-brand-sub">Yayasan BNT</div>
@@ -94,39 +48,39 @@
       <div class="lcard-title">Selamat Datang</div>
       <div class="lcard-sub">Masuk dengan akun Anda</div>
 
-      <!-- Form Login (selalu tampil) -->
+      <!-- Form Login -->
       <form id="loginForm">
         <div class="fgroup">
           <label class="flabel">Email</label>
           <div class="field-wrap">
-            <span class="field-icon">✉</span>
+            <span class="field-icon"><i class="icon icon-mail"></i></span>
             <input class="field" type="email" id="email" placeholder="email@bnt.or.id" required autocomplete="off">
           </div>
         </div>
         <div class="fgroup">
           <label class="flabel">Kata Sandi</label>
           <div class="field-wrap">
-            <span class="field-icon">🔒</span>
+            <span class="field-icon"><i class="icon icon-lock"></i></span>
             <input class="field" type="password" id="password" placeholder="••••••••" required>
           </div>
         </div>
-        <button type="submit" class="btn-submit panitia" id="loginBtn">Lanjutkan →</button>
+        <button type="submit" class="btn-submit panitia" id="loginBtn">Lanjutkan <i class="icon icon-chevron-right"></i></button>
         <div id="loginError" class="error-message"></div>
       </form>
 
-      <!-- Portal Choice (awalnya tersembunyi) -->
+      <!-- Portal Choice (hidden by default) -->
       <div id="portalChoice" class="portal-choice hidden">
         <p>Anda login sebagai <strong id="loggedUser"></strong></p>
         <div class="portal-buttons">
-          <button class="portal-btn panitia" id="goUser">📱 Panitia</button>
-          <button class="portal-btn admin" id="goAdmin">⚙️ Administrator</button>
+          <button class="portal-btn panitia" id="goUser"><i class="icon icon-user"></i> Panitia</button>
+          <button class="portal-btn admin" id="goAdmin"><i class="icon icon-settings"></i> Administrator</button>
         </div>
-        <button class="btn-ghost" style="margin-top:16px; width:100%;" id="logoutAfterChoice">↩ Ganti Akun</button>
+        <button class="btn-ghost" style="margin-top:16px; width:100%;" id="logoutAfterChoice"><i class="icon icon-log-out"></i> Ganti Akun</button>
       </div>
 
       <div class="lcard-foot">
         Dikelola oleh <strong>Yayasan Bhakti Nusa Tenggara</strong><br>
-        Idul Adha 1446 H · 2025 M
+        Idul Adha 1447 H · 2026 M
       </div>
     </div>
   </div>
@@ -134,9 +88,6 @@
 
 <script src="assets/js/api.js"></script>
 <script>
-  // Inject logo
-  document.getElementById('logo-left').src = document.getElementById('bnt-logo-src').src;
-
   // Elements
   const loginForm = document.getElementById('loginForm');
   const emailInput = document.getElementById('email');
@@ -149,9 +100,9 @@
   const goAdminBtn = document.getElementById('goAdmin');
   const logoutAfterChoice = document.getElementById('logoutAfterChoice');
 
-  let currentUser = null; // menyimpan { email, username, role }
+  let currentUser = null;
 
-  // Cek session existing (jika sudah login, langsung tampilkan pilihan portal)
+  // Cek session existing
   function checkExistingSession() {
     const email = localStorage.getItem('userEmail');
     const role = localStorage.getItem('userRole');
@@ -166,12 +117,10 @@
     }
   }
 
-  // Tampilkan pilihan portal, sembunyikan form login
   function showPortalChoice() {
     loginForm.classList.add('hidden');
     portalChoice.classList.remove('hidden');
     loggedUserSpan.textContent = `${currentUser.username} (${currentUser.role === 'admin' ? 'Administrator' : 'Panitia'})`;
-    // Tombol admin hanya muncul jika role admin
     if (currentUser.role !== 'admin') {
       goAdminBtn.style.display = 'none';
     } else {
@@ -179,7 +128,6 @@
     }
   }
 
-  // Sembunyikan portal choice, tampilkan form login (logout lokal)
   function resetToLogin() {
     localStorage.clear();
     currentUser = null;
@@ -188,10 +136,10 @@
     emailInput.value = '';
     passwordInput.value = '';
     loginBtn.disabled = false;
-    loginBtn.textContent = 'Lanjutkan →';
+    loginBtn.innerHTML = 'Lanjutkan <i class="icon icon-chevron-right"></i>';
   }
 
-  // Handler login
+  // Login handler
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = emailInput.value.trim();
@@ -203,13 +151,12 @@
     }
 
     loginBtn.disabled = true;
-    loginBtn.textContent = 'Memverifikasi...';
+    loginBtn.innerHTML = 'Memverifikasi...';
     errorDiv.textContent = '';
 
     try {
       const result = await callApi('login', { email, password });
       if (result.success) {
-        // Simpan session
         localStorage.setItem('userEmail', result.email);
         localStorage.setItem('username', result.username);
         localStorage.setItem('userRole', result.role);
@@ -220,7 +167,6 @@
           username: result.username,
           role: result.role
         };
-
         showPortalChoice();
       } else {
         throw new Error(result.error || 'Login gagal');
@@ -228,40 +174,34 @@
     } catch (err) {
       errorDiv.textContent = err.message;
       loginBtn.disabled = false;
-      loginBtn.textContent = 'Lanjutkan →';
+      loginBtn.innerHTML = 'Lanjutkan <i class="icon icon-chevron-right"></i>';
     }
   });
 
-  // Pilihan portal
+  // Portal selection
   goUserBtn.addEventListener('click', () => {
     window.location.href = '/user';
   });
-
   goAdminBtn.addEventListener('click', () => {
     window.location.href = '/admin';
   });
-
-  // Ganti akun (logout dari tampilan)
   logoutAfterChoice.addEventListener('click', resetToLogin);
 
-  // Load stats untuk left panel (opsional, bisa menggunakan endpoint publik)
+  // Load public stats for left panel
   async function loadStats() {
     try {
-      // Kamu bisa membuat endpoint khusus yang tidak perlu autentikasi,
-      // atau memanggil getAdminData dengan kredensial publik.
-      const result = await callApi('getAdminData', { email: 'public@bnt.or.id' });
-      if (result.success) {
-        document.getElementById('statHewan').textContent = result.stats.totalHewan || 0;
-        const instansiSet = new Set(result.hewan.map(h => h.instansi));
-        document.getElementById('statInstansi').textContent = instansiSet.size || 0;
-        document.getElementById('statSelesai').textContent = result.stats.selesai || 0;
+      const result = await callApi('getPublicStats', {});
+      if (result && result.totalHewan !== undefined) {
+        document.getElementById('statHewan').textContent = result.totalHewan;
+        document.getElementById('statInstansi').textContent = result.totalInstansi;
+        document.getElementById('statSelesai').textContent = result.selesai;
       }
     } catch (e) {
       // biarkan default —
     }
   }
 
-  // Initial check
+  // Initial
   checkExistingSession();
   loadStats();
 </script>

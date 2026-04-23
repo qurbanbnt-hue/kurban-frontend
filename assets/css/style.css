@@ -1,7 +1,9 @@
 /* ============================================================
-   KURBAN DIGITAL - BNT BRAND STYLES
+   KURBAN DIGITAL - YAYASAN BHAKTI NUSA TENGGARA
+   FULL STYLES (with Lucide Icons)
    ============================================================ */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/lucide-static@0.344.0/font/lucide.min.css');
 
 :root {
   --blue: #2C70B7;
@@ -49,9 +51,45 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─────────────────────────────────────────────────
+/* ─── LUCIDE ICONS ─── */
+i.icon, .icon {
+  font-family: 'lucide' !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.lcard-icon i, .u-brand-icon i, .sb-item i, .nav-item i { font-size: 24px; }
+.field-icon i { font-size: 18px; }
+
+/* ─── LOGO IMAGES ─── */
+.bnt-logo-img {
+  width: 64px;
+  height: 80px;
+  object-fit: contain;
+}
+.u-brand-icon img {
+  width: 28px;
+  height: 35px;
+  object-fit: contain;
+}
+.sb-logo-img {
+  width: 36px;
+  height: 45px;
+  object-fit: contain;
+}
+.lcard-icon img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+}
+
+/* ═══════════════════════════════════════════════
    LOGIN PAGE
-───────────────────────────────────────────────── */
+═══════════════════════════════════════════════ */
 .login-wrap {
   min-height: 100vh;
   display: flex;
@@ -120,11 +158,6 @@ body {
   align-items: center;
   gap: 18px;
   margin-bottom: 56px;
-}
-.bnt-logo-img {
-  width: 64px;
-  height: 80px;
-  object-fit: contain;
 }
 .bnt-name {
   font-family: 'Sora', sans-serif;
@@ -230,8 +263,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
   box-shadow: var(--sh-sm);
+  overflow: hidden;
 }
 .lcard-brand-name {
   font-family: 'Sora', sans-serif;
@@ -366,9 +399,50 @@ body {
   text-align: center;
 }
 
-/* ─────────────────────────────────────────────────
-   USER PORTAL (Mobile)
-───────────────────────────────────────────────── */
+/* ─── PORTAL CHOICE (AFTER LOGIN) ─── */
+.portal-choice {
+  margin-top: 20px;
+  text-align: center;
+}
+.portal-choice p {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--slate);
+  margin-bottom: 16px;
+}
+.portal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.portal-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: var(--pill);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.portal-btn.panitia {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--sky) 100%);
+  color: white;
+  box-shadow: var(--sh-sm);
+}
+.portal-btn.admin {
+  background: linear-gradient(135deg, var(--amber-dk) 0%, var(--amber) 100%);
+  color: var(--ink);
+  box-shadow: var(--sh-amb);
+}
+.portal-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-md);
+}
+
+/* ═══════════════════════════════════════════════
+   USER PORTAL (Mobile Shell)
+═══════════════════════════════════════════════ */
 .user-frame {
   background: #EAF2FB;
   min-height: 100vh;
@@ -438,7 +512,6 @@ body {
   justify-content: center;
   overflow: hidden;
 }
-.u-brand-icon img { width: 28px; height: 35px; object-fit: contain; }
 .u-brand-name {
   font-family: 'Sora', sans-serif;
   font-size: 13px;
@@ -705,11 +778,11 @@ body {
   color: var(--blue);
   background: var(--blue-lt);
 }
-.nav-item .ni { font-size: 20px; }
+.nav-item i { font-size: 20px; }
 
-/* ─────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════
    ADMIN PORTAL
-───────────────────────────────────────────────── */
+═══════════════════════════════════════════════ */
 .admin-root {
   display: flex;
   min-height: 100vh;
@@ -749,7 +822,6 @@ body {
   position: relative;
   z-index: 1;
 }
-.sb-logo-img { width: 36px; height: 45px; object-fit: contain; }
 .sb-logo-text .sn {
   font-family: 'Sora', sans-serif;
   font-size: 13px;
@@ -757,7 +829,10 @@ body {
   color: var(--white);
   line-height: 1.3;
 }
-.sb-logo-text .ss { font-size: 10px; color: rgba(255,255,255,.3); }
+.sb-logo-text .ss {
+  font-size: 10px;
+  color: rgba(255,255,255,.3);
+}
 .sb-section {
   font-size: 10px;
   font-weight: 700;
@@ -791,7 +866,6 @@ body {
   border-left: 3px solid var(--sky);
   padding-left: 9px;
 }
-.sb-item .sbi { font-size: 16px; }
 .sb-badge {
   margin-left: auto;
   background: var(--blue);
@@ -1095,7 +1169,7 @@ tr:hover td { background: var(--bg); }
 .ph-green { color: var(--green); }
 .ph-amber { color: var(--amber-dk); }
 
-/* Modal (untuk admin CRUD) */
+/* Modal */
 .modal {
   display: none;
   position: fixed;
