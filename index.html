@@ -29,7 +29,7 @@
     <div class="stats-band">
       <div class="stat-item"><div class="stat-num" id="statHewan">—</div><div class="stat-lbl">Hewan Terdaftar</div></div>
       <div class="stat-item"><div class="stat-num" id="statInstansi">—</div><div class="stat-lbl">Instansi Aktif</div></div>
-      <div class="stat-item"><div class="stat-num" id="statSelesai">—</div><div class="stat-lbl">Terverifikasi</div></div>
+      <div class="stat-item"><div class="stat-num" id="statPekurban">—</div><div class="stat-lbl">Total Pekurban</div></div>
     </div>
   </div>
 
@@ -194,7 +194,7 @@
       if (result && result.totalHewan !== undefined) {
         document.getElementById('statHewan').textContent = result.totalHewan;
         document.getElementById('statInstansi').textContent = result.totalInstansi;
-        document.getElementById('statSelesai').textContent = result.selesai;
+        document.getElementById('statPekurban').textContent = result.totalPekurban;
       }
     } catch (e) {
       // biarkan default —
