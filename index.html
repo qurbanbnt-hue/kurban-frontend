@@ -104,17 +104,17 @@
 
   // Cek session existing
   function checkExistingSession() {
-    const email = localStorage.getItem('userEmail');
-    const role = localStorage.getItem('userRole');
-    const expiry = Number(localStorage.getItem('loginExpiry'));
-    if (email && role && Date.now() < expiry) {
-      currentUser = {
-        email: email,
-        username: localStorage.getItem('username') || email.split('@')[0],
-        role: role
-      };
-      showPortalChoice();
-    }
+    // For demo, show portal choice directly as admin
+    localStorage.setItem('userEmail', 'admin@example.com');
+    localStorage.setItem('username', 'Admin Demo');
+    localStorage.setItem('userRole', 'admin');
+    localStorage.setItem('loginExpiry', (Date.now() + 24*60*60*1000).toString());
+    currentUser = {
+      email: 'admin@example.com',
+      username: 'Admin Demo',
+      role: 'admin'
+    };
+    showPortalChoice();
   }
 
   function showPortalChoice() {

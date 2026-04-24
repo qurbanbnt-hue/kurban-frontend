@@ -12,13 +12,7 @@
     }
     .phone-shell {
       width: 100%;
-      max-width: 420px;
       margin: 0 auto;
-      border-radius: 32px;
-      border: none;
-      box-shadow: 0 20px 40px rgba(13,30,53,0.2);
-      background: var(--bg);
-      overflow: hidden;
     }
     @media (min-width: 600px) {
       .phone-shell {
@@ -26,14 +20,16 @@
         border: 6px solid rgba(13,30,53,0.08);
       }
     }
-    @media (min-width: 1024px) {
+    @media (min-width: 768px) {
       .user-frame {
         align-items: center;
         min-height: 100vh;
       }
       .phone-shell {
-        max-width: 420px;
-        box-shadow: 0 32px 80px rgba(13,30,53,0.25);
+        max-width: 100%;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
       }
     }
 
@@ -74,13 +70,20 @@
     /* Upload Tabs */
     .upload-tab {
       flex: 1; padding: 12px 8px; background: var(--bg);
-      border: 1px solid var(--border); border-radius: var(--pill);
+      border: 1.5px solid var(--border); border-radius: var(--pill);
       font-weight: 600; color: var(--slate); cursor: pointer;
       transition: all 0.2s; display: flex; align-items: center;
       justify-content: center; gap: 6px;
     }
     .upload-tab.active {
       background: var(--blue); color: white; border-color: var(--blue);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .upload-tab.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+      background: var(--border);
+      color: var(--muted);
     }
 
     /* Profile Performance */
@@ -151,7 +154,7 @@
     <div class="u-kpi">
       <div class="u-kpi-item"><div class="u-kpi-num" id="totalHewan">-</div><div class="u-kpi-lbl">Total</div></div>
       <div class="u-kpi-item"><div class="u-kpi-num" id="selesai">-</div><div class="u-kpi-lbl">Selesai</div></div>
-      <div class="u-kpi-item"><div class="u-kpi-num" id="proses">-</div><div class="u-kpi-lbl">Proses</div></div>
+      <div class="u-kpi-item"><div class="u-kpi-num" id="proses">-</div><div class="u-kpi-lbl">Sedang Diproses</div></div>
     </div>
   </div>
 
@@ -159,12 +162,6 @@
   <div class="u-content">
     <!-- BERANDA -->
     <div id="screen-beranda" class="screen active">
-      <div class="quick-actions">
-        <div class="qa-chip" data-screen="hewan"><i class="icon icon-list"></i><div class="qa-lbl">Hewan</div></div>
-        <div class="qa-chip" data-screen="upload"><i class="icon icon-camera"></i><div class="qa-lbl">Upload</div></div>
-        <div class="qa-chip" data-screen="dokumentasi"><i class="icon icon-folder"></i><div class="qa-lbl">Dok</div></div>
-      </div>
-
       <div class="phase-card">
         <div class="phase-title"><i class="icon icon-bar-chart"></i> Progress Fase</div>
         <div class="phase-steps">
@@ -304,7 +301,7 @@
   </div>
 </div>
 
-<script src="../assets/js/api.js"></script>
+<script src="../assets/js/api.js?v=1"></script>
 <script>
   // ==================== GLOBAL STATE ====================
   let allHewan = [];
@@ -313,11 +310,18 @@
   let currentUploadTab = 'hidup';
   let dokInstansiList = [];
 
-  const email = localStorage.getItem('userEmail');
-  const username = localStorage.getItem('username');
-  const role = localStorage.getItem('userRole');
+  const email = localStorage.getItem('userEmail') || 'demo@example.com';
+  const username = localStorage.getItem('username') || 'Demo User';
+  const role = localStorage.getItem('userRole') || 'user';
 
-  if (!email) window.location.href = '/';
+  // Set demo data if not exists
+  if (!localStorage.getItem('userEmail')) {
+    localStorage.setItem('userEmail', 'demo@example.com');
+    localStorage.setItem('username', 'Demo User');
+    localStorage.setItem('userRole', 'user');
+  }
+
+  // if (!email) window.location.href = '/';
   document.getElementById('userName').textContent = username || email;
   document.getElementById('avatarInitial').textContent = (username || email).charAt(0).toUpperCase();
   document.getElementById('profileUsername').textContent = username || email;
@@ -335,6 +339,21 @@
     return [status.url_hidup, status.url_ditumbangkan, status.url_mati].filter(Boolean).length;
   }
 
+  function updateUploadTabs(allHidup, allTumbang) {
+    const hidupTab = document.querySelector('.upload-tab[data-tab="hidup"]');
+    const tumbangTab = document.querySelector('.upload-tab[data-tab="ditumbangkan"]');
+    const matiTab = document.querySelector('.upload-tab[data-tab="mati"]');
+    
+    // Hidup always enabled (bisa re-upload)
+    if (hidupTab) hidupTab.classList.toggle('disabled', false);
+    
+    // Tumbang enabled jika hidup sudah ada (bisa initial upload atau re-upload)
+    if (tumbangTab && selectedHewan) tumbangTab.classList.toggle('disabled', !selectedHewan.status.url_hidup);
+    
+    // Mati enabled jika tumbang sudah ada (bisa initial upload atau re-upload)
+    if (matiTab && selectedHewan) matiTab.classList.toggle('disabled', !selectedHewan.status.url_ditumbangkan);
+  }
+
   // ==================== DATA FETCH ====================
   async function loadAllData() {
     const [hewanRes, dokRes] = await Promise.all([
@@ -347,15 +366,16 @@
 
   // ==================== RENDER DASHBOARD ====================
   async function renderDashboard() {
+    console.log('Rendering dashboard with', allHewan.length, 'hewan');
     const total = allHewan.length;
     const hidup = allHewan.filter(h => h.status.url_hidup).length;
     const tumbang = allHewan.filter(h => h.status.url_ditumbangkan).length;
     const mati = allHewan.filter(h => h.status.url_mati).length;
-    const selesai = allHewan.filter(h => h.status.url_hidup && h.status.url_ditumbangkan && h.status.url_mati).length;
+    const selesai = allHewan.filter(h => getPhaseCount(h.status) === 3).length;
 
     document.getElementById('totalHewan').textContent = total;
     document.getElementById('selesai').textContent = selesai;
-    document.getElementById('proses').textContent = total - selesai;
+    document.getElementById('proses').textContent = allHewan.filter(h => getPhaseCount(h.status) > 0 && getPhaseCount(h.status) < 3).length;
     document.getElementById('cntHidup').textContent = hidup;
     document.getElementById('cntTumbang').textContent = tumbang;
     document.getElementById('cntMati').textContent = mati;
@@ -365,14 +385,17 @@
     const stepMati = document.getElementById('stepMati');
     const line1 = document.getElementById('line1');
     const line2 = document.getElementById('line2');
-    stepHidup.classList.toggle('done', hidup > 0);
-    stepTumbang.classList.toggle('done', tumbang > 0);
-    stepMati.classList.toggle('done', mati > 0);
-    line1.classList.toggle('done', hidup > 0);
-    line2.classList.toggle('done', tumbang > 0);
-    if (hidup>0) stepHidup.textContent = '✓';
-    if (tumbang>0) stepTumbang.textContent = '✓';
-    if (mati>0) stepMati.textContent = '✓';
+    stepHidup.classList.toggle('done', hidup === total);
+    stepTumbang.classList.toggle('done', tumbang === total);
+    stepMati.classList.toggle('done', mati === total);
+    line1.classList.toggle('done', hidup === total);
+    line2.classList.toggle('done', tumbang === total);
+    if (hidup === total) stepHidup.textContent = '✓';
+    if (tumbang === total) stepTumbang.textContent = '✓';
+    if (mati === total) stepMati.textContent = '✓';
+
+    // Update upload tabs based on progress
+    updateUploadTabs(hidup === total, tumbang === total);
 
     const recent = allHewan.slice(0,5);
     document.getElementById('recentHewan').innerHTML = recent.map(h => `
@@ -487,6 +510,9 @@
     document.querySelectorAll('.upload-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === currentUploadTab);
     });
+    
+    // Update tab disable states
+    updateUploadTabs(true, true);
   }
 
   // Upload event listeners (dipasang setelah DOM siap)
@@ -518,6 +544,7 @@
 
     document.querySelectorAll('.upload-tab').forEach(tab => {
       tab.addEventListener('click', () => {
+        if (tab.classList.contains('disabled')) return;
         currentUploadTab = tab.dataset.tab;
         document.querySelectorAll('.upload-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
