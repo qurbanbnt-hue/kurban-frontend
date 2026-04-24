@@ -343,14 +343,8 @@
     const hidupTab = document.querySelector('.upload-tab[data-tab="hidup"]');
     const tumbangTab = document.querySelector('.upload-tab[data-tab="ditumbangkan"]');
     const matiTab = document.querySelector('.upload-tab[data-tab="mati"]');
-    
-    // Hidup always enabled (bisa re-upload)
-    if (hidupTab) hidupTab.classList.toggle('disabled', false);
-    
-    // Tumbang enabled jika hidup sudah ada (bisa initial upload atau re-upload)
+    if (hidupTab) hidupTab.classList.toggle('disabled', false); // always enabled
     if (tumbangTab && selectedHewan) tumbangTab.classList.toggle('disabled', !selectedHewan.status.url_hidup);
-    
-    // Mati enabled jika tumbang sudah ada (bisa initial upload atau re-upload)
     if (matiTab && selectedHewan) matiTab.classList.toggle('disabled', !selectedHewan.status.url_ditumbangkan);
   }
 
