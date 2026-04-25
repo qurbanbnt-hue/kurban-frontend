@@ -330,7 +330,18 @@
   document.getElementById('profileEmail').textContent = email;
   document.getElementById('profileRole').textContent = role === 'admin' ? 'Administrator' : 'Panitia';
 
-  // ==================== UTILITIES ====================
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.className = `toast ${type} show`;
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  }
+ 
+    // ==================== UTILITIES ====================
   function getEmoji(jenis) {
     const j = (jenis||'').toLowerCase();
     if (j.includes('kambing')||j.includes('domba')) return '🐑';
@@ -797,5 +808,6 @@
     setupUploadListeners();
   })();
 </script>
+<div id="toast" class="toast"></div>
 </body>
 </html>

@@ -1204,3 +1204,38 @@ tr:hover td { background: var(--bg); }
   .two-col { grid-template-columns: 1fr; }
   .sidebar { display: none; }
 }
+/* Toast Notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 24px;
+  border-radius: var(--pill);
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: var(--sh-md);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align: center;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.success {
+  background: var(--green);
+  color: white;
+}
+.toast.error {
+  background: #E05050;
+  color: white;
+}
+.toast.warning {
+  background: var(--amber);
+  color: var(--ink);
+}
