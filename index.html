@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kurban Digital · Yayasan Bhakti Nusa Tenggara</title>
   <link rel="stylesheet" href="assets/css/style.css">
-<link rel="icon" type="image/png" href="../assets/images/logo-bnt.png">
+  <link rel="icon" type="image/png" href="assets/images/logo-bnt.png">
 </head>
 <body>
 
@@ -20,7 +20,7 @@
       <img class="bnt-logo-img" src="assets/images/logo-bnt.png" alt="Yayasan Bhakti Nusa Tenggara">
       <div>
         <div class="bnt-name">Yayasan Bhakti<br>Nusa Tenggara</div>
-        <div class="bnt-tagline">Kurban Digital · 1446 H</div>
+        <div class="bnt-tagline">Kurban Digital · 1447 H</div>
       </div>
     </div>
     <div>
@@ -102,6 +102,21 @@
   const logoutAfterChoice = document.getElementById('logoutAfterChoice');
 
   let currentUser = null;
+
+  // Cek session ketika halaman dimuat (jika sudah login, langsung tampilkan pilihan portal)
+  function checkExistingSession() {
+    const email = localStorage.getItem('userEmail');
+    const role = localStorage.getItem('userRole');
+    const expiry = Number(localStorage.getItem('loginExpiry'));
+    if (email && role && Date.now() < expiry) {
+      currentUser = {
+        email: email,
+        username: localStorage.getItem('username') || email.split('@')[0],
+        role: role
+      };
+      showPortalChoice();
+    }
+  }
 
   function showPortalChoice() {
     loginForm.classList.add('hidden');

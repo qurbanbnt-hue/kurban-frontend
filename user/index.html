@@ -302,8 +302,20 @@
   </div>
 </div>
 
-<script src="../assets/js/api.js?v=1"></script>
+<script src="../assets/js/api.js"></script>
 <script>
+  // ==================== AUTH CHECK ====================
+  const email = localStorage.getItem('userEmail');
+  const username = localStorage.getItem('username');
+  const role = localStorage.getItem('userRole');
+  const expiry = Number(localStorage.getItem('loginExpiry'));
+
+  // Jika tidak ada session yang valid, redirect ke login
+  if (!email || !role || isNaN(expiry) || Date.now() > expiry) {
+    localStorage.clear();
+    window.location.href = '/';
+  }
+
   // ==================== GLOBAL STATE ====================
   let allHewan = [];
   let allDokumentasi = [];
@@ -311,7 +323,7 @@
   let currentUploadTab = 'hidup';
   let dokInstansiList = [];
 
-  // if (!email) window.location.href = '/';
+  // Isi data profil
   document.getElementById('userName').textContent = username || email;
   document.getElementById('avatarInitial').textContent = (username || email).charAt(0).toUpperCase();
   document.getElementById('profileUsername').textContent = username || email;
@@ -329,32 +341,28 @@
     return [status.url_hidup, status.url_ditumbangkan, status.url_mati].filter(Boolean).length;
   }
 
-  function updateUploadTabs(allHidup, allTumbang) {
-    const hidupTab = document.querySelector('.upload-tab[data-tab="hidup"]');
-    const tumbangTab = document.querySelector('.upload-tab[data-tab="ditumbangkan"]');
-    const matiTab = document.querySelector('.upload-tab[data-tab="mati"]');
-    if (hidupTab) hidupTab.classList.toggle('disabled', false); // always enabled
-    if (tumbangTab && selectedHewan) tumbangTab.classList.toggle('disabled', !selectedHewan.status.url_hidup);
-    if (matiTab && selectedHewan) matiTab.classList.toggle('disabled', !selectedHewan.status.url_ditumbangkan);
-  }
-
   // ==================== DATA FETCH ====================
   async function loadAllData() {
-    const [hewanRes, dokRes] = await Promise.all([
-      callApi('getHewan', { email }),
-      callApi('getDokumentasi', { email })
-    ]);
-    if (hewanRes.success) allHewan = hewanRes.data;
-    if (dokRes.success) allDokumentasi = dokRes.data;
+    try {
+      const [hewanRes, dokRes] = await Promise.all([
+        callApi('getHewan', { email }),
+        callApi('getDokumentasi', { email })
+      ]);
+      if (hewanRes.success) allHewan = hewanRes.data || [];
+      if (dokRes.success) allDokumentasi = dokRes.data || [];
+    } catch (e) {
+      console.error('Gagal memuat data:', e);
+    }
   }
 
   // ==================== RENDER DASHBOARD ====================
   async function renderDashboard() {
-    console.log('Rendering dashboard with', allHewan.length, 'hewan');
+    if (allHewan.length === 0) await loadAllData();
+    
     const total = allHewan.length;
-    const hidup = allHewan.filter(h => h.status.url_hidup).length;
-    const tumbang = allHewan.filter(h => h.status.url_ditumbangkan).length;
-    const mati = allHewan.filter(h => h.status.url_mati).length;
+    const hidup = allHewan.filter(h => h.status?.url_hidup).length;
+    const tumbang = allHewan.filter(h => h.status?.url_ditumbangkan).length;
+    const mati = allHewan.filter(h => h.status?.url_mati).length;
     const selesai = allHewan.filter(h => getPhaseCount(h.status) === 3).length;
 
     document.getElementById('totalHewan').textContent = total;
@@ -364,24 +372,29 @@
     document.getElementById('cntTumbang').textContent = tumbang;
     document.getElementById('cntMati').textContent = mati;
 
+    // Phase steps (visual)
     const stepHidup = document.getElementById('stepHidup');
     const stepTumbang = document.getElementById('stepTumbang');
     const stepMati = document.getElementById('stepMati');
     const line1 = document.getElementById('line1');
     const line2 = document.getElementById('line2');
-    stepHidup.classList.toggle('done', hidup === total);
-    stepTumbang.classList.toggle('done', tumbang === total);
-    stepMati.classList.toggle('done', mati === total);
-    line1.classList.toggle('done', hidup === total);
-    line2.classList.toggle('done', tumbang === total);
-    if (hidup === total) stepHidup.textContent = '✓';
-    if (tumbang === total) stepTumbang.textContent = '✓';
-    if (mati === total) stepMati.textContent = '✓';
+    
+    // Semua selesai jika hidup = total, tumbang = total, mati = total
+    stepHidup.classList.toggle('done', hidup === total && total > 0);
+    stepTumbang.classList.toggle('done', tumbang === total && total > 0);
+    stepMati.classList.toggle('done', mati === total && total > 0);
+    line1.classList.toggle('done', hidup === total && total > 0);
+    line2.classList.toggle('done', tumbang === total && total > 0);
+    
+    if (hidup === total && total > 0) stepHidup.textContent = '✓';
+    else stepHidup.textContent = '1';
+    if (tumbang === total && total > 0) stepTumbang.textContent = '✓';
+    else stepTumbang.textContent = '2';
+    if (mati === total && total > 0) stepMati.textContent = '✓';
+    else stepMati.textContent = '3';
 
-    // Update upload tabs based on progress
-    updateUploadTabs(hidup === total, tumbang === total);
-
-    const recent = allHewan.slice(0,5);
+    // Recent hewan
+    const recent = allHewan.slice(0, 5);
     document.getElementById('recentHewan').innerHTML = recent.map(h => `
       <div class="a-row" data-nomor="${h.nomor_hewan}">
         <div class="a-ava">${getEmoji(h.jenis_hewan)}</div>
@@ -389,6 +402,8 @@
         <span class="abadge ${getPhaseCount(h.status)===3?'ab-done':'ab-prgs'}">${getPhaseCount(h.status)}/3</span>
       </div>
     `).join('');
+    
+    // Event listener untuk klik hewan
     document.querySelectorAll('.a-row[data-nomor]').forEach(el => {
       el.addEventListener('click', () => selectHewanFromList(el.dataset.nomor));
     });
@@ -396,10 +411,13 @@
 
   // ==================== HEWAN LIST ====================
   function renderHewanList(filter = '') {
+    if (allHewan.length === 0) loadAllData().then(() => renderHewanList(filter));
     const q = filter.toLowerCase();
     const filtered = allHewan.filter(h => 
-      h.nomor_hewan.toLowerCase().includes(q) || h.daftar_pekurban.toLowerCase().includes(q) ||
-      h.instansi.toLowerCase().includes(q) || h.wilayah.toLowerCase().includes(q)
+      h.nomor_hewan.toLowerCase().includes(q) || 
+      (h.daftar_pekurban||'').toLowerCase().includes(q) ||
+      h.instansi.toLowerCase().includes(q) || 
+      h.wilayah.toLowerCase().includes(q)
     );
     document.getElementById('allHewanList').innerHTML = filtered.map(h => `
       <div class="a-row" data-nomor="${h.nomor_hewan}">
@@ -417,18 +435,21 @@
     selectedHewan = allHewan.find(h => h.nomor_hewan === nomor);
     if (selectedHewan) {
       switchScreen('upload');
+      // Setelah switchScreen, dropdown akan diinisialisasi, jadi kita set timeout untuk memilih hewan
       setTimeout(() => {
         const select = document.getElementById('hewanSelect');
         if (select) {
           select.value = selectedHewan.nomor_hewan;
           select.dispatchEvent(new Event('change'));
         }
-      }, 100);
+      }, 150);
     }
   }
 
   // ==================== UPLOAD ====================
   async function initUploadScreen() {
+    if (allHewan.length === 0) await loadAllData();
+    
     const select = document.getElementById('hewanSelect');
     select.innerHTML = '<option value="">-- Pilih --</option>';
     allHewan.forEach(h => {
@@ -453,18 +474,19 @@
         renderUploadDetail();
       } else {
         document.getElementById('uploadDetailCard').style.display = 'none';
+        selectedHewan = null;
       }
     };
   }
 
   function renderUploadDetail() {
     if (!selectedHewan) return;
-    const s = selectedHewan.status;
+    const s = selectedHewan.status || {};
 
     document.getElementById('selectedHewanDetail').innerHTML = `
       <div class="detail-row"><span class="detail-label">Nomor</span><span class="detail-value">${selectedHewan.nomor_hewan}</span></div>
       <div class="detail-row"><span class="detail-label">Jenis</span><span class="detail-value">${selectedHewan.jenis_hewan}</span></div>
-      <div class="detail-row"><span class="detail-label">Pekurban</span><span class="detail-value">${selectedHewan.daftar_pekurban}</span></div>
+      <div class="detail-row"><span class="detail-label">Pekurban</span><span class="detail-value">${selectedHewan.daftar_pekurban||'-'}</span></div>
       <div class="detail-row"><span class="detail-label">Instansi</span><span class="detail-value">${selectedHewan.instansi}</span></div>
       <div class="detail-row"><span class="detail-label">Wilayah</span><span class="detail-value">${selectedHewan.wilayah}</span></div>
     `;
@@ -488,18 +510,24 @@
       </div>
     `;
 
+    // Tentukan tab aktif berdasarkan yang belum diupload
     if (!s.url_hidup) currentUploadTab = 'hidup';
     else if (!s.url_ditumbangkan) currentUploadTab = 'ditumbangkan';
     else currentUploadTab = 'mati';
+    
     document.querySelectorAll('.upload-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === currentUploadTab);
+      // Nonaktifkan tab yang belum bisa diakses
+      if (t.dataset.tab === 'hidup') {
+        t.classList.remove('disabled');
+      } else if (t.dataset.tab === 'ditumbangkan') {
+        t.classList.toggle('disabled', !s.url_hidup);
+      } else if (t.dataset.tab === 'mati') {
+        t.classList.toggle('disabled', !s.url_ditumbangkan);
+      }
     });
-    
-    // Update tab disable states
-    updateUploadTabs(true, true);
   }
 
-  // Upload event listeners (dipasang setelah DOM siap)
   function setupUploadListeners() {
     const uploadArea = document.getElementById('uploadArea');
     const fotoInput = document.getElementById('fotoInput');
@@ -542,32 +570,41 @@
 
       const btn = document.getElementById('uploadBtn');
       btn.disabled = true;
-      btn.innerHTML = '<i class="icon icon-loader"></i> Mengupload...';
+      btn.innerHTML = 'Mengupload...';
 
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64 = e.target.result.split(',')[1];
-        const result = await callApi('uploadFoto', {
-          email, username: username || email,
-          nomor_hewan: selectedHewan.nomor_hewan,
-          jenis_foto: currentUploadTab,
-          base64Data: base64,
-          mimeType: file.type
-        });
-        if (result.success) {
-          alert('Upload berhasil!');
-          await loadAllData();
-          selectedHewan = allHewan.find(h => h.nomor_hewan === selectedHewan.nomor_hewan);
-          renderUploadDetail();
-          previewContainer.style.display = 'none';
-          uploadArea.style.display = 'block';
-          fotoInput.value = '';
-          renderDashboard();
-        } else {
-          alert('Gagal: ' + (result.error || 'Unknown error'));
+        try {
+          const result = await callApi('uploadFoto', {
+            email, username: username || email,
+            nomor_hewan: selectedHewan.nomor_hewan,
+            jenis_foto: currentUploadTab,
+            base64Data: base64,
+            mimeType: file.type
+          });
+          if (result.success) {
+            alert('Upload berhasil!');
+            await loadAllData();
+            selectedHewan = allHewan.find(h => h.nomor_hewan === selectedHewan.nomor_hewan);
+            renderUploadDetail();
+            previewContainer.style.display = 'none';
+            uploadArea.style.display = 'block';
+            fotoInput.value = '';
+            renderDashboard();
+          } else {
+            alert('Gagal: ' + (result.error || 'Unknown error'));
+          }
+        } catch (error) {
+          alert('Error: ' + error.message);
         }
         btn.disabled = false;
-        btn.innerHTML = '<i class="icon icon-upload"></i> Upload Foto';
+        btn.innerHTML = 'Upload Foto';
+      };
+      reader.onerror = () => {
+        alert('Gagal membaca file');
+        btn.disabled = false;
+        btn.innerHTML = 'Upload Foto';
       };
       reader.readAsDataURL(file);
     });
@@ -618,7 +655,10 @@
   function setupDokUploadListeners() {
     const dokArea = document.getElementById('dokUploadArea');
     const dokInput = document.getElementById('dokFileInput');
-    dokArea.addEventListener('click', () => dokInput.click());
+    // Hapus listener lama jika ada
+    dokArea.replaceWith(dokArea.cloneNode(true));
+    document.getElementById('dokUploadArea').addEventListener('click', () => dokInput.click());
+    
     dokInput.addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       const listDiv = document.getElementById('dokFileList');
@@ -640,56 +680,67 @@
           mimeType: f.type,
           fileName: f.name
         });
+        reader.onerror = () => resolve(null);
         reader.readAsDataURL(f);
       }));
-      const fileData = await Promise.all(filePromises);
+      const fileData = (await Promise.all(filePromises)).filter(f => f !== null);
+
+      if (fileData.length === 0) return alert('Gagal membaca file');
 
       const btn = document.getElementById('dokUploadBtn');
       btn.disabled = true;
       btn.innerHTML = 'Mengupload...';
-      const result = await callApi('uploadDokumentasi', {
-        email, username: username || email, instansi, wilayah, jenis_dokumentasi: jenis, files: fileData
-      });
-      if (result.success) {
-        alert(`Berhasil upload ${result.fotoCount || 0} foto, ${result.videoCount || 0} video`);
-        dokInput.value = '';
-        document.getElementById('dokFileList').innerHTML = '';
-        loadDokRiwayat();
-      } else {
-        alert('Gagal: ' + (result.error || 'Unknown error'));
+      try {
+        const result = await callApi('uploadDokumentasi', {
+          email, username: username || email, instansi, wilayah, jenis_dokumentasi: jenis, files: fileData
+        });
+        if (result.success) {
+          alert(`Berhasil upload ${result.fotoCount || 0} foto, ${result.videoCount || 0} video`);
+          dokInput.value = '';
+          document.getElementById('dokFileList').innerHTML = '';
+          loadDokRiwayat();
+        } else {
+          alert('Gagal: ' + (result.error || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
       }
       btn.disabled = false;
-      btn.innerHTML = '<i class="icon icon-upload"></i> Upload';
+      btn.innerHTML = 'Upload';
     });
   }
 
   async function loadDokRiwayat() {
     const container = document.getElementById('dokRiwayat');
     container.innerHTML = '<div class="instansi-item">Memuat...</div>';
-    const result = await callApi('getDokumentasi', { email });
-    if (result.success && result.data) {
-      if (result.data.length === 0) {
-        container.innerHTML = '<div class="instansi-item">Belum ada dokumentasi</div>';
-        return;
+    try {
+      const result = await callApi('getDokumentasi', { email });
+      if (result.success && result.data) {
+        if (result.data.length === 0) {
+          container.innerHTML = '<div class="instansi-item">Belum ada dokumentasi</div>';
+          return;
+        }
+        container.innerHTML = result.data.map(d => `
+          <div class="instansi-item">
+            <div><strong>${d.instansi} (${d.wilayah})</strong> - ${d.jenis}</div>
+            <div style="font-size:12px; color:var(--muted);">${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'} oleh ${d.uploader}</div>
+            <a href="${d.folderUrl}" target="_blank" style="color:var(--blue);">📂 Buka Folder</a>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = '<div class="instansi-item">Gagal memuat riwayat</div>';
       }
-      container.innerHTML = result.data.map(d => `
-        <div class="instansi-item">
-          <div><strong>${d.instansi} (${d.wilayah})</strong> - ${d.jenis}</div>
-          <div style="font-size:12px; color:var(--muted);">${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'} oleh ${d.uploader}</div>
-          <a href="${d.folderUrl}" target="_blank" style="color:var(--blue);">📂 Buka Folder</a>
-        </div>
-      `).join('');
-    } else {
-      container.innerHTML = '<div class="instansi-item">Gagal memuat riwayat</div>';
+    } catch (e) {
+      container.innerHTML = '<div class="instansi-item">Error memuat data</div>';
     }
   }
 
   // ==================== PROFIL & KINERJA ====================
   function renderProfilePerformance() {
     const uploadedHewan = allHewan.filter(h => 
-      h.status.uploader_hidup === username || h.status.uploader_hidup === email ||
-      h.status.uploader_ditumbangkan === username || h.status.uploader_ditumbangkan === email ||
-      h.status.uploader_mati === username || h.status.uploader_mati === email
+      (h.status?.uploader_hidup === username || h.status?.uploader_hidup === email) ||
+      (h.status?.uploader_ditumbangkan === username || h.status?.uploader_ditumbangkan === email) ||
+      (h.status?.uploader_mati === username || h.status?.uploader_mati === email)
     );
     const uniqueHewan = new Set(uploadedHewan.map(h => h.nomor_hewan));
     document.getElementById('perfHewan').textContent = uniqueHewan.size;
@@ -713,7 +764,8 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(`screen-${screenId}`).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
-    document.querySelector(`.nav-item[data-screen="${screenId}"]`).classList.add('on');
+    const activeNav = document.querySelector(`.nav-item[data-screen="${screenId}"]`);
+    if (activeNav) activeNav.classList.add('on');
 
     if (screenId === 'beranda') renderDashboard();
     else if (screenId === 'hewan') renderHewanList('');
@@ -722,6 +774,7 @@
     else if (screenId === 'akun') renderProfilePerformance();
   }
 
+  // Event listeners untuk navigasi
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
   });
