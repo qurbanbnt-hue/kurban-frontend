@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="icon" type="image/png" href="../assets/images/logo-bnt.png">
   <style>
-    /* Mobile bottom nav – hanya muncul di layar kecil */
+    /* Mobile bottom nav */
     .admin-bottom-nav {
       display: none;
       position: fixed;
@@ -85,6 +85,7 @@
       border-radius: var(--r-md);
       font-family: inherit;
       font-size: 14px;
+      text-transform: uppercase; /* Otomatis kapital */
     }
     .modal-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
     .status-badge {
@@ -132,7 +133,7 @@
       <!-- DASHBOARD -->
       <div id="tab-dashboard" class="tab-content active">
         <div class="a-topbar">
-          <div class="a-page-h"><h1>Dashboard</h1><p>Idul Adha 1446 H · Data real-time</p></div>
+          <div class="a-page-h"><h1>Dashboard</h1><p>Idul Adha 1447 H · Data real-time</p></div>
           <div class="a-actions"><button class="btn-ghost" onclick="loadDashboard()">🔄 Refresh</button></div>
         </div>
         <div class="kpi-grid">
@@ -161,7 +162,7 @@
           <div class="a-actions"><button class="btn-primary" onclick="openHewanModal()">＋ Tambah</button></div>
         </div>
         <div class="action-bar">
-          <input type="text" id="searchHewan" class="field" placeholder="Cari hewan..." style="background:white;">
+          <input type="text" id="searchHewan" class="field" placeholder="Cari hewan..." style="background:white;" oninput="filterHewan()">
           <button class="btn-ghost" onclick="loadHewan()">🔄</button>
         </div>
         <div class="acard">
@@ -205,7 +206,7 @@
       <form id="hewanForm">
         <input type="hidden" id="hewanId">
         <div class="form-group"><label>Nomor Hewan</label><input type="text" id="hewanNomor" required></div>
-        <div class="form-group"><label>Jenis Hewan</label><input type="text" id="hewanJenis" value="Sapi" required></div>
+        <div class="form-group"><label>Jenis Hewan</label><input type="text" id="hewanJenis" value="SAPI" required></div>
         <div class="form-group"><label>Daftar Pekurban</label><input type="text" id="hewanPekurban" required></div>
         <div class="form-group"><label>Jumlah Pekurban</label><input type="number" id="hewanJumlah" value="1" required></div>
         <div class="form-group"><label>Instansi</label><input type="text" id="hewanInstansi" required></div>
@@ -236,6 +237,9 @@
     </div>
   </div>
 
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
   <script src="../assets/js/api.js"></script>
   <script>
     const email = localStorage.getItem('userEmail');
@@ -247,7 +251,17 @@
 
     let allHewan = [], allUsers = [], allDok = [];
 
-    // ==================== NAVIGATION (Desktop + Mobile) ====================
+    // ==================== TOAST ====================
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ==================== NAVIGATION ====================
     function switchTab(tab) {
       document.querySelectorAll('.sb-item[data-tab]').forEach(i => i.classList.remove('active'));
       document.querySelectorAll('.admin-bottom-nav .nav-item').forEach(i => i.classList.remove('active'));
@@ -266,6 +280,7 @@
 
     function logout() { localStorage.clear(); window.location.href = '/'; }
 
+    // ==================== DATA FETCH ====================
     async function loadAllData() {
       const result = await callApi('getAdminData', { email });
       if (result.success) {
@@ -310,22 +325,29 @@
       document.getElementById('progressWilayahContainer').innerHTML = html || '<p>Belum ada data</p>';
     }
 
+    // ==================== HEWAN CRUD ====================
     async function loadHewan() {
       await loadAllData();
-      const render = (data) => {
-        document.getElementById('hewanTableBody').innerHTML = data.map(h => {
-          const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
-          let cls = 'status-belum', txt = 'Belum';
-          if (p===3) { cls='status-selesai'; txt='Selesai'; }
-          else if (p>0) { cls='status-proses'; txt=`${p}/3`; }
-          return `<tr><td>${h.nomor_hewan}</td><td>${h.jenis_hewan}</td><td>${h.daftar_pekurban}</td><td>${h.instansi}</td><td>${h.wilayah}</td><td><span class="status-badge ${cls}">${txt}</span></td><td><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')">✏️</button><button class="act-btn" onclick="deleteHewan('${h.nomor_hewan}')">🗑️</button></td></tr>`;
-        }).join('');
-      };
-      render(allHewan);
-      document.getElementById('searchHewan').oninput = (e) => {
-        const q = e.target.value.toLowerCase();
-        render(allHewan.filter(h => h.nomor_hewan.toLowerCase().includes(q)||h.daftar_pekurban.toLowerCase().includes(q)||h.instansi.toLowerCase().includes(q)||h.wilayah.toLowerCase().includes(q)));
-      };
+      renderHewanTable(allHewan);
+    }
+
+    function renderHewanTable(data) {
+      const tbody = document.getElementById('hewanTableBody');
+      tbody.innerHTML = data.map(h => {
+        const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
+        let cls = 'status-belum', txt = 'Belum';
+        if (p===3) { cls='status-selesai'; txt='Selesai'; }
+        else if (p>0) { cls='status-proses'; txt=`${p}/3`; }
+        return `<tr><td>${h.nomor_hewan}</td><td>${h.jenis_hewan}</td><td>${h.daftar_pekurban}</td><td>${h.instansi}</td><td>${h.wilayah}</td><td><span class="status-badge ${cls}">${txt}</span></td><td><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')">✏️</button><button class="act-btn" onclick="deleteHewan('${h.nomor_hewan}')">🗑️</button></td></tr>`;
+      }).join('');
+    }
+
+    function filterHewan() {
+      const q = document.getElementById('searchHewan').value.toLowerCase();
+      renderHewanTable(allHewan.filter(h => 
+        h.nomor_hewan.toLowerCase().includes(q) || h.daftar_pekurban.toLowerCase().includes(q) ||
+        h.instansi.toLowerCase().includes(q) || h.wilayah.toLowerCase().includes(q)
+      ));
     }
 
     window.editHewan = (nomor) => {
@@ -334,6 +356,7 @@
       document.getElementById('hewanModalTitle').textContent='Edit Hewan';
       document.getElementById('hewanId').value=h.nomor_hewan;
       document.getElementById('hewanNomor').value=h.nomor_hewan;
+      document.getElementById('hewanNomor').disabled=true; // Nomor tidak bisa diedit
       document.getElementById('hewanJenis').value=h.jenis_hewan;
       document.getElementById('hewanPekurban').value=h.daftar_pekurban;
       document.getElementById('hewanJumlah').value=h.jumlah_pekurban||1;
@@ -341,40 +364,61 @@
       document.getElementById('hewanWilayah').value=h.wilayah;
       document.getElementById('hewanModal').classList.add('active');
     };
+
     window.deleteHewan = async (nomor) => {
       if(!confirm('Hapus hewan ini?')) return;
       const res = await callApi('deleteHewan',{email,nomor_hewan:nomor});
-      if(res.success){ await loadAllData(); loadHewan(); loadDashboard(); }
-      else showToast('Gagal: ' + (res.error || 'Unknown error'), 'error');
+      if(res.success){ 
+        showToast('Hewan berhasil dihapus', 'success');
+        await loadAllData(); 
+        renderHewanTable(allHewan);
+        loadDashboard(); 
+      } else showToast('Gagal: '+res.error, 'error');
     };
+
     function openHewanModal(){
       document.getElementById('hewanModalTitle').textContent='Tambah Hewan';
       document.getElementById('hewanId').value='';
       document.getElementById('hewanForm').reset();
+      document.getElementById('hewanNomor').disabled=false;
       document.getElementById('hewanModal').classList.add('active');
     }
     function closeHewanModal(){ document.getElementById('hewanModal').classList.remove('active'); }
+
     document.getElementById('hewanForm').addEventListener('submit', async(e)=>{
       e.preventDefault();
       const id = document.getElementById('hewanId').value;
-      const hewan = {
-        nomor_hewan: document.getElementById('hewanNomor').value,
-        jenis_hewan: document.getElementById('hewanJenis').value,
-        daftar_pekurban: document.getElementById('hewanPekurban').value,
-        jumlah_pekurban: parseInt(document.getElementById('hewanJumlah').value)||1,
-        instansi: document.getElementById('hewanInstansi').value,
-        wilayah: document.getElementById('hewanWilayah').value
-      };
-      const res = id ? await callApi('updateHewan',{email,hewan}) : await callApi('addHewan',{email,hewan});
-      if(res.success){ closeHewanModal(); await loadAllData(); loadHewan(); loadDashboard(); }
-      else showToast('Gagal: ' + (res.error || 'Unknown error'), 'error');
+      // Konversi semua input teks ke uppercase
+      const nomor = document.getElementById('hewanNomor').value.toUpperCase();
+      const jenis = document.getElementById('hewanJenis').value.toUpperCase();
+      const pekurban = document.getElementById('hewanPekurban').value.toUpperCase();
+      const instansi = document.getElementById('hewanInstansi').value.toUpperCase();
+      const wilayah = document.getElementById('hewanWilayah').value.toUpperCase();
+      const jumlah = parseInt(document.getElementById('hewanJumlah').value)||1;
+
+      const hewan = { nomor_hewan: nomor, jenis_hewan: jenis, daftar_pekurban: pekurban, jumlah_pekurban: jumlah, instansi, wilayah };
+      const action = id ? 'updateHewan' : 'addHewan';
+      const res = await callApi(action, { email, hewan });
+      if(res.success){ 
+        closeHewanModal(); 
+        await loadAllData(); 
+        renderHewanTable(allHewan);
+        loadDashboard();
+        showToast('Data hewan berhasil disimpan', 'success');
+      } else showToast('Gagal: '+res.error, 'error');
     });
 
-    async function loadUsers(){
+    // ==================== USER CRUD ====================
+    async function loadUsers() {
       await loadAllData();
-      document.getElementById('userTableBody').innerHTML = allUsers.map(u => `<tr><td>${u.email}</td><td>${u.username}</td><td>${u.role}</td><td><button class="act-btn" onclick="editUser('${u.email}')">✏️</button><button class="act-btn" onclick="deleteUser('${u.email}')">🗑️</button></td></tr>`).join('');
+      renderUserTable(allUsers);
     }
-    window.editUser = (email)=>{
+
+    function renderUserTable(data) {
+      document.getElementById('userTableBody').innerHTML = data.map(u => `<tr><td>${u.email}</td><td>${u.username}</td><td>${u.role}</td><td><button class="act-btn" onclick="editUser('${u.email}')">✏️</button><button class="act-btn" onclick="deleteUser('${u.email}')">🗑️</button></td></tr>`).join('');
+    }
+
+    window.editUser = (email) => {
       const u = allUsers.find(u=>u.email===email);
       if(!u) return;
       document.getElementById('userModalTitle').textContent='Edit Pengguna';
@@ -386,12 +430,17 @@
       document.getElementById('userPassword').value='';
       document.getElementById('userModal').classList.add('active');
     };
-    window.deleteUser = async (email)=>{
+
+    window.deleteUser = async (email) => {
       if(!confirm('Hapus pengguna ini?')) return;
       const res = await callApi('deleteUser',{email,targetEmail:email});
-      if(res.success){ await loadAllData(); loadUsers(); }
-      else showToast('Gagal: ' + (res.error || 'Unknown error'), 'error');
+      if(res.success){ 
+        showToast('Pengguna berhasil dihapus', 'success');
+        await loadAllData(); 
+        renderUserTable(allUsers);
+      } else showToast('Gagal: '+res.error, 'error');
     };
+
     function openUserModal(){
       document.getElementById('userModalTitle').textContent='Tambah Pengguna';
       document.getElementById('userId').value='';
@@ -400,20 +449,27 @@
       document.getElementById('userModal').classList.add('active');
     }
     function closeUserModal(){ document.getElementById('userModal').classList.remove('active'); }
+
     document.getElementById('userForm').addEventListener('submit', async(e)=>{
       e.preventDefault();
       const id = document.getElementById('userId').value;
       const newUser = {
-        email: document.getElementById('userEmail').value,
-        username: document.getElementById('userUsername').value,
+        email: document.getElementById('userEmail').value.trim(),
+        username: document.getElementById('userUsername').value.trim().toUpperCase(),
         role: document.getElementById('userRole').value,
         password: document.getElementById('userPassword').value
       };
-      const res = id ? await callApi('updateUser',{email,user:newUser}) : await callApi('addUser',{email,newUser});
-      if(res.success){ closeUserModal(); await loadAllData(); loadUsers(); }
-      else showToast('Gagal: ' + (res.error || 'Unknown error'), 'error');
+      const action = id ? 'updateUser' : 'addUser';
+      const res = id ? await callApi('updateUser', { email, user: newUser }) : await callApi('addUser', { email, newUser });
+      if(res.success){ 
+        closeUserModal(); 
+        await loadAllData(); 
+        renderUserTable(allUsers);
+        showToast('Pengguna berhasil disimpan', 'success');
+      } else showToast('Gagal: '+res.error, 'error');
     });
 
+    // ==================== DOKUMENTASI ====================
     async function loadDokumentasi(){
       const res = await callApi('getDokumentasi',{email});
       if(res.success){
@@ -422,8 +478,8 @@
       }
     }
 
+    // Initial load
     loadDashboard();
   </script>
-  <div id="toast" class="toast"></div>
 </body>
 </html>
