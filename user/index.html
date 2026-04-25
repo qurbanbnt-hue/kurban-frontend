@@ -311,17 +311,6 @@
   let currentUploadTab = 'hidup';
   let dokInstansiList = [];
 
-  const email = localStorage.getItem('userEmail') || 'demo@example.com';
-  const username = localStorage.getItem('username') || 'Demo User';
-  const role = localStorage.getItem('userRole') || 'user';
-
-  // Set demo data if not exists
-  if (!localStorage.getItem('userEmail')) {
-    localStorage.setItem('userEmail', 'demo@example.com');
-    localStorage.setItem('username', 'Demo User');
-    localStorage.setItem('userRole', 'user');
-  }
-
   // if (!email) window.location.href = '/';
   document.getElementById('userName').textContent = username || email;
   document.getElementById('avatarInitial').textContent = (username || email).charAt(0).toUpperCase();

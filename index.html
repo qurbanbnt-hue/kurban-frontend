@@ -103,21 +103,6 @@
 
   let currentUser = null;
 
-  // Cek session existing
-  function checkExistingSession() {
-    // For demo, show portal choice directly as admin
-    localStorage.setItem('userEmail', 'admin@example.com');
-    localStorage.setItem('username', 'Admin Demo');
-    localStorage.setItem('userRole', 'admin');
-    localStorage.setItem('loginExpiry', (Date.now() + 24*60*60*1000).toString());
-    currentUser = {
-      email: 'admin@example.com',
-      username: 'Admin Demo',
-      role: 'admin'
-    };
-    showPortalChoice();
-  }
-
   function showPortalChoice() {
     loginForm.classList.add('hidden');
     portalChoice.classList.remove('hidden');
