@@ -575,9 +575,9 @@
     });
 
     document.getElementById('uploadBtn').addEventListener('click', async () => {
-      if (!selectedHewan) return alert('Pilih hewan terlebih dahulu');
+      if (!selectedHewan) return showToast('Pilih hewan terlebih dahulu', 'warning');
       const file = fotoInput.files[0];
-      if (!file) return alert('Pilih foto');
+      if (!file) return showToast('Pilih foto', 'warning');
 
       const btn = document.getElementById('uploadBtn');
       btn.disabled = true;
@@ -595,7 +595,7 @@
             mimeType: file.type
           });
           if (result.success) {
-            alert('Upload berhasil!');
+            showToast('Foto berhasil diupload!', 'success');
             await loadAllData();
             selectedHewan = allHewan.find(h => h.nomor_hewan === selectedHewan.nomor_hewan);
             renderUploadDetail();
@@ -604,16 +604,16 @@
             fotoInput.value = '';
             renderDashboard();
           } else {
-            alert('Gagal: ' + (result.error || 'Unknown error'));
+            showToast('Gagal: ' + (result.error || 'Unknown error'), 'error');
           }
         } catch (error) {
-          alert('Error: ' + error.message);
+          showToast('Error: ' + error.message, 'error');
         }
         btn.disabled = false;
         btn.innerHTML = 'Upload Foto';
       };
       reader.onerror = () => {
-        alert('Gagal membaca file');
+        showToast('Gagal membaca file', 'error');
         btn.disabled = false;
         btn.innerHTML = 'Upload Foto';
       };
@@ -680,9 +680,9 @@
       const instansi = document.getElementById('dokInstansiSelect').value;
       const wilayah = document.getElementById('dokWilayah').value;
       const jenis = document.getElementById('dokJenis').value;
-      if (!instansi) return alert('Pilih instansi');
+      if (!instansi) return showToast('Pilih instansi terlebih dahulu', 'warning');
       const files = dokInput.files;
-      if (files.length === 0) return alert('Pilih file');
+      if (files.length === 0) return showToast('Pilih file', 'warning');
 
       const filePromises = Array.from(files).map(f => new Promise(resolve => {
         const reader = new FileReader();
@@ -696,7 +696,7 @@
       }));
       const fileData = (await Promise.all(filePromises)).filter(f => f !== null);
 
-      if (fileData.length === 0) return alert('Gagal membaca file');
+      if (fileData.length === 0) return showToast('Gagal membaca file', 'error');
 
       const btn = document.getElementById('dokUploadBtn');
       btn.disabled = true;
@@ -706,15 +706,15 @@
           email, username: username || email, instansi, wilayah, jenis_dokumentasi: jenis, files: fileData
         });
         if (result.success) {
-          alert(`Berhasil upload ${result.fotoCount || 0} foto, ${result.videoCount || 0} video`);
+          showToast(`Berhasil upload ${result.fotoCount || 0} foto, ${result.videoCount || 0} video`, 'success');
           dokInput.value = '';
           document.getElementById('dokFileList').innerHTML = '';
           loadDokRiwayat();
         } else {
-          alert('Gagal: ' + (result.error || 'Unknown error'));
+          showToast('Gagal: ' + (result.error || 'Unknown error'), 'error');
         }
       } catch (error) {
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
       }
       btn.disabled = false;
       btn.innerHTML = 'Upload';

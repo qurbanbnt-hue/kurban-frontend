@@ -345,7 +345,7 @@
       if(!confirm('Hapus hewan ini?')) return;
       const res = await callApi('deleteHewan',{email,nomor_hewan:nomor});
       if(res.success){ await loadAllData(); loadHewan(); loadDashboard(); }
-      else alert('Gagal: '+res.error);
+      else showToast('Gagal: ' + (res.error || 'Unknown error'), 'error');
     };
     function openHewanModal(){
       document.getElementById('hewanModalTitle').textContent='Tambah Hewan';
@@ -367,7 +367,7 @@
       };
       const res = id ? await callApi('updateHewan',{email,hewan}) : await callApi('addHewan',{email,hewan});
       if(res.success){ closeHewanModal(); await loadAllData(); loadHewan(); loadDashboard(); }
-      else alert('Gagal: '+res.error);
+      else showToast('Gagal: ' + (res.error || 'Unknown error'), 'error');
     });
 
     async function loadUsers(){
@@ -390,7 +390,7 @@
       if(!confirm('Hapus pengguna ini?')) return;
       const res = await callApi('deleteUser',{email,targetEmail:email});
       if(res.success){ await loadAllData(); loadUsers(); }
-      else alert('Gagal: '+res.error);
+      else showToast('Gagal: ' + (res.error || 'Unknown error'), 'error');
     };
     function openUserModal(){
       document.getElementById('userModalTitle').textContent='Tambah Pengguna';
@@ -411,7 +411,7 @@
       };
       const res = id ? await callApi('updateUser',{email,user:newUser}) : await callApi('addUser',{email,newUser});
       if(res.success){ closeUserModal(); await loadAllData(); loadUsers(); }
-      else alert('Gagal: '+res.error);
+      else showToast('Gagal: ' + (res.error || 'Unknown error'), 'error');
     });
 
     async function loadDokumentasi(){
