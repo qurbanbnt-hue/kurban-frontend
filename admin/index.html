@@ -85,7 +85,7 @@
       border-radius: var(--r-md);
       font-family: inherit;
       font-size: 14px;
-      text-transform: uppercase; /* Otomatis kapital */
+      text-transform: uppercase;
     }
     .modal-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
     .status-badge {
@@ -237,6 +237,18 @@
     </div>
   </div>
 
+  <!-- Modal Konfirmasi Hapus -->
+  <div class="modal" id="confirmDeleteModal">
+    <div class="modal-content">
+      <h3>Konfirmasi Hapus</h3>
+      <p id="confirmDeleteMessage">Apakah Anda yakin ingin menghapus data ini?</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeConfirmDeleteModal()">Batal</button>
+        <button type="button" class="btn-primary" style="background:#E05050;" id="confirmDeleteBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div id="toast" class="toast"></div>
 
@@ -250,6 +262,7 @@
     document.getElementById('adminAvatar').textContent = (username||email).charAt(0).toUpperCase();
 
     let allHewan = [], allUsers = [], allDok = [];
+    let pendingDelete = null; // { type: 'hewan' | 'user', id: ... }
 
     // ==================== TOAST ====================
     function showToast(message, type = 'success') {
@@ -338,7 +351,7 @@
         let cls = 'status-belum', txt = 'Belum';
         if (p===3) { cls='status-selesai'; txt='Selesai'; }
         else if (p>0) { cls='status-proses'; txt=`${p}/3`; }
-        return `<tr><td>${h.nomor_hewan}</td><td>${h.jenis_hewan}</td><td>${h.daftar_pekurban}</td><td>${h.instansi}</td><td>${h.wilayah}</td><td><span class="status-badge ${cls}">${txt}</span></td><td><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')">✏️</button><button class="act-btn" onclick="deleteHewan('${h.nomor_hewan}')">🗑️</button></td></tr>`;
+        return `<tr><td>${h.nomor_hewan}</td><td>${h.jenis_hewan}</td><td>${h.daftar_pekurban}</td><td>${h.instansi}</td><td>${h.wilayah}</td><td><span class="status-badge ${cls}">${txt}</span></td><td><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')">✏️</button><button class="act-btn" onclick="confirmDeleteHewan('${h.nomor_hewan}')">🗑️</button></td></tr>`;
       }).join('');
     }
 
@@ -356,7 +369,7 @@
       document.getElementById('hewanModalTitle').textContent='Edit Hewan';
       document.getElementById('hewanId').value=h.nomor_hewan;
       document.getElementById('hewanNomor').value=h.nomor_hewan;
-      document.getElementById('hewanNomor').disabled=true; // Nomor tidak bisa diedit
+      document.getElementById('hewanNomor').disabled=true;
       document.getElementById('hewanJenis').value=h.jenis_hewan;
       document.getElementById('hewanPekurban').value=h.daftar_pekurban;
       document.getElementById('hewanJumlah').value=h.jumlah_pekurban||1;
@@ -365,15 +378,11 @@
       document.getElementById('hewanModal').classList.add('active');
     };
 
-    window.deleteHewan = async (nomor) => {
-      if(!confirm('Hapus hewan ini?')) return;
-      const res = await callApi('deleteHewan',{email,nomor_hewan:nomor});
-      if(res.success){ 
-        showToast('Hewan berhasil dihapus', 'success');
-        await loadAllData(); 
-        renderHewanTable(allHewan);
-        loadDashboard(); 
-      } else showToast('Gagal: '+res.error, 'error');
+    // Konfirmasi hapus hewan
+    window.confirmDeleteHewan = (nomor) => {
+      pendingDelete = { type: 'hewan', id: nomor };
+      document.getElementById('confirmDeleteMessage').textContent = `Hapus hewan "${nomor}"?`;
+      document.getElementById('confirmDeleteModal').classList.add('active');
     };
 
     function openHewanModal(){
@@ -388,7 +397,6 @@
     document.getElementById('hewanForm').addEventListener('submit', async(e)=>{
       e.preventDefault();
       const id = document.getElementById('hewanId').value;
-      // Konversi semua input teks ke uppercase
       const nomor = document.getElementById('hewanNomor').value.toUpperCase();
       const jenis = document.getElementById('hewanJenis').value.toUpperCase();
       const pekurban = document.getElementById('hewanPekurban').value.toUpperCase();
@@ -415,7 +423,7 @@
     }
 
     function renderUserTable(data) {
-      document.getElementById('userTableBody').innerHTML = data.map(u => `<tr><td>${u.email}</td><td>${u.username}</td><td>${u.role}</td><td><button class="act-btn" onclick="editUser('${u.email}')">✏️</button><button class="act-btn" onclick="deleteUser('${u.email}')">🗑️</button></td></tr>`).join('');
+      document.getElementById('userTableBody').innerHTML = data.map(u => `<tr><td>${u.email}</td><td>${u.username}</td><td>${u.role}</td><td><button class="act-btn" onclick="editUser('${u.email}')">✏️</button><button class="act-btn" onclick="confirmDeleteUser('${u.email}')">🗑️</button></td></tr>`).join('');
     }
 
     window.editUser = (email) => {
@@ -431,14 +439,10 @@
       document.getElementById('userModal').classList.add('active');
     };
 
-    window.deleteUser = async (email) => {
-      if(!confirm('Hapus pengguna ini?')) return;
-      const res = await callApi('deleteUser',{email,targetEmail:email});
-      if(res.success){ 
-        showToast('Pengguna berhasil dihapus', 'success');
-        await loadAllData(); 
-        renderUserTable(allUsers);
-      } else showToast('Gagal: '+res.error, 'error');
+    window.confirmDeleteUser = (email) => {
+      pendingDelete = { type: 'user', id: email };
+      document.getElementById('confirmDeleteMessage').textContent = `Hapus pengguna "${email}"?`;
+      document.getElementById('confirmDeleteModal').classList.add('active');
     };
 
     function openUserModal(){
@@ -467,6 +471,35 @@
         renderUserTable(allUsers);
         showToast('Pengguna berhasil disimpan', 'success');
       } else showToast('Gagal: '+res.error, 'error');
+    });
+
+    // ==================== MODAL KONFIRMASI HAPUS ====================
+    function closeConfirmDeleteModal() {
+      document.getElementById('confirmDeleteModal').classList.remove('active');
+      pendingDelete = null;
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+      if (!pendingDelete) return;
+      const { type, id } = pendingDelete;
+      let res;
+      if (type === 'hewan') {
+        res = await callApi('deleteHewan', { email, nomor_hewan: id });
+        if (res.success) {
+          showToast('Hewan berhasil dihapus', 'success');
+          await loadAllData();
+          renderHewanTable(allHewan);
+          loadDashboard();
+        } else showToast('Gagal: ' + res.error, 'error');
+      } else if (type === 'user') {
+        res = await callApi('deleteUser', { email, targetEmail: id });
+        if (res.success) {
+          showToast('Pengguna berhasil dihapus', 'success');
+          await loadAllData();
+          renderUserTable(allUsers);
+        } else showToast('Gagal: ' + res.error, 'error');
+      }
+      closeConfirmDeleteModal();
     });
 
     // ==================== DOKUMENTASI ====================
