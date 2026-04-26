@@ -12,6 +12,28 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  // NOTE untuk Apps Script - action 'searchPekurban':
+  // Untuk sapi yang memiliki beberapa pekurban (dipisah koma di kolom daftar_pekurban),
+  // Apps Script harus memisahkan nama-nama tersebut dan mengembalikan setiap nama
+  // sebagai entri terpisah dalam array data, dengan format:
+  // { nama_pekurban: "NAMA", nomor_hewan: "S_001", jenis_hewan: "SAPI", instansi: "...", wilayah: "..." }
+  // Sehingga setiap pekurban sapi bisa melihat dokumentasi hewannya sendiri-sendiri.
+  //
+  // Contoh: jika S_001 punya daftar_pekurban = "PAK JOKO, PAK ANWAR, BU KARTINI"
+  // maka searchPekurban("joko") hanya mengembalikan { nama_pekurban: "PAK JOKO", nomor_hewan: "S_001", ... }
+  // tanpa menampilkan nama PAK ANWAR dan BU KARTINI.
+  //
+  // action 'getPekurbanDetail': menerima { nama, nomor_hewan } dan mengembalikan
+  // detail hewan + status foto untuk ditampilkan ke pekurban tersebut.
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   try {
     const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
     

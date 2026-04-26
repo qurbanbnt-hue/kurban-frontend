@@ -34,6 +34,16 @@
       }
     }
 
+    /* Screen transition animation */
+    .screen.active {
+      display: flex;
+      animation: screenFadeIn 0.3s ease forwards;
+    }
+    @keyframes screenFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     /* Upload Area */
     .upload-area {
       border: 2px dashed var(--border);
@@ -771,12 +781,18 @@
   }
 
   // ==================== NAVIGATION ====================
-  function switchScreen(screenId) {
+  const screenHistory = [];
+
+  function switchScreen(screenId, pushState = true) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(`screen-${screenId}`).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
     const activeNav = document.querySelector(`.nav-item[data-screen="${screenId}"]`);
     if (activeNav) activeNav.classList.add('on');
+
+    if (pushState) {
+      history.pushState({ screen: screenId }, '', window.location.pathname);
+    }
 
     if (screenId === 'beranda') renderDashboard();
     else if (screenId === 'hewan') renderHewanList('');
@@ -784,6 +800,15 @@
     else if (screenId === 'dokumentasi') initDokScreen();
     else if (screenId === 'akun') renderProfilePerformance();
   }
+
+  // Handle browser back/forward
+  window.addEventListener('popstate', (e) => {
+    const screen = e.state?.screen || 'beranda';
+    switchScreen(screen, false);
+  });
+
+  // Set initial history state
+  history.replaceState({ screen: 'beranda' }, '', window.location.pathname);
 
   // Event listeners untuk navigasi
   document.querySelectorAll('.nav-item').forEach(btn => {

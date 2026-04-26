@@ -16,6 +16,52 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     #loginForm.hidden, #portalChoice.hidden { display: none; }
+
+    /* Portal buttons stacked vertically */
+    .portal-buttons-stacked {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeInUp 0.3s ease forwards;
+    }
+    .portal-btn-stacked {
+      width: 100%;
+      padding: 15px 20px;
+      border: none;
+      border-radius: var(--r-md);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .portal-btn-stacked.panitia {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--sky) 100%);
+      color: white;
+      box-shadow: var(--sh-sm);
+    }
+    .portal-btn-stacked.admin {
+      background: linear-gradient(135deg, var(--amber-dk) 0%, var(--amber) 100%);
+      color: var(--ink);
+      box-shadow: var(--sh-amb);
+    }
+    .portal-btn-stacked.pekurban {
+      background: transparent;
+      color: var(--green);
+      border: 2px solid var(--green);
+    }
+    .portal-btn-stacked:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+    .portal-btn-stacked.pekurban:hover { background: var(--green); color: white; }
+
+    /* Divider between login portal and pekurban portal */
+    .portal-divider {
+      display: flex; align-items: center; gap: 10px; margin: 20px 0 16px;
+    }
+    .portal-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .portal-divider-text { font-size: 12px; color: var(--muted); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -58,10 +104,30 @@
         </div>
       </div>
       <div class="lcard-title">Selamat Datang</div>
-      <div class="lcard-sub">Masuk dengan akun Anda</div>
+      <div class="lcard-sub">Pilih portal untuk melanjutkan</div>
 
-      <!-- Form Login -->
-      <form id="loginForm">
+      <!-- Portal Pilihan Utama (Login Panitia/Admin) -->
+      <div id="loginPortalSection">
+        <div class="portal-buttons-stacked" id="mainPortalButtons">
+          <button class="portal-btn-stacked panitia" id="openLoginBtn">
+            <i class="icon icon-user"></i> Portal Panitia &amp; Admin
+          </button>
+          <a href="/pekurban" style="text-decoration:none;">
+            <button class="portal-btn-stacked pekurban" style="width:100%;">
+              <i class="icon icon-eye"></i> Portal Pekurban
+            </button>
+          </a>
+        </div>
+      </div>
+
+      <!-- Form Login (hidden by default) -->
+      <form id="loginForm" class="hidden" style="margin-top:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+          <button type="button" id="backToPortal" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:4px;padding:0;">
+            <i class="icon icon-chevron-left"></i> Kembali
+          </button>
+          <span style="font-size:14px;font-weight:700;color:var(--ink);">Login Panitia / Admin</span>
+        </div>
         <div class="fgroup">
           <label class="flabel">Email</label>
           <div class="field-wrap">
@@ -80,30 +146,14 @@
         <div id="loginError" class="error-message"></div>
       </form>
 
-      <!-- Portal Choice (hidden by default) -->
+      <!-- Portal Choice (hidden by default, shown after login) -->
       <div id="portalChoice" class="portal-choice hidden">
         <p>Anda login sebagai <strong id="loggedUser"></strong></p>
-        <div class="portal-buttons" style="flex-direction:column; gap:12px;">
-          <button class="portal-btn panitia" id="goUser" style="width:100%;"><i class="icon icon-user"></i> Masuk sebagai Panitia</button>
-          <button class="portal-btn admin" id="goAdmin" style="width:100%;"><i class="icon icon-settings"></i> Masuk sebagai Administrator</button>
+        <div class="portal-buttons-stacked">
+          <button class="portal-btn-stacked panitia" id="goUser"><i class="icon icon-user"></i> Masuk sebagai Panitia</button>
+          <button class="portal-btn-stacked admin" id="goAdmin"><i class="icon icon-settings"></i> Masuk sebagai Administrator</button>
         </div>
         <button class="btn-ghost" style="margin-top:16px; width:100%;" id="logoutAfterChoice"><i class="icon icon-log-out"></i> Ganti Akun</button>
-      </div>
-
-      <!-- Pekurban Portal Divider -->
-      <div id="pekurbanPortalSection" style="margin-top:24px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <div style="flex:1;height:1px;background:var(--border);"></div>
-          <span style="font-size:12px;color:var(--muted);font-weight:600;">ATAU</span>
-          <div style="flex:1;height:1px;background:var(--border);"></div>
-        </div>
-        <a href="/pekurban" style="display:block;text-decoration:none;">
-          <button class="btn-ghost" style="width:100%;padding:14px;border:1.5px solid var(--green);color:var(--green);font-weight:700;border-radius:var(--pill);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all 0.2s;" 
-            onmouseover="this.style.background='var(--green)';this.style.color='white';"
-            onmouseout="this.style.background='transparent';this.style.color='var(--green)';">
-            <i class="icon icon-eye"></i> Portal Pekurban
-          </button>
-        </a>
       </div>
 
       <div class="lcard-foot">
@@ -127,10 +177,27 @@
   const goUserBtn = document.getElementById('goUser');
   const goAdminBtn = document.getElementById('goAdmin');
   const logoutAfterChoice = document.getElementById('logoutAfterChoice');
+  const mainPortalButtons = document.getElementById('mainPortalButtons');
+  const openLoginBtn = document.getElementById('openLoginBtn');
+  const backToPortal = document.getElementById('backToPortal');
 
   let currentUser = null;
 
-  // Cek session ketika halaman dimuat (jika sudah login, langsung tampilkan pilihan portal)
+  // Tampilkan form login saat klik tombol Portal Panitia & Admin
+  openLoginBtn.addEventListener('click', () => {
+    mainPortalButtons.style.display = 'none';
+    loginForm.classList.remove('hidden');
+    loginForm.classList.add('fade-in');
+  });
+
+  // Kembali ke pilihan portal
+  backToPortal.addEventListener('click', () => {
+    loginForm.classList.add('hidden');
+    mainPortalButtons.style.display = 'flex';
+    errorDiv.textContent = '';
+  });
+
+  // Cek session ketika halaman dimuat
   function checkExistingSession() {
     const email = localStorage.getItem('userEmail');
     const role = localStorage.getItem('userRole');
@@ -146,25 +213,24 @@
   }
 
   function showPortalChoice() {
+    mainPortalButtons.style.display = 'none';
     loginForm.classList.add('hidden');
     portalChoice.classList.remove('hidden');
     portalChoice.classList.add('fade-in');
-    document.getElementById('pekurbanPortalSection').style.display = 'none';
     loggedUserSpan.textContent = `${currentUser.username} (${currentUser.role === 'admin' ? 'Administrator' : 'Panitia'})`;
     if (currentUser.role !== 'admin') {
       goAdminBtn.style.display = 'none';
     } else {
-      goAdminBtn.style.display = 'block';
+      goAdminBtn.style.display = 'flex';
     }
   }
 
   function resetToLogin() {
     localStorage.clear();
     currentUser = null;
-    loginForm.classList.remove('hidden');
-    loginForm.classList.add('fade-in');
     portalChoice.classList.add('hidden');
-    document.getElementById('pekurbanPortalSection').style.display = 'block';
+    mainPortalButtons.style.display = 'flex';
+    loginForm.classList.add('hidden');
     emailInput.value = '';
     passwordInput.value = '';
     loginBtn.disabled = false;
@@ -211,12 +277,8 @@
   });
 
   // Portal selection
-  goUserBtn.addEventListener('click', () => {
-    window.location.href = '/user';
-  });
-  goAdminBtn.addEventListener('click', () => {
-    window.location.href = '/admin';
-  });
+  goUserBtn.addEventListener('click', () => { window.location.href = '/user'; });
+  goAdminBtn.addEventListener('click', () => { window.location.href = '/admin'; });
   logoutAfterChoice.addEventListener('click', resetToLogin);
 
   // Load public stats for left panel
@@ -228,9 +290,7 @@
         document.getElementById('statInstansi').textContent = result.totalInstansi;
         document.getElementById('statPekurban').textContent = result.totalPekurban;
       }
-    } catch (e) {
-      // biarkan default —
-    }
+    } catch (e) { /* biarkan default — */ }
   }
 
   // Initial

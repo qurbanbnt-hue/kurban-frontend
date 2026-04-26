@@ -106,9 +106,11 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     .sb-logout {
-      cursor: pointer; padding: 8px 12px; border-radius: var(--r-md);
-      background: rgba(224,80,80,0.1); color: #E05050;
+      cursor: pointer; padding: 10px 14px; border-radius: var(--r-md);
+      background: rgba(224,80,80,0.12); color: #E05050;
       font-weight: 700; font-size: 13px; transition: all 0.2s;
+      border: none; width: 100%; display: flex; align-items: center;
+      justify-content: center; gap: 8px; margin-top: 10px;
     }
     .sb-logout:hover { background: #E05050; color: white; }
   </style>
@@ -136,8 +138,10 @@
             <div class="sb-uname" id="adminName">Admin</div>
             <div class="sb-urole">Administrator</div>
           </div>
-          <div class="sb-logout" onclick="logout()"><i class="icon icon-log-out"></i> Keluar</div>
         </div>
+        <button class="sb-logout" onclick="logout()">
+          <i class="icon icon-log-out"></i> Keluar
+        </button>
       </div>
     </div>
 
@@ -147,7 +151,10 @@
       <div id="tab-dashboard" class="tab-content active">
         <div class="a-topbar">
           <div class="a-page-h"><h1>Dashboard</h1><p>Idul Adha 1447 H · Data real-time</p></div>
-          <div class="a-actions"><button class="btn-ghost" onclick="loadDashboard()">🔄 Refresh</button></div>
+          <div class="a-actions">
+            <button class="btn-ghost" onclick="loadDashboard()">🔄 Refresh</button>
+            <button class="btn-ghost" onclick="logout()" style="color:#E05050;border-color:#E05050;"><i class="icon icon-log-out"></i> Keluar</button>
+          </div>
         </div>
         <div class="kpi-grid">
           <div class="kpi kpi-1"><div class="kpi-icon blue"><i class="icon icon-list"></i></div><div class="kpi-val" id="dashTotalHewan">-</div><div class="kpi-lbl">Total Hewan</div></div>
