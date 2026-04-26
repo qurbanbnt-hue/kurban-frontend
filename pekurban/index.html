@@ -410,6 +410,80 @@
       .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       .stat-num { font-size: 26px; }
     }
+
+    /* ==================== DESKTOP PROFIL LAYOUT ==================== */
+    @media (min-width: 900px) {
+      /* Only lock scroll when on profil page */
+      body.profil-active { overflow: hidden; }
+
+      /* Header slim on desktop */
+      .pk-header { padding: 12px 32px; }
+
+      /* Profil page fills viewport below header */
+      #page-profil { height: calc(100vh - 65px); overflow: hidden; }
+      #page-profil .pk-container-profil {
+        max-width: 100%;
+        height: 100%;
+        padding: 20px 32px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Desktop profil grid */
+      #profilContent {
+        display: grid;
+        grid-template-columns: 280px 1fr 300px;
+        grid-template-rows: 1fr;
+        gap: 20px;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* Column 1: hero + info + status — scrollable internally */
+      .profil-col-left {
+        display: flex; flex-direction: column; gap: 14px;
+        overflow-y: auto; padding-right: 4px;
+      }
+      .profil-col-left::-webkit-scrollbar { width: 4px; }
+      .profil-col-left::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+      /* Column 2: foto grid — scrollable internally */
+      .profil-col-mid {
+        display: flex; flex-direction: column; gap: 14px;
+        overflow-y: auto; padding-right: 4px;
+      }
+      .profil-col-mid::-webkit-scrollbar { width: 4px; }
+      .profil-col-mid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+      /* Foto grid horizontal on desktop */
+      .foto-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      /* Column 3: sertifikat */
+      .profil-col-right {
+        display: flex; flex-direction: column; gap: 14px;
+        overflow-y: auto; padding-right: 4px;
+      }
+      .profil-col-right::-webkit-scrollbar { width: 4px; }
+      .profil-col-right::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+      /* Hero compact on desktop */
+      .profil-hero { padding: 20px 16px; margin-bottom: 0; }
+      .profil-avatar-large { width: 56px; height: 56px; font-size: 22px; }
+      .profil-name { font-size: 17px; }
+
+      /* Cards compact */
+      .info-card { margin-bottom: 0; padding: 14px 16px; }
+      .sertifikat-card { margin-bottom: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+      /* Dashboard page also full-width on desktop */
+      #page-dashboard .pk-container {
+        max-width: 860px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -481,7 +555,7 @@
 
 <!-- Page: Profil Pekurban -->
 <div class="page" id="page-profil">
-  <div class="pk-container">
+  <div class="pk-container pk-container-profil">
     <div id="profilContent"></div>
   </div>
 </div>
@@ -534,7 +608,8 @@
     const page = document.getElementById(`page-${id}`);
     page.classList.add('active');
     document.getElementById('backBtn').style.display = id === 'dashboard' ? 'none' : 'block';
-
+    // Lock body scroll on desktop only when viewing profil
+    document.body.classList.toggle('profil-active', id === 'profil');
     if (pushState) history.pushState({ page: id }, '', window.location.pathname);
     window.scrollTo(0, 0);
   }
@@ -690,53 +765,59 @@
     if (statusDone === 3) { statusText = 'Semua tahap selesai ✅'; statusColor = '#22c55e'; }
     else if (statusDone > 0) { statusText = `${statusDone}/3 tahap terdokumentasi`; statusColor = '#3b82f6'; }
 
+    const sertBtn = `showSertifikat(${JSON.stringify({nama: nama_pekurban, nomor: nomor_hewan, jenis: jenis_hewan, wilayah, instansi})})`;
+
     const content = document.getElementById('profilContent');
     content.innerHTML = `
-      <!-- Hero -->
-      <div class="profil-hero fade-up">
-        <div class="profil-avatar-large">${initials}</div>
-        <div class="profil-name">${nama_pekurban}</div>
-        <div class="profil-badge">${hewanEmoji} Pekurban ${jenis_hewan}</div>
-        <div style="margin-top:10px;font-size:13px;font-weight:600;color:${statusColor};">${statusText}</div>
-      </div>
+      <!-- COL 1: Hero + Info + Status -->
+      <div class="profil-col-left">
+        <div class="profil-hero fade-up">
+          <div class="profil-avatar-large">${initials}</div>
+          <div class="profil-name">${nama_pekurban}</div>
+          <div class="profil-badge">${hewanEmoji} Pekurban ${jenis_hewan}</div>
+          <div style="margin-top:10px;font-size:13px;font-weight:600;color:${statusColor};">${statusText}</div>
+        </div>
 
-      <!-- Info Hewan -->
-      <div class="info-card fade-up" style="animation-delay:0.05s">
-        <div class="info-card-title">📋 Detail Hewan Kurban</div>
-        <div class="info-row"><span class="info-label">Nomor Hewan</span><span class="info-value">${nomor_hewan}</span></div>
-        <div class="info-row"><span class="info-label">Jenis</span><span class="info-value">${hewanEmoji} ${jenis_hewan}</span></div>
-        <div class="info-row"><span class="info-label">Instansi</span><span class="info-value">${instansi}</span></div>
-        <div class="info-row"><span class="info-label">Wilayah Pemotongan</span><span class="info-value">📍 ${wilayah}</span></div>
-      </div>
+        <div class="info-card fade-up" style="animation-delay:0.05s">
+          <div class="info-card-title"><i class="icon icon-clipboard-list"></i> Detail Hewan Kurban</div>
+          <div class="info-row"><span class="info-label">Nomor Hewan</span><span class="info-value">${nomor_hewan}</span></div>
+          <div class="info-row"><span class="info-label">Jenis</span><span class="info-value">${hewanEmoji} ${jenis_hewan}</span></div>
+          <div class="info-row"><span class="info-label">Instansi</span><span class="info-value">${instansi}</span></div>
+          <div class="info-row"><span class="info-label">Wilayah</span><span class="info-value"><i class="icon icon-map-pin" style="font-size:12px;"></i> ${wilayah}</span></div>
+        </div>
 
-      <!-- Status Timeline -->
-      <div class="info-card fade-up" style="animation-delay:0.1s">
-        <div class="info-card-title">📅 Status Penyembelihan</div>
-        <div class="status-timeline">
-          ${renderStep('🐄', 'Hewan Hidup', status?.url_hidup, status?.tgl_hidup, status?.uploader_hidup, !!status?.url_hidup)}
-          ${renderStep('🔪', 'Ditumbangkan', status?.url_ditumbangkan, status?.tgl_ditumbangkan, status?.uploader_ditumbangkan, !!status?.url_ditumbangkan)}
-          ${renderStep('✅', 'Selesai / Mati', status?.url_mati, status?.tgl_mati, status?.uploader_mati, !!status?.url_mati)}
+        <div class="info-card fade-up" style="animation-delay:0.1s">
+          <div class="info-card-title"><i class="icon icon-calendar"></i> Status Penyembelihan</div>
+          <div class="status-timeline">
+            ${renderStep('🐄', 'Hewan Hidup', status?.url_hidup, status?.tgl_hidup, status?.uploader_hidup, !!status?.url_hidup)}
+            ${renderStep('🔪', 'Ditumbangkan', status?.url_ditumbangkan, status?.tgl_ditumbangkan, status?.uploader_ditumbangkan, !!status?.url_ditumbangkan)}
+            ${renderStep('✅', 'Selesai / Mati', status?.url_mati, status?.tgl_mati, status?.uploader_mati, !!status?.url_mati)}
+          </div>
         </div>
       </div>
 
-      <!-- Foto Dokumentasi -->
-      <div class="info-card fade-up" style="animation-delay:0.15s">
-        <div class="info-card-title">📸 Foto Dokumentasi</div>
-        <div class="foto-grid">
-          ${renderFotoItem('hidup', '🐄 Kondisi Hidup', status?.url_hidup)}
-          ${renderFotoItem('tumbang', '🔪 Ditumbangkan', status?.url_ditumbangkan)}
-          ${renderFotoItem('mati', '✅ Setelah Penyembelihan', status?.url_mati)}
+      <!-- COL 2: Foto Dokumentasi -->
+      <div class="profil-col-mid">
+        <div class="info-card fade-up" style="animation-delay:0.15s;height:100%;">
+          <div class="info-card-title"><i class="icon icon-camera"></i> Foto Dokumentasi</div>
+          <div class="foto-grid">
+            ${renderFotoItem('hidup', '<i class="icon icon-image"></i> Kondisi Hidup', status?.url_hidup)}
+            ${renderFotoItem('tumbang', '<i class="icon icon-scissors"></i> Ditumbangkan', status?.url_ditumbangkan)}
+            ${renderFotoItem('mati', '<i class="icon icon-check-circle"></i> Setelah Penyembelihan', status?.url_mati)}
+          </div>
         </div>
       </div>
 
-      <!-- Sertifikat -->
-      <div class="sertifikat-card fade-up" style="animation-delay:0.2s">
-        <div class="sertifikat-icon"><i class="icon icon-award" style="font-family:'lucide'!important;font-style:normal;font-size:40px;color:white;"></i></div>
-        <div class="sertifikat-title">Sertifikat Pekurban</div>
-        <div class="sertifikat-sub">Unduh sertifikat terima kasih atas partisipasi Anda dalam ibadah kurban</div>
-        <button class="btn-sertifikat" onclick='showSertifikat(${JSON.stringify({nama: nama_pekurban, nomor: nomor_hewan, jenis: jenis_hewan, wilayah: wilayah, instansi: instansi})})'>
-          <i class="icon icon-award"></i> Lihat &amp; Unduh Sertifikat
-        </button>
+      <!-- COL 3: Sertifikat -->
+      <div class="profil-col-right">
+        <div class="sertifikat-card fade-up" style="animation-delay:0.2s">
+          <div class="sertifikat-icon"><i class="icon icon-award" style="font-family:'lucide'!important;font-style:normal;font-size:40px;color:white;"></i></div>
+          <div class="sertifikat-title">Sertifikat Pekurban</div>
+          <div class="sertifikat-sub">Unduh sertifikat terima kasih atas partisipasi Anda dalam ibadah kurban</div>
+          <button class="btn-sertifikat" onclick="${sertBtn}">
+            <i class="icon icon-award"></i> Lihat &amp; Unduh Sertifikat
+          </button>
+        </div>
       </div>
     `;
 
