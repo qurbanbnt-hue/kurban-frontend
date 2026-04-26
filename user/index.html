@@ -211,6 +211,24 @@
       border: none; background: transparent; flex: 1; padding: 12px 0;
       outline: none; font-size: 14px;
     }
+
+    /* Quick action buttons */
+    .qa-btn {
+      flex: 1; display: flex; align-items: center; gap: 8px;
+      padding: 14px 12px; border-radius: var(--r-lg);
+      background: var(--white); border: 1.5px solid var(--border);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 12px; font-weight: 700; color: var(--ink);
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: var(--sh-xs);
+    }
+    .qa-btn i { font-size: 18px; color: var(--blue); flex-shrink: 0; }
+    .qa-btn:hover { border-color: var(--blue); background: var(--blue-lt); transform: translateY(-1px); }
+    .qa-btn.qa-btn-green i { color: var(--green); }
+    .qa-btn.qa-btn-green:hover { border-color: var(--green); background: var(--green-bg); }
+
+    /* No bottom nav — remove padding */
+    .u-content { padding-bottom: 20px; }
   </style>
 </head>
 <body class="user-frame">
@@ -220,15 +238,18 @@
   <div class="u-header">
     <div class="u-topbar">
       <div class="u-brand">
+        <button id="btnBack" onclick="goBack()" style="display:none;background:rgba(255,255,255,0.15);border:none;color:white;border-radius:10px;padding:7px 10px;cursor:pointer;font-size:18px;align-items:center;gap:5px;margin-right:4px;">
+          <i class="icon icon-chevron-left"></i>
+        </button>
         <div class="u-brand-icon">
           <img src="../assets/images/logo-bnt.png" alt="BNT">
         </div>
         <div>
           <div class="u-brand-name">Kurban Digital</div>
-          <div class="u-brand-sub">Yayasan BNT 1446 H</div>
+          <div class="u-brand-sub">Yayasan BNT 1447 H</div>
         </div>
       </div>
-      <div class="u-avatar" id="avatarInitial">👤</div>
+      <button class="u-avatar" id="avatarInitial" onclick="switchScreen('akun')" style="cursor:pointer;border:none;">👤</button>
     </div>
     <div class="u-greet">
       <div class="u-hi">Assalamu'alaikum,</div>
@@ -237,7 +258,7 @@
     <div class="u-kpi">
       <div class="u-kpi-item"><div class="u-kpi-num" id="totalHewan">-</div><div class="u-kpi-lbl">Total</div></div>
       <div class="u-kpi-item"><div class="u-kpi-num" id="selesai">-</div><div class="u-kpi-lbl">Selesai</div></div>
-      <div class="u-kpi-item"><div class="u-kpi-num" id="proses">-</div><div class="u-kpi-lbl">Sedang Diproses</div></div>
+      <div class="u-kpi-item"><div class="u-kpi-num" id="proses">-</div><div class="u-kpi-lbl">Proses</div></div>
     </div>
   </div>
 
@@ -255,16 +276,30 @@
           <div class="pstep"><div class="pstep-dot" id="stepMati">3</div><div class="pstep-lbl">Mati</div></div>
         </div>
         <div class="phase-counts">
-          <div class="pc"><div class="pc-num" id="cntHidup">0</div><div class="pc-lbl">📷 Hidup</div></div>
-          <div class="pc"><div class="pc-num" id="cntTumbang">0</div><div class="pc-lbl">🔪 Tumbang</div></div>
-          <div class="pc"><div class="pc-num" id="cntMati">0</div><div class="pc-lbl">✅ Mati</div></div>
+          <div class="pc"><div class="pc-num" id="cntHidup">0</div><div class="pc-lbl"><i class="icon icon-camera" style="font-size:11px;"></i> Hidup</div></div>
+          <div class="pc"><div class="pc-num" id="cntTumbang">0</div><div class="pc-lbl"><i class="icon icon-scissors" style="font-size:11px;"></i> Tumbang</div></div>
+          <div class="pc"><div class="pc-num" id="cntMati">0</div><div class="pc-lbl"><i class="icon icon-check-circle" style="font-size:11px;"></i> Mati</div></div>
         </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <button class="qa-btn" onclick="switchScreen('hewan')">
+          <i class="icon icon-list"></i>
+          <span>Semua Data Hewan</span>
+          <i class="icon icon-chevron-right" style="margin-left:auto;opacity:0.5;"></i>
+        </button>
+        <button class="qa-btn qa-btn-green" onclick="switchScreen('dokumentasi')">
+          <i class="icon icon-folder-plus"></i>
+          <span>Dokumentasi Instansi</span>
+          <i class="icon icon-chevron-right" style="margin-left:auto;opacity:0.5;"></i>
+        </button>
       </div>
 
       <div class="ucard">
         <div class="card-head">
-          <div class="card-title"><i class="icon icon-cow"></i> Hewan Terbaru</div>
-          <span class="see-all" data-screen="hewan">Lihat Semua →</span>
+          <div class="card-title"><i class="icon icon-clock"></i> Hewan Terbaru</div>
+          <span class="see-all" onclick="switchScreen('hewan')">Lihat Semua →</span>
         </div>
         <div id="recentHewan"></div>
       </div>
@@ -281,12 +316,7 @@
 
     <!-- UPLOAD -->
     <div id="screen-upload" class="screen">
-      <div class="ucard">
-        <div class="card-title"><i class="icon icon-cow"></i> Pilih Hewan</div>
-        <select id="hewanSelect" class="field" style="margin-top:8px;"></select>
-      </div>
-
-      <div id="uploadDetailCard" style="display:none;">
+      <div id="uploadDetailCard">
         <div class="ucard">
           <div class="card-title"><i class="icon icon-info"></i> Detail Hewan</div>
           <div id="selectedHewanDetail" class="detail-grid"></div>
@@ -299,7 +329,7 @@
           <div class="card-title"><i class="icon icon-camera"></i> Upload Foto</div>
           <div class="upload-tabs" style="display:flex; gap:8px; margin-bottom:16px;">
             <button class="upload-tab active" data-tab="hidup"><i class="icon icon-image"></i> Hidup</button>
-            <button class="upload-tab" data-tab="ditumbangkan"><i class="icon icon-knife"></i> Tumbang</button>
+            <button class="upload-tab" data-tab="ditumbangkan"><i class="icon icon-scissors"></i> Tumbang</button>
             <button class="upload-tab" data-tab="mati"><i class="icon icon-check"></i> Mati</button>
           </div>
           <div class="upload-area" id="uploadArea">
@@ -393,14 +423,7 @@
     </div>
   </div>
 
-  <!-- Bottom Navigation -->
-  <div class="u-nav">
-    <button class="nav-item on" data-screen="beranda"><i class="icon icon-home"></i><span>Beranda</span></button>
-    <button class="nav-item" data-screen="hewan"><i class="icon icon-list"></i><span>Hewan</span></button>
-    <button class="nav-item" data-screen="upload"><i class="icon icon-camera"></i><span>Upload</span></button>
-    <button class="nav-item" data-screen="dokumentasi"><i class="icon icon-folder"></i><span>Dok</span></button>
-    <button class="nav-item" data-screen="akun"><i class="icon icon-user"></i><span>Akun</span></button>
-  </div>
+  <!-- Bottom nav removed -->
 </div>
 
 <script src="../assets/js/api.js"></script>
@@ -547,52 +570,17 @@
     selectedHewan = allHewan.find(h => h.nomor_hewan === nomor);
     if (selectedHewan) {
       switchScreen('upload');
-      // Setelah switchScreen, dropdown akan diinisialisasi, jadi kita set timeout untuk memilih hewan
-      setTimeout(() => {
-        const select = document.getElementById('hewanSelect');
-        if (select) {
-          select.value = selectedHewan.nomor_hewan;
-          select.dispatchEvent(new Event('change'));
-        }
-      }, 150);
     }
   }
 
   // ==================== UPLOAD ====================
-  async function initUploadScreen() {
-    if (allHewan.length === 0) await loadAllData();
-    
-    const select = document.getElementById('hewanSelect');
-    select.innerHTML = '<option value="">-- Pilih --</option>';
-    allHewan.forEach(h => {
-      const opt = document.createElement('option');
-      opt.value = h.nomor_hewan;
-      opt.textContent = `${h.nomor_hewan} - ${h.jenis_hewan} (${h.instansi})`;
-      select.appendChild(opt);
-    });
-
-    if (selectedHewan) {
-      select.value = selectedHewan.nomor_hewan;
-      document.getElementById('uploadDetailCard').style.display = 'block';
-      renderUploadDetail();
-    } else {
-      document.getElementById('uploadDetailCard').style.display = 'none';
-    }
-
-    select.onchange = () => {
-      selectedHewan = allHewan.find(h => h.nomor_hewan === select.value);
-      if (selectedHewan) {
-        document.getElementById('uploadDetailCard').style.display = 'block';
-        renderUploadDetail();
-      } else {
-        document.getElementById('uploadDetailCard').style.display = 'none';
-        selectedHewan = null;
-      }
-    };
-  }
-
+  // Upload screen no longer has a dropdown — hewan is set by clicking from the list.
   function renderUploadDetail() {
-    if (!selectedHewan) return;
+    if (!selectedHewan) {
+      // Shouldn't happen normally, but guard anyway
+      switchScreen('hewan');
+      return;
+    }
     const s = selectedHewan.status || {};
 
     document.getElementById('selectedHewanDetail').innerHTML = `
@@ -953,9 +941,14 @@
   function switchScreen(screenId, pushState = true) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(`screen-${screenId}`).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
-    const activeNav = document.querySelector(`.nav-item[data-screen="${screenId}"]`);
-    if (activeNav) activeNav.classList.add('on');
+
+    // Show/hide back button
+    const btnBack = document.getElementById('btnBack');
+    if (screenId === 'beranda') {
+      btnBack.style.display = 'none';
+    } else {
+      btnBack.style.display = 'flex';
+    }
 
     if (pushState) {
       history.pushState({ screen: screenId }, '', window.location.pathname);
@@ -963,10 +956,12 @@
 
     if (screenId === 'beranda') renderDashboard();
     else if (screenId === 'hewan') renderHewanList('');
-    else if (screenId === 'upload') initUploadScreen();
+    else if (screenId === 'upload') renderUploadDetail();
     else if (screenId === 'dokumentasi') initDokScreen();
     else if (screenId === 'akun') renderProfilePerformance();
   }
+
+  function goBack() { history.back(); }
 
   // Handle browser back/forward
   window.addEventListener('popstate', (e) => {
@@ -977,14 +972,9 @@
   // Set initial history state
   history.replaceState({ screen: 'beranda' }, '', window.location.pathname);
 
-  // Event listeners untuk navigasi
-  document.querySelectorAll('.nav-item').forEach(btn => {
-    btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
-  });
+  // data-screen links (see-all etc)
   document.querySelectorAll('[data-screen]').forEach(el => {
-    if (!el.classList.contains('nav-item')) {
-      el.addEventListener('click', () => switchScreen(el.dataset.screen));
-    }
+    el.addEventListener('click', () => switchScreen(el.dataset.screen));
   });
 
   document.getElementById('searchInput').addEventListener('input', e => renderHewanList(e.target.value));
