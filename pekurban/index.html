@@ -424,10 +424,10 @@
     <div class="pk-header-sub">Kurban Digital · BNT 1447 H</div>
   </div>
   <button class="pk-back-btn" id="backBtn" onclick="goBack()" style="display:none;">
-    ← Kembali
+    <i class="icon icon-chevron-left" style="font-family:'lucide'!important;font-style:normal;"></i> Kembali
   </button>
   <a href="/" style="text-decoration:none;">
-    <button class="pk-back-btn">🏠 Home</button>
+    <button class="pk-back-btn"><i class="icon icon-home" style="font-family:'lucide'!important;font-style:normal;"></i> Home</button>
   </a>
 </div>
 
@@ -438,22 +438,22 @@
     <!-- Stats -->
     <div class="stat-grid" id="statGrid">
       <div class="stat-card fade-up" style="animation-delay:0.05s">
-        <div class="stat-icon">🐄</div>
+        <div class="stat-icon"><i class="icon icon-list" style="font-family:'lucide'!important;font-style:normal;font-size:22px;color:white;"></i></div>
         <div class="stat-num" id="statHewan">—</div>
         <div class="stat-lbl">Total Hewan</div>
       </div>
       <div class="stat-card fade-up" style="animation-delay:0.1s">
-        <div class="stat-icon">✅</div>
+        <div class="stat-icon"><i class="icon icon-check-circle" style="font-family:'lucide'!important;font-style:normal;font-size:22px;color:white;"></i></div>
         <div class="stat-num" id="statSelesai">—</div>
         <div class="stat-lbl">Sudah Dipotong</div>
       </div>
       <div class="stat-card fade-up" style="animation-delay:0.15s">
-        <div class="stat-icon">👥</div>
+        <div class="stat-icon"><i class="icon icon-users" style="font-family:'lucide'!important;font-style:normal;font-size:22px;color:white;"></i></div>
         <div class="stat-num" id="statPekurban">—</div>
         <div class="stat-lbl">Pekurban</div>
       </div>
       <div class="stat-card fade-up" style="animation-delay:0.2s">
-        <div class="stat-icon">📍</div>
+        <div class="stat-icon"><i class="icon icon-map-pin" style="font-family:'lucide'!important;font-style:normal;font-size:22px;color:white;"></i></div>
         <div class="stat-num" id="statInstansi">—</div>
         <div class="stat-lbl">Wilayah</div>
       </div>
@@ -461,7 +461,7 @@
 
     <!-- Search -->
     <div class="search-section fade-up" style="animation-delay:0.25s">
-      <div class="search-title">🔍 Cek Perkembangan Kurban Anda</div>
+      <div class="search-title"><i class="icon icon-search" style="font-family:'lucide'!important;font-style:normal;"></i> Cek Perkembangan Kurban Anda</div>
       <div class="search-sub">Masukkan nama Anda untuk melihat dokumentasi hewan kurban</div>
       <div class="search-input-wrap">
         <input type="text" class="search-input" id="searchInput" 
@@ -491,7 +491,7 @@
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>
   <img id="lightboxImg" src="" alt="Foto dokumentasi">
   <button class="lightbox-download" id="lightboxDownload" onclick="event.stopPropagation()">
-    ⬇ Unduh Foto
+    <i class="icon icon-download"></i> Unduh Foto
   </button>
 </div>
 
@@ -499,7 +499,7 @@
 <div class="sert-modal" id="sertModal">
   <div class="sert-content">
     <div class="sert-preview" id="sertPreview">
-      <div class="sert-preview-logo">🕌</div>
+      <div class="sert-preview-logo"><i class="icon icon-building" style="font-family:'lucide'!important;font-style:normal;font-size:36px;color:white;"></i></div>
       <div class="sert-preview-title">Yayasan Bhakti Nusa Tenggara</div>
       <div class="sert-preview-h">Sertifikat Pekurban</div>
       <div class="sert-preview-divider"></div>
@@ -507,12 +507,12 @@
       <div class="sert-preview-name" id="sertNama">Nama Pekurban</div>
       <div class="sert-preview-sub" id="sertDetail">telah menunaikan ibadah qurban</div>
       <div class="sert-preview-divider"></div>
-      <div class="sert-preview-seal">🌙</div>
+      <div class="sert-preview-seal"><i class="icon icon-star" style="font-family:'lucide'!important;font-style:normal;font-size:48px;color:rgba(255,255,255,0.8);"></i></div>
       <div class="sert-preview-org">Yayasan Bhakti Nusa Tenggara</div>
       <div style="font-size:11px;opacity:0.6;margin-top:2px;">Idul Adha 1447 H · 2026 M</div>
     </div>
     <div class="sert-actions">
-      <button class="btn-download" id="sertDownloadBtn" onclick="downloadSertifikat()">⬇ Unduh Sertifikat</button>
+      <button class="btn-download" id="sertDownloadBtn" onclick="downloadSertifikat()"><i class="icon icon-download"></i> Unduh Sertifikat</button>
       <button class="sert-close-btn" onclick="closeSertModal()">Tutup</button>
     </div>
   </div>
@@ -628,7 +628,7 @@
               <div class="result-name">${r.nama_pekurban}</div>
               <div class="result-meta">${hewanEmoji} ${r.nomor_hewan} · ${r.instansi} · ${r.wilayah}</div>
             </div>
-            <div class="result-arrow">›</div>
+            <div class="result-arrow"><i class="icon icon-chevron-right" style="font-family:'lucide'!important;font-style:normal;"></i></div>
           </div>`;
       }).join('');
 
@@ -731,11 +731,11 @@
 
       <!-- Sertifikat -->
       <div class="sertifikat-card fade-up" style="animation-delay:0.2s">
-        <div class="sertifikat-icon">🏅</div>
+        <div class="sertifikat-icon"><i class="icon icon-award" style="font-family:'lucide'!important;font-style:normal;font-size:40px;color:white;"></i></div>
         <div class="sertifikat-title">Sertifikat Pekurban</div>
         <div class="sertifikat-sub">Unduh sertifikat terima kasih atas partisipasi Anda dalam ibadah kurban</div>
         <button class="btn-sertifikat" onclick='showSertifikat(${JSON.stringify({nama: nama_pekurban, nomor: nomor_hewan, jenis: jenis_hewan, wilayah: wilayah, instansi: instansi})})'>
-          🎓 Lihat & Unduh Sertifikat
+          <i class="icon icon-award"></i> Lihat &amp; Unduh Sertifikat
         </button>
       </div>
     `;

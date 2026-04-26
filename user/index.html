@@ -128,6 +128,78 @@
     }
     .btn-logout:hover { background: #C94040; transform: translateY(-2px); }
 
+    /* Upload Loading Overlay */
+    .upload-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(13,30,53,0.65); z-index: 500;
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+    }
+    .upload-overlay.active { display: flex; }
+    .upload-overlay-box {
+      background: white; border-radius: var(--r-xl);
+      padding: 32px 40px; text-align: center;
+      box-shadow: var(--sh-lg); min-width: 220px;
+    }
+    .upload-spinner {
+      width: 44px; height: 44px; margin: 0 auto 16px;
+      border: 4px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .upload-overlay-text { font-size: 14px; font-weight: 700; color: var(--ink); }
+    .upload-overlay-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* File size indicator */
+    .file-size-bar-wrap {
+      margin-top: 12px; background: var(--bg);
+      border-radius: var(--r-md); padding: 12px 14px;
+      border: 1.5px solid var(--border);
+    }
+    .file-size-bar-wrap.over-limit { border-color: #E05050; background: #fff5f5; }
+    .file-size-header {
+      display: flex; justify-content: space-between;
+      font-size: 12px; font-weight: 700; margin-bottom: 8px;
+    }
+    .file-size-label { color: var(--slate); }
+    .file-size-value { color: var(--blue); }
+    .file-size-value.over { color: #E05050; }
+    .file-size-bar {
+      height: 6px; background: var(--border);
+      border-radius: var(--pill); overflow: hidden;
+    }
+    .file-size-fill {
+      height: 100%; border-radius: var(--pill);
+      background: linear-gradient(90deg, var(--blue), var(--sky));
+      transition: width 0.3s ease;
+    }
+    .file-size-fill.over { background: linear-gradient(90deg, #E05050, #ff7070); }
+    .file-size-warning {
+      margin-top: 8px; font-size: 12px; color: #E05050;
+      font-weight: 600; display: none;
+    }
+    .file-size-warning.show { display: block; }
+
+    /* File list item */
+    .dok-file-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: var(--r-md);
+      background: var(--bg); margin-bottom: 6px;
+      border: 1px solid var(--border); font-size: 13px;
+    }
+    .dok-file-item.over-limit { background: #fff5f5; border-color: #E05050; }
+    .dok-file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dok-file-size { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+    .dok-file-size.over { color: #E05050; font-weight: 700; }
+    .dok-file-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 16px; padding: 0 2px;
+      transition: color 0.2s; flex-shrink: 0;
+    }
+    .dok-file-remove:hover { color: #E05050; }
+
     /* Search */
     .search-box {
       background: var(--white); border-radius: var(--pill);
@@ -261,11 +333,30 @@
       <div id="dokUploadCard" style="display:none;">
         <div class="ucard">
           <div class="card-title"><i class="icon icon-folder-plus"></i> Upload File</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <i class="icon icon-info" style="font-size:14px;color:var(--blue);"></i>
+            Batas upload sekaligus: <strong style="color:var(--blue);">20 MB</strong>
+          </div>
           <div class="upload-area" id="dokUploadArea">
             <i class="icon icon-upload-cloud" style="font-size:32px;"></i>
             <div>Pilih foto/video</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">Bisa pilih beberapa file sekaligus</div>
           </div>
           <input type="file" id="dokFileInput" accept="image/*,video/*" multiple style="display:none;">
+          <!-- File size bar -->
+          <div class="file-size-bar-wrap" id="fileSizeBarWrap" style="display:none;">
+            <div class="file-size-header">
+              <span class="file-size-label"><i class="icon icon-hard-drive" style="font-size:12px;"></i> Total ukuran file</span>
+              <span class="file-size-value" id="fileSizeValue">0 MB / 20 MB</span>
+            </div>
+            <div class="file-size-bar">
+              <div class="file-size-fill" id="fileSizeFill" style="width:0%"></div>
+            </div>
+            <div class="file-size-warning" id="fileSizeWarning">
+              <i class="icon icon-alert-triangle" style="font-size:12px;"></i>
+              Ukuran melebihi batas! Hapus beberapa file sebelum upload.
+            </div>
+          </div>
           <div id="dokFileList"></div>
           <button class="btn-submit panitia" id="dokUploadBtn"><i class="icon icon-upload"></i> Upload</button>
         </div>
@@ -590,8 +681,11 @@
       if (!file) return showToast('Pilih foto', 'warning');
 
       const btn = document.getElementById('uploadBtn');
+      const overlay = document.getElementById('uploadOverlay');
       btn.disabled = true;
-      btn.innerHTML = 'Mengupload...';
+      btn.innerHTML = '<i class="icon icon-loader"></i> Mengupload...';
+      overlay.classList.add('active');
+      document.getElementById('uploadOverlayText').textContent = 'Mengupload foto...';
 
       const reader = new FileReader();
       reader.onload = async (e) => {
@@ -620,12 +714,14 @@
           showToast('Error: ' + error.message, 'error');
         }
         btn.disabled = false;
-        btn.innerHTML = 'Upload Foto';
+        btn.innerHTML = '<i class="icon icon-upload"></i> Upload Foto';
+        overlay.classList.remove('active');
       };
       reader.onerror = () => {
         showToast('Gagal membaca file', 'error');
         btn.disabled = false;
-        btn.innerHTML = 'Upload Foto';
+        btn.innerHTML = '<i class="icon icon-upload"></i> Upload Foto';
+        overlay.classList.remove('active');
       };
       reader.readAsDataURL(file);
     });
@@ -679,46 +775,117 @@
     // Hapus listener lama jika ada
     dokArea.replaceWith(dokArea.cloneNode(true));
     document.getElementById('dokUploadArea').addEventListener('click', () => dokInput.click());
-    
-    dokInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
+
+    const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
+    let selectedFiles = []; // array of File objects
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function updateFileSizeUI() {
+      const barWrap  = document.getElementById('fileSizeBarWrap');
+      const fillEl   = document.getElementById('fileSizeFill');
+      const valueEl  = document.getElementById('fileSizeValue');
+      const warnEl   = document.getElementById('fileSizeWarning');
+      const uploadBtn = document.getElementById('dokUploadBtn');
+
+      if (selectedFiles.length === 0) {
+        barWrap.style.display = 'none';
+        return;
+      }
+      barWrap.style.display = 'block';
+
+      const total   = selectedFiles.reduce((s, f) => s + f.size, 0);
+      const pct     = Math.min((total / MAX_BYTES) * 100, 100);
+      const isOver  = total > MAX_BYTES;
+
+      valueEl.textContent = `${formatSize(total)} / 20 MB`;
+      valueEl.classList.toggle('over', isOver);
+      fillEl.style.width = pct + '%';
+      fillEl.classList.toggle('over', isOver);
+      barWrap.classList.toggle('over-limit', isOver);
+      warnEl.classList.toggle('show', isOver);
+      uploadBtn.disabled = isOver;
+      uploadBtn.style.opacity = isOver ? '0.5' : '1';
+    }
+
+    function renderFileList() {
       const listDiv = document.getElementById('dokFileList');
-      listDiv.innerHTML = files.map(f => `<div class="instansi-item">📄 ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('');
+      if (selectedFiles.length === 0) { listDiv.innerHTML = ''; return; }
+
+      const total  = selectedFiles.reduce((s, f) => s + f.size, 0);
+      const isOver = total > MAX_BYTES;
+
+      listDiv.innerHTML = selectedFiles.map((f, idx) => {
+        const icon = f.type.startsWith('image/') ? 'icon-image' : 'icon-film';
+        return `
+          <div class="dok-file-item ${isOver ? 'over-limit' : ''}">
+            <i class="icon ${icon}" style="font-size:16px;color:var(--blue);flex-shrink:0;"></i>
+            <span class="dok-file-name">${f.name}</span>
+            <span class="dok-file-size ${isOver ? 'over' : ''}">${formatSize(f.size)}</span>
+            <button class="dok-file-remove" onclick="removeDokFile(${idx})" title="Hapus file ini">
+              <i class="icon icon-x"></i>
+            </button>
+          </div>`;
+      }).join('');
+    }
+
+    // Expose remove function globally so onclick works
+    window.removeDokFile = (idx) => {
+      selectedFiles.splice(idx, 1);
+      renderFileList();
+      updateFileSizeUI();
+    };
+
+    dokInput.addEventListener('change', (e) => {
+      const newFiles = Array.from(e.target.files);
+      // Merge, avoid duplicates by name+size
+      newFiles.forEach(nf => {
+        if (!selectedFiles.some(sf => sf.name === nf.name && sf.size === nf.size)) {
+          selectedFiles.push(nf);
+        }
+      });
+      dokInput.value = ''; // reset so same file can be re-added after removal
+      renderFileList();
+      updateFileSizeUI();
     });
 
     document.getElementById('dokUploadBtn').addEventListener('click', async () => {
       const instansi = document.getElementById('dokInstansiSelect').value;
-      const wilayah = document.getElementById('dokWilayah').value;
-      const jenis = document.getElementById('dokJenis').value;
+      const wilayah  = document.getElementById('dokWilayah').value;
+      const jenis    = document.getElementById('dokJenis').value;
       if (!instansi) return showToast('Pilih instansi terlebih dahulu', 'warning');
-      const files = dokInput.files;
-      if (files.length === 0) return showToast('Pilih file', 'warning');
+      if (selectedFiles.length === 0) return showToast('Pilih file terlebih dahulu', 'warning');
 
-      const filePromises = Array.from(files).map(f => new Promise(resolve => {
+      const total = selectedFiles.reduce((s, f) => s + f.size, 0);
+      if (total > MAX_BYTES) return showToast('Ukuran file melebihi batas 20 MB', 'warning');
+
+      const overlay = document.getElementById('uploadOverlay');
+      const btn     = document.getElementById('dokUploadBtn');
+      btn.disabled  = true;
+      overlay.classList.add('active');
+      document.getElementById('uploadOverlayText').textContent = `Mengupload ${selectedFiles.length} file...`;
+
+      const filePromises = selectedFiles.map(f => new Promise(resolve => {
         const reader = new FileReader();
-        reader.onload = e => resolve({
-          base64Data: e.target.result.split(',')[1],
-          mimeType: f.type,
-          fileName: f.name
-        });
+        reader.onload = e => resolve({ base64Data: e.target.result.split(',')[1], mimeType: f.type, fileName: f.name });
         reader.onerror = () => resolve(null);
         reader.readAsDataURL(f);
       }));
       const fileData = (await Promise.all(filePromises)).filter(f => f !== null);
 
-      if (fileData.length === 0) return showToast('Gagal membaca file', 'error');
-
-      const btn = document.getElementById('dokUploadBtn');
-      btn.disabled = true;
-      btn.innerHTML = 'Mengupload...';
       try {
         const result = await callApi('uploadDokumentasi', {
           email, username: username || email, instansi, wilayah, jenis_dokumentasi: jenis, files: fileData
         });
         if (result.success) {
           showToast(`Berhasil upload ${result.fotoCount || 0} foto, ${result.videoCount || 0} video`, 'success');
-          dokInput.value = '';
-          document.getElementById('dokFileList').innerHTML = '';
+          selectedFiles = [];
+          renderFileList();
+          updateFileSizeUI();
           loadDokRiwayat();
         } else {
           showToast('Gagal: ' + (result.error || 'Unknown error'), 'error');
@@ -727,7 +894,7 @@
         showToast('Error: ' + error.message, 'error');
       }
       btn.disabled = false;
-      btn.innerHTML = 'Upload';
+      overlay.classList.remove('active');
     });
   }
 
@@ -834,5 +1001,14 @@
   })();
 </script>
 <div id="toast" class="toast"></div>
+
+<!-- Upload Loading Overlay -->
+<div class="upload-overlay" id="uploadOverlay">
+  <div class="upload-overlay-box">
+    <div class="upload-spinner"></div>
+    <div class="upload-overlay-text" id="uploadOverlayText">Mengupload...</div>
+    <div class="upload-overlay-sub">Mohon tunggu, jangan tutup halaman</div>
+  </div>
+</div>
 </body>
 </html>

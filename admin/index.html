@@ -113,6 +113,28 @@
       justify-content: center; gap: 8px; margin-top: 10px;
     }
     .sb-logout:hover { background: #E05050; color: white; }
+
+    /* Admin loading overlay */
+    .admin-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(13,30,53,0.6); z-index: 2000;
+      align-items: center; justify-content: center;
+    }
+    .admin-overlay.active { display: flex; }
+    .admin-overlay-box {
+      background: white; border-radius: var(--r-xl);
+      padding: 32px 44px; text-align: center;
+      box-shadow: var(--sh-lg); min-width: 200px;
+    }
+    .admin-spinner {
+      width: 40px; height: 40px; margin: 0 auto 16px;
+      border: 4px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: adminSpin 0.8s linear infinite;
+    }
+    @keyframes adminSpin { to { transform: rotate(360deg); } }
+    .admin-overlay-text { font-size: 14px; font-weight: 700; color: var(--ink); }
   </style>
 </head>
 <body>
@@ -273,6 +295,14 @@
   <!-- Toast -->
   <div id="toast" class="toast"></div>
 
+  <!-- Admin Loading Overlay -->
+  <div class="admin-overlay" id="adminOverlay">
+    <div class="admin-overlay-box">
+      <div class="admin-spinner"></div>
+      <div class="admin-overlay-text" id="adminOverlayText">Menyimpan data...</div>
+    </div>
+  </div>
+
   <script src="../assets/js/api.js"></script>
   <script>
     const email = localStorage.getItem('userEmail');
@@ -427,7 +457,13 @@
 
       const hewan = { nomor_hewan: nomor, jenis_hewan: jenis, daftar_pekurban: pekurban, jumlah_pekurban: jumlah, instansi, wilayah };
       const action = id ? 'updateHewan' : 'addHewan';
+
+      const overlay = document.getElementById('adminOverlay');
+      document.getElementById('adminOverlayText').textContent = id ? 'Memperbarui data hewan...' : 'Menambah hewan baru...';
+      overlay.classList.add('active');
+
       const res = await callApi(action, { email, hewan });
+      overlay.classList.remove('active');
       if(res.success){ 
         closeHewanModal(); 
         await loadAllData(); 
@@ -485,7 +521,13 @@
         password: document.getElementById('userPassword').value
       };
       const action = id ? 'updateUser' : 'addUser';
+
+      const overlay = document.getElementById('adminOverlay');
+      document.getElementById('adminOverlayText').textContent = id ? 'Memperbarui pengguna...' : 'Menambah pengguna baru...';
+      overlay.classList.add('active');
+
       const res = id ? await callApi('updateUser', { email, user: newUser }) : await callApi('addUser', { email, newUser });
+      overlay.classList.remove('active');
       if(res.success){ 
         closeUserModal(); 
         await loadAllData(); 
@@ -503,6 +545,12 @@
     document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
       if (!pendingDelete) return;
       const { type, id } = pendingDelete;
+
+      const overlay = document.getElementById('adminOverlay');
+      document.getElementById('adminOverlayText').textContent = 'Menghapus data...';
+      overlay.classList.add('active');
+      closeConfirmDeleteModal();
+
       let res;
       if (type === 'hewan') {
         res = await callApi('deleteHewan', { email, nomor_hewan: id });
@@ -520,7 +568,7 @@
           renderUserTable(allUsers);
         } else showToast('Gagal: ' + res.error, 'error');
       }
-      closeConfirmDeleteModal();
+      overlay.classList.remove('active');
     });
 
     // ==================== DOKUMENTASI ====================
