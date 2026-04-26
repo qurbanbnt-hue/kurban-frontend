@@ -983,6 +983,15 @@
     window.location.href = '/';
   });
 
+  // Auto-logout saat session expired
+  setInterval(() => {
+    const exp = Number(localStorage.getItem('loginExpiry'));
+    if (!exp || Date.now() > exp) {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+  }, 60_000);
+
   // Initial load
   (async () => {
     await loadAllData();

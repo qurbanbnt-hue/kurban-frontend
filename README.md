@@ -56,6 +56,46 @@ pekurban/index.html                  Google Drive (foto)
 
 ---
 
+## Keamanan
+
+### Lapisan perlindungan yang sudah diterapkan
+
+| Lapisan | Mekanisme |
+|---|---|
+| CORS | Hanya domain di `ALLOWED_ORIGINS` yang bisa akses `/api/proxy` |
+| Action whitelist | Proxy menolak semua action yang tidak ada di daftar izin |
+| Rate limiting | Maks. 60 request/menit per IP (in-memory, per Vercel instance) |
+| Body size limit | Payload maks. 10 MB per request |
+| Security headers | `X-Frame-Options`, `X-Content-Type-Options`, `CSP`, dll via `vercel.json` |
+| Session expiry | Token frontend expired setelah 8 jam, auto-logout setiap 1 menit |
+| Backend auth | Setiap API call admin/panitia divalidasi ulang di Apps Script (`isAdmin`/`isValidUser`) |
+| Error masking | Error internal tidak dikirim ke client, hanya pesan generik |
+| Env vars | `APPS_SCRIPT_URL` hanya ada di server (Vercel env), tidak pernah ke browser |
+
+### Yang perlu kamu lakukan sebelum deploy
+
+1. **Set `ALLOWED_ORIGINS`** di Vercel dashboard → Settings → Environment Variables:
+   ```
+   ALLOWED_ORIGINS=https://namadomain.vercel.app
+   ```
+   Ganti dengan domain Vercel kamu yang sebenarnya.
+
+2. **Pastikan Apps Script** di-deploy dengan akses **"Anyone"** tapi URL-nya **tidak dipublikasikan** — hanya proxy yang tahu URL-nya.
+
+3. **Ganti semua password default** di sheet Akun sebelum go-live.
+
+4. **Aktifkan 2FA** di akun Google yang memiliki spreadsheet dan Apps Script.
+
+5. **Batasi akses sheet** — hanya akun Google pemilik yang perlu edit akses. Jangan share spreadsheet ke publik.
+
+### Keterbatasan yang perlu diketahui
+
+- Rate limiting bersifat in-memory per Vercel instance — tidak persistent lintas restart/instance. Untuk proteksi lebih kuat gunakan [Upstash Redis](https://upstash.com).
+- Autentikasi frontend berbasis `localStorage` — cukup untuk use case internal, bukan untuk data sangat sensitif.
+- Apps Script URL bisa ditemukan jika seseorang punya akses ke Vercel logs. Rotasi URL deployment secara berkala jika diperlukan.
+
+---
+
 ## Setup & Deployment
 
 ### 1. Google Sheets

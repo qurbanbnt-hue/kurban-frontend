@@ -308,7 +308,14 @@
     const email = localStorage.getItem('userEmail');
     const username = localStorage.getItem('username');
     const role = localStorage.getItem('userRole');
-    if (!email || role !== 'admin') window.location.href = '/';
+    const expiry = Number(localStorage.getItem('loginExpiry'));
+
+    // Validasi session — cek role DAN expiry di frontend
+    // Validasi sesungguhnya tetap dilakukan di backend (isAdmin) setiap API call
+    if (!email || role !== 'admin' || isNaN(expiry) || Date.now() > expiry) {
+      localStorage.clear();
+      window.location.href = '/';
+    }
     document.getElementById('adminName').textContent = username || email;
     document.getElementById('adminAvatar').textContent = (username||email).charAt(0).toUpperCase();
 
@@ -343,6 +350,12 @@
     document.querySelectorAll('.admin-bottom-nav .nav-item[data-tab]').forEach(item => item.addEventListener('click', () => switchTab(item.dataset.tab)));
 
     function logout() { localStorage.clear(); window.location.href = '/'; }
+
+    // Auto-logout saat session expired
+    setInterval(() => {
+      const exp = Number(localStorage.getItem('loginExpiry'));
+      if (!exp || Date.now() > exp) logout();
+    }, 60_000);
 
     // ==================== DATA FETCH ====================
     async function loadAllData() {

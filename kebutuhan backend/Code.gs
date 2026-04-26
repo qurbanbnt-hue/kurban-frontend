@@ -799,9 +799,47 @@ function syncDokumentasiInstansi() {
 
 /**
  * TEST: Jalankan dari editor untuk cek searchPekurban
- * Contoh: testSearchPekurban("joko")
  */
 function testSearchPekurban() {
   const result = searchPekurban("wahyu");
   Logger.log(JSON.stringify(result, null, 2));
+}
+
+// ============================================================
+//  HASH PASSWORD LANGSUNG KE SHEET AKUN
+//  Cara pakai:
+//    1. Buka sheet Akun, isi kolom A (email), kolom B (password PLAINTEXT)
+//    2. Klik Run → hashPasswordsKeSheet
+//    3. Kolom B otomatis terganti dengan hash SHA-256
+//    4. Selesai — password plaintext tidak tersimpan lagi
+// ============================================================
+function hashPasswordsKeSheet() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
+  if (!sheet) { Logger.log('❌ Sheet Akun tidak ditemukan'); return; }
+
+  const data = sheet.getDataRange().getValues();
+  let diproses = 0;
+  let dilewati = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row      = data[i];
+    const email    = row[0] ? String(row[0]).trim() : '';
+    const password = row[1] ? String(row[1]).trim() : '';
+
+    if (!email || !password) continue;
+
+    // Kalau sudah 64 karakter hex → sudah di-hash, lewati
+    if (/^[a-f0-9]{64}$/.test(password)) {
+      Logger.log(`⏭️  [baris ${i+1}] ${email} — sudah di-hash, dilewati`);
+      dilewati++;
+      continue;
+    }
+
+    const hash = hashPass(password);
+    sheet.getRange(i + 1, 2).setValue(hash);
+    Logger.log(`✅ [baris ${i+1}] ${email} — password berhasil di-hash`);
+    diproses++;
+  }
+
+  Logger.log(`\nSelesai. ${diproses} password di-hash, ${dilewati} dilewati (sudah hash).`);
 }

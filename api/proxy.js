@@ -1,85 +1,131 @@
+// ============================================================
+//  PROXY — Vercel Serverless Function
+//  Meneruskan request ke Google Apps Script
+// ============================================================
+
+// Daftar action yang diizinkan — tolak semua yang tidak ada di sini
+const ALLOWED_ACTIONS = new Set([
+  'login',
+  'getPublicStats',
+  'getHewan',
+  'uploadFoto',
+  'getDokumentasi',
+  'uploadDokumentasi',
+  'getAdminData',
+  'addHewan',
+  'updateHewan',
+  'deleteHewan',
+  'addUser',
+  'updateUser',
+  'deleteUser',
+  'searchPekurban',
+  'getPekurbanDetail',
+  'getPhotoAsBase64',
+]);
+
+// Domain yang diizinkan mengakses API ini
+// Isi dengan domain Vercel kamu, contoh: 'https://kurban.vercel.app'
+// Kosongkan array untuk menonaktifkan CORS restriction (tidak disarankan di production)
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+// Rate limiting sederhana — in-memory per instance Vercel
+// Untuk production skala besar gunakan Upstash Redis
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 menit
+const RATE_LIMIT_MAX       = 60;     // max 60 request per menit per IP
+
+function checkRateLimit(ip) {
+  const now  = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now - entry.start > RATE_LIMIT_WINDOW_MS) {
+    rateLimitMap.set(ip, { start: now, count: 1 });
+    return true;
+  }
+  entry.count++;
+  if (entry.count > RATE_LIMIT_MAX) return false;
+  return true;
+}
+
+// Bersihkan map secara berkala agar tidak memory leak
+setInterval(() => {
+  const cutoff = Date.now() - RATE_LIMIT_WINDOW_MS * 2;
+  for (const [ip, entry] of rateLimitMap) {
+    if (entry.start < cutoff) rateLimitMap.delete(ip);
+  }
+}, RATE_LIMIT_WINDOW_MS * 5);
+
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  // ── Security headers ──────────────────────────────────────
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // ── CORS ─────────────────────────────────────────────────
+  const origin = req.headers.origin || '';
+  const corsOrigin = ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)
+    ? origin || '*'
+    : 'null';
+
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Vary', 'Origin');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
 
-  // NOTE untuk Apps Script - action 'searchPekurban':
-  // Untuk sapi yang memiliki beberapa pekurban (dipisah koma di kolom daftar_pekurban),
-  // Apps Script harus memisahkan nama-nama tersebut dan mengembalikan setiap nama
-  // sebagai entri terpisah dalam array data, dengan format:
-  // { nama_pekurban: "NAMA", nomor_hewan: "S_001", jenis_hewan: "SAPI", instansi: "...", wilayah: "..." }
-  // Sehingga setiap pekurban sapi bisa melihat dokumentasi hewannya sendiri-sendiri.
-  //
-  // Contoh: jika S_001 punya daftar_pekurban = "PAK JOKO, PAK ANWAR, BU KARTINI"
-  // maka searchPekurban("joko") hanya mengembalikan { nama_pekurban: "PAK JOKO", nomor_hewan: "S_001", ... }
-  // tanpa menampilkan nama PAK ANWAR dan BU KARTINI.
-  //
-  // action 'getPekurbanDetail': menerima { nama, nomor_hewan } dan mengembalikan
-  // detail hewan + status foto untuk ditampilkan ke pekurban tersebut.
+  // ── Rate limiting ─────────────────────────────────────────
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.socket?.remoteAddress
+    || 'unknown';
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (!checkRateLimit(ip)) {
+    return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan. Coba lagi sebentar.' });
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  // ── Validasi action ───────────────────────────────────────
+  const { action } = req.query;
+  if (!action || !ALLOWED_ACTIONS.has(action)) {
+    return res.status(400).json({ success: false, error: 'Action tidak valid' });
   }
 
+  // ── Batasi ukuran body (10 MB) ────────────────────────────
+  const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+  if (contentLength > 10 * 1024 * 1024) {
+    return res.status(413).json({ success: false, error: 'Payload terlalu besar (maks. 10 MB)' });
+  }
+
+  // ── Cek konfigurasi ───────────────────────────────────────
+  const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+  if (!APPS_SCRIPT_URL) {
+    return res.status(500).json({ success: false, error: 'Konfigurasi server tidak lengkap' });
+  }
+
+  // ── Forward ke Apps Script ────────────────────────────────
   try {
-    const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-    
-    // Logging untuk debugging (akan muncul di Vercel Logs)
-    console.log('APPS_SCRIPT_URL exists:', !!APPS_SCRIPT_URL);
-    
-    if (!APPS_SCRIPT_URL) {
-      console.error('FATAL: APPS_SCRIPT_URL tidak diset di environment');
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Server configuration error: APPS_SCRIPT_URL missing' 
-      });
-    }
-
-    const { action } = req.query;
-    if (!action) {
-      return res.status(400).json({ success: false, error: 'Parameter action diperlukan' });
-    }
-
-    const targetUrl = `${APPS_SCRIPT_URL}?action=${action}`;
-    console.log('Forwarding to:', targetUrl.replace(/\/exec.*/, '/exec?action=***'));
-
-    const response = await fetch(targetUrl, {
+    const response = await fetch(`${APPS_SCRIPT_URL}?action=${encodeURIComponent(action)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(req.body),
     });
 
     const text = await response.text();
-    console.log('Apps Script response length:', text.length);
-    console.log('First 150 chars:', text.substring(0, 150));
 
-    // Coba parse JSON
     try {
       const json = JSON.parse(text);
       return res.status(200).json(json);
-    } catch (parseError) {
-      console.error('Respons bukan JSON. Isi:', text.substring(0, 500));
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Invalid JSON response from Apps Script',
-        hint: text.substring(0, 200)
-      });
+    } catch {
+      // Jangan bocorkan isi response mentah ke client
+      console.error('[proxy] Apps Script non-JSON response, length:', text.length);
+      return res.status(502).json({ success: false, error: 'Respons server tidak valid' });
     }
   } catch (error) {
-    console.error('Proxy Error:', error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    console.error('[proxy] Fetch error:', error.message);
+    return res.status(503).json({ success: false, error: 'Gagal terhubung ke server' });
   }
 }
