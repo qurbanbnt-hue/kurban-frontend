@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Portal Pekurban · Kurban Digital BNT</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="icon" type="image/png" href="../assets/images/logo-bnt.png">
+  <style>
+    :root {
+      --green: #22c55e;
+      --green-bg: #dcfce7;
+      --green-dark: #16a34a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: linear-gradient(135deg, #0f2c56 0%, #1a4a8a 100%);
+      min-height: 100vh;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* ==================== PAGE TRANSITIONS ==================== */
+    .page { display: none; opacity: 0; transform: translateY(16px); transition: opacity 0.35s ease, transform 0.35s ease; }
+    .page.active { display: block; opacity: 1; transform: translateY(0); }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.4s ease forwards; }
+
+    /* ==================== HEADER ==================== */
+    .pk-header {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .pk-header-logo {
+      width: 40px; height: 40px;
+      background: white;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .pk-header-logo img { width: 100%; }
+    .pk-header-text { flex: 1; }
+    .pk-header-title { font-size: 15px; font-weight: 800; color: white; }
+    .pk-header-sub { font-size: 11px; color: rgba(255,255,255,0.65); }
+    .pk-back-btn {
+      background: rgba(255,255,255,0.15);
+      border: none; color: white; border-radius: 10px;
+      padding: 8px 14px; cursor: pointer; font-size: 13px;
+      font-weight: 600; display: flex; align-items: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .pk-back-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* ==================== CONTAINER ==================== */
+    .pk-container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 80px;
+    }
+
+    /* ==================== STAT CARDS ==================== */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-num {
+      font-family: 'Sora', sans-serif;
+      font-size: 32px; font-weight: 800;
+      color: white; line-height: 1.1;
+    }
+    .stat-lbl { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 4px; font-weight: 600; }
+    .stat-icon { font-size: 22px; margin-bottom: 6px; }
+
+    /* ==================== SEARCH SECTION ==================== */
+    .search-section {
+      background: white;
+      border-radius: 20px;
+      padding: 24px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+    .search-title {
+      font-size: 16px; font-weight: 800; color: #0f2c56;
+      margin-bottom: 6px;
+    }
+    .search-sub { font-size: 13px; color: #64748b; margin-bottom: 16px; }
+    .search-input-wrap {
+      display: flex; gap: 10px; align-items: center;
+    }
+    .search-input {
+      flex: 1; padding: 14px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      font-size: 15px; font-family: inherit;
+      outline: none; transition: border 0.2s;
+    }
+    .search-input:focus { border-color: #2c70b7; }
+    .search-btn {
+      padding: 14px 20px; background: #2c70b7;
+      color: white; border: none; border-radius: 14px;
+      font-weight: 700; font-size: 14px; cursor: pointer;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .search-btn:hover { background: #1a4a8a; }
+    .search-btn:active { transform: scale(0.96); }
+
+    /* ==================== SEARCH RESULTS ==================== */
+    .results-section {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      margin-bottom: 16px;
+    }
+    .results-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13px; font-weight: 700; color: #64748b;
+    }
+    .result-item {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f8fafc;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-item:hover { background: #f0f7ff; }
+    .result-avatar {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #2c70b7, #1a4a8a);
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; color: white; font-weight: 800;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .result-name { font-weight: 700; color: #0f172a; font-size: 15px; }
+    .result-meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .result-arrow { margin-left: auto; color: #94a3b8; font-size: 18px; }
+
+    /* ==================== PROFIL PEKURBAN ==================== */
+    .profil-hero {
+      background: white;
+      border-radius: 20px;
+      padding: 24px 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      text-align: center;
+    }
+    .profil-avatar-large {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #2c70b7, #1a4a8a);
+      border-radius: 50%; margin: 0 auto 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 28px;
+      box-shadow: 0 4px 20px rgba(44,112,183,0.3);
+    }
+    .profil-name { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .profil-badge {
+      display: inline-block; padding: 4px 14px;
+      background: #e0f2fe; color: #0369a1;
+      border-radius: 20px; font-size: 12px; font-weight: 700;
+    }
+
+    .info-card {
+      background: white; border-radius: 16px;
+      padding: 18px 20px; margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .info-card-title {
+      font-size: 13px; font-weight: 800; color: #64748b;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .info-row {
+      display: flex; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-label { color: #64748b; }
+    .info-value { font-weight: 700; color: #0f172a; text-align: right; }
+
+    /* ==================== STATUS SEMBELIH ==================== */
+    .status-timeline {
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .status-step {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 12px 0; position: relative;
+    }
+    .status-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 19px; top: 44px;
+      width: 2px; height: calc(100% - 12px);
+      background: #e2e8f0;
+    }
+    .status-step.done::after { background: #22c55e; }
+    .step-icon {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 2px solid #e2e8f0;
+      background: #f8fafc;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+      transition: all 0.3s;
+    }
+    .status-step.done .step-icon {
+      background: #dcfce7; border-color: #22c55e;
+    }
+    .step-text { flex: 1; padding-top: 6px; }
+    .step-label { font-weight: 700; color: #0f172a; font-size: 14px; }
+    .step-date { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+    .step-uploader { font-size: 11px; color: #cbd5e1; }
+
+    /* ==================== FOTO DOKUMENTASI ==================== */
+    .foto-grid { display: flex; flex-direction: column; gap: 16px; }
+    .foto-item {
+      border: 1px solid #e2e8f0; border-radius: 14px;
+      overflow: hidden; background: #f8fafc;
+      transition: box-shadow 0.2s;
+    }
+    .foto-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .foto-label {
+      padding: 10px 14px;
+      font-size: 12px; font-weight: 700; color: #64748b;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      background: #f1f5f9; border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .foto-body { padding: 12px 14px; }
+    .foto-img-wrap {
+      border-radius: 10px; overflow: hidden;
+      background: #e2e8f0; min-height: 120px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px; position: relative;
+    }
+    .foto-img-wrap img {
+      width: 100%; display: block;
+      border-radius: 10px; cursor: zoom-in;
+    }
+    .foto-placeholder {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 8px; padding: 24px;
+      color: #94a3b8;
+    }
+    .foto-placeholder-icon { font-size: 32px; }
+    .foto-placeholder-text { font-size: 13px; font-weight: 600; }
+    .foto-actions { display: flex; gap: 8px; }
+    .btn-download {
+      flex: 1; padding: 10px; background: #0f2c56;
+      color: white; border: none; border-radius: 10px;
+      font-weight: 700; font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; transition: all 0.2s;
+    }
+    .btn-download:hover { background: #1a4a8a; }
+    .btn-download:disabled { opacity: 0.5; cursor: not-allowed; }
+    .foto-meta { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+
+    /* ==================== SERTIFIKAT ==================== */
+    .sertifikat-card {
+      background: linear-gradient(135deg, #0f2c56 0%, #1a4a8a 100%);
+      border-radius: 20px; padding: 24px;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 24px rgba(15,44,86,0.4);
+      color: white; text-align: center;
+    }
+    .sertifikat-icon { font-size: 40px; margin-bottom: 12px; }
+    .sertifikat-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+    .sertifikat-sub { font-size: 13px; opacity: 0.75; margin-bottom: 20px; }
+    .btn-sertifikat {
+      padding: 14px 24px; background: white;
+      color: #0f2c56; border: none; border-radius: 14px;
+      font-weight: 800; font-size: 14px; cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-sertifikat:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,255,255,0.2); }
+    .btn-sertifikat:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ==================== LIGHTBOX ==================== */
+    .lightbox {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92); z-index: 200;
+      align-items: center; justify-content: center;
+      padding: 20px; flex-direction: column; gap: 16px;
+    }
+    .lightbox.active { display: flex; animation: fadeUp 0.25s ease; }
+    .lightbox img { max-width: 100%; max-height: 70vh; border-radius: 12px; }
+    .lightbox-close {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,0.15); border: none;
+      color: white; width: 40px; height: 40px; border-radius: 50%;
+      cursor: pointer; font-size: 20px; display: flex;
+      align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+    .lightbox-download {
+      padding: 12px 24px; background: white; color: #0f2c56;
+      border: none; border-radius: 12px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ==================== LOADING & STATES ==================== */
+    .loading-spinner {
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px; flex-direction: column; gap: 12px;
+      color: rgba(255,255,255,0.7);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center; padding: 32px 20px;
+      color: #94a3b8;
+    }
+    .empty-state-icon { font-size: 40px; margin-bottom: 10px; }
+    .empty-state-text { font-size: 14px; font-weight: 600; }
+
+    /* ==================== TOAST ==================== */
+    .pk-toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #0f172a; color: white;
+      padding: 12px 24px; border-radius: 20px;
+      font-size: 14px; font-weight: 600;
+      transition: transform 0.3s ease; z-index: 300;
+      max-width: 90vw; text-align: center;
+    }
+    .pk-toast.show { transform: translateX(-50%) translateY(0); }
+    .pk-toast.error { background: #E05050; }
+    .pk-toast.success { background: #22c55e; }
+
+    /* ==================== SERTIFIKAT MODAL ==================== */
+    .sert-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 200;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .sert-modal.active { display: flex; animation: fadeUp 0.3s ease; }
+    .sert-content {
+      background: white; border-radius: 20px;
+      width: 100%; max-width: 480px;
+      overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .sert-preview {
+      background: linear-gradient(135deg, #0f2c56, #1a4a8a);
+      padding: 40px 32px; text-align: center; color: white;
+      position: relative;
+    }
+    .sert-preview::before {
+      content: '';
+      position: absolute; inset: 8px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 14px; pointer-events: none;
+    }
+    .sert-preview-logo { font-size: 36px; margin-bottom: 8px; }
+    .sert-preview-title { font-size: 11px; letter-spacing: 0.15em; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; }
+    .sert-preview-h { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+    .sert-preview-divider { height: 1px; background: rgba(255,255,255,0.2); margin: 16px 0; }
+    .sert-preview-name { font-size: 22px; font-weight: 900; margin-bottom: 6px; font-style: italic; }
+    .sert-preview-sub { font-size: 12px; opacity: 0.75; line-height: 1.6; }
+    .sert-preview-seal { font-size: 48px; margin: 16px 0 8px; }
+    .sert-preview-org { font-size: 13px; font-weight: 700; }
+    .sert-actions { padding: 20px; display: flex; gap: 12px; }
+    .sert-actions .btn-download { flex: 1; }
+    .sert-close-btn {
+      padding: 10px 20px; background: #f1f5f9; color: #64748b;
+      border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
+    }
+
+    @media (max-width: 480px) {
+      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .stat-num { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="pk-header">
+  <div class="pk-header-logo">
+    <img src="../assets/images/logo-bnt.png" alt="BNT">
+  </div>
+  <div class="pk-header-text">
+    <div class="pk-header-title">Portal Pekurban</div>
+    <div class="pk-header-sub">Kurban Digital · BNT 1447 H</div>
+  </div>
+  <button class="pk-back-btn" id="backBtn" onclick="goBack()" style="display:none;">
+    ← Kembali
+  </button>
+  <a href="/" style="text-decoration:none;">
+    <button class="pk-back-btn">🏠 Home</button>
+  </a>
+</div>
+
+<!-- Page: Dashboard -->
+<div class="page active" id="page-dashboard">
+  <div class="pk-container">
+
+    <!-- Stats -->
+    <div class="stat-grid" id="statGrid">
+      <div class="stat-card fade-up" style="animation-delay:0.05s">
+        <div class="stat-icon">🐄</div>
+        <div class="stat-num" id="statHewan">—</div>
+        <div class="stat-lbl">Total Hewan</div>
+      </div>
+      <div class="stat-card fade-up" style="animation-delay:0.1s">
+        <div class="stat-icon">✅</div>
+        <div class="stat-num" id="statSelesai">—</div>
+        <div class="stat-lbl">Sudah Dipotong</div>
+      </div>
+      <div class="stat-card fade-up" style="animation-delay:0.15s">
+        <div class="stat-icon">👥</div>
+        <div class="stat-num" id="statPekurban">—</div>
+        <div class="stat-lbl">Pekurban</div>
+      </div>
+      <div class="stat-card fade-up" style="animation-delay:0.2s">
+        <div class="stat-icon">📍</div>
+        <div class="stat-num" id="statInstansi">—</div>
+        <div class="stat-lbl">Wilayah</div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-section fade-up" style="animation-delay:0.25s">
+      <div class="search-title">🔍 Cek Perkembangan Kurban Anda</div>
+      <div class="search-sub">Masukkan nama Anda untuk melihat dokumentasi hewan kurban</div>
+      <div class="search-input-wrap">
+        <input type="text" class="search-input" id="searchInput" 
+          placeholder="Ketik nama Anda..." 
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter') doSearch()">
+        <button class="search-btn" onclick="doSearch()">Cari</button>
+      </div>
+      <div id="searchError" style="margin-top:10px;font-size:13px;color:#E05050;display:none;"></div>
+    </div>
+
+    <!-- Results (hidden until search) -->
+    <div id="resultsContainer" style="display:none;"></div>
+
+  </div>
+</div>
+
+<!-- Page: Profil Pekurban -->
+<div class="page" id="page-profil">
+  <div class="pk-container">
+    <div id="profilContent"></div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="Foto dokumentasi">
+  <button class="lightbox-download" id="lightboxDownload" onclick="event.stopPropagation()">
+    ⬇ Unduh Foto
+  </button>
+</div>
+
+<!-- Sertifikat Modal -->
+<div class="sert-modal" id="sertModal">
+  <div class="sert-content">
+    <div class="sert-preview" id="sertPreview">
+      <div class="sert-preview-logo">🕌</div>
+      <div class="sert-preview-title">Yayasan Bhakti Nusa Tenggara</div>
+      <div class="sert-preview-h">Sertifikat Pekurban</div>
+      <div class="sert-preview-divider"></div>
+      <div style="font-size:12px;opacity:0.7;margin-bottom:8px;">Dengan penuh rasa syukur, kami menyampaikan bahwa</div>
+      <div class="sert-preview-name" id="sertNama">Nama Pekurban</div>
+      <div class="sert-preview-sub" id="sertDetail">telah menunaikan ibadah qurban</div>
+      <div class="sert-preview-divider"></div>
+      <div class="sert-preview-seal">🌙</div>
+      <div class="sert-preview-org">Yayasan Bhakti Nusa Tenggara</div>
+      <div style="font-size:11px;opacity:0.6;margin-top:2px;">Idul Adha 1447 H · 2026 M</div>
+    </div>
+    <div class="sert-actions">
+      <button class="btn-download" id="sertDownloadBtn" onclick="downloadSertifikat()">⬇ Unduh Sertifikat</button>
+      <button class="sert-close-btn" onclick="closeSertModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="pk-toast" id="pkToast"></div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+  // ==================== STATE ====================
+  let currentPekurban = null; // { nama, nomor_hewan, jenis_hewan, instansi, wilayah }
+  let currentFotoData = {}; // { hidup: {base64, mime, loaded}, tumbang: ..., mati: ... }
+  let lightboxCurrentUrl = '';
+
+  // ==================== NAVIGATION ====================
+  function showPage(id, pushState = true) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const page = document.getElementById(`page-${id}`);
+    page.classList.add('active');
+    document.getElementById('backBtn').style.display = id === 'dashboard' ? 'none' : 'block';
+
+    if (pushState) history.pushState({ page: id }, '', window.location.pathname);
+    window.scrollTo(0, 0);
+  }
+
+  function goBack() {
+    history.back();
+  }
+
+  window.addEventListener('popstate', (e) => {
+    const page = e.state?.page || 'dashboard';
+    showPage(page, false);
+  });
+
+  history.replaceState({ page: 'dashboard' }, '', window.location.pathname);
+
+  // ==================== TOAST ====================
+  function showToast(msg, type = '') {
+    const t = document.getElementById('pkToast');
+    t.textContent = msg;
+    t.className = `pk-toast show ${type}`;
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ==================== LOAD PUBLIC STATS ====================
+  async function loadStats() {
+    try {
+      const res = await callApi('getPublicStats', {});
+      if (res && res.totalHewan !== undefined) {
+        document.getElementById('statHewan').textContent = res.totalHewan;
+        document.getElementById('statPekurban').textContent = res.totalPekurban;
+        document.getElementById('statInstansi').textContent = res.totalInstansi;
+        // selesai not returned by default — will show dash
+        document.getElementById('statSelesai').textContent = res.totalSelesai ?? '—';
+      }
+    } catch(e) { /* ignore */ }
+  }
+
+  // ==================== SEARCH ====================
+  async function doSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    const errEl = document.getElementById('searchError');
+    errEl.style.display = 'none';
+
+    if (query.length < 2) {
+      errEl.textContent = 'Masukkan minimal 2 karakter nama Anda';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const resultsContainer = document.getElementById('resultsContainer');
+    resultsContainer.style.display = 'block';
+    resultsContainer.innerHTML = `
+      <div class="loading-spinner" style="color:#94a3b8;">
+        <div class="spinner" style="border-top-color:#2c70b7;"></div>
+        <div style="font-size:13px;">Mencari...</div>
+      </div>`;
+
+    try {
+      const res = await callApi('searchPekurban', { query });
+
+      if (!res.success) {
+        resultsContainer.innerHTML = `
+          <div class="results-section">
+            <div class="empty-state">
+              <div class="empty-state-icon">🔍</div>
+              <div class="empty-state-text">Nama tidak ditemukan. Coba kata lain.</div>
+            </div>
+          </div>`;
+        return;
+      }
+
+      if (!res.data || res.data.length === 0) {
+        resultsContainer.innerHTML = `
+          <div class="results-section">
+            <div class="empty-state">
+              <div class="empty-state-icon">😕</div>
+              <div class="empty-state-text">Tidak ada nama yang cocok dengan "<strong>${query}</strong>"</div>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const items = res.data.map(r => {
+        const initials = r.nama_pekurban.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+        const hewanEmoji = r.jenis_hewan?.toLowerCase().includes('sapi') ? '🐄' : '🐑';
+        return `
+          <div class="result-item" onclick='openProfil(${JSON.stringify(r)})'>
+            <div class="result-avatar">${initials}</div>
+            <div>
+              <div class="result-name">${r.nama_pekurban}</div>
+              <div class="result-meta">${hewanEmoji} ${r.nomor_hewan} · ${r.instansi} · ${r.wilayah}</div>
+            </div>
+            <div class="result-arrow">›</div>
+          </div>`;
+      }).join('');
+
+      resultsContainer.innerHTML = `
+        <div class="results-section">
+          <div class="results-header">${res.data.length} nama ditemukan</div>
+          ${items}
+        </div>`;
+    } catch(e) {
+      resultsContainer.innerHTML = `
+        <div class="results-section">
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <div class="empty-state-text">Gagal terhubung ke server. Coba lagi.</div>
+          </div>
+        </div>`;
+    }
+  }
+
+  // ==================== PROFIL PEKURBAN ====================
+  async function openProfil(pekurban) {
+    currentPekurban = pekurban;
+    currentFotoData = {};
+
+    showPage('profil');
+
+    const content = document.getElementById('profilContent');
+    content.innerHTML = `
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <div>Memuat data...</div>
+      </div>`;
+
+    try {
+      const res = await callApi('getPekurbanDetail', {
+        nama: pekurban.nama_pekurban,
+        nomor_hewan: pekurban.nomor_hewan
+      });
+
+      if (!res.success || !res.data) {
+        content.innerHTML = `<div class="info-card"><div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Data tidak ditemukan</div></div></div>`;
+        return;
+      }
+
+      renderProfil(res.data);
+    } catch(e) {
+      content.innerHTML = `<div class="info-card"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Gagal memuat data</div></div></div>`;
+    }
+  }
+
+  function renderProfil(data) {
+    const { nama_pekurban, nomor_hewan, jenis_hewan, instansi, wilayah, status } = data;
+    const initials = nama_pekurban.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+    const hewanEmoji = jenis_hewan?.toLowerCase().includes('sapi') ? '🐄' : '🐑';
+
+    const statusDone = [status?.url_hidup, status?.url_ditumbangkan, status?.url_mati].filter(Boolean).length;
+    let statusText = 'Belum ada dokumentasi';
+    let statusColor = '#f59e0b';
+    if (statusDone === 3) { statusText = 'Semua tahap selesai ✅'; statusColor = '#22c55e'; }
+    else if (statusDone > 0) { statusText = `${statusDone}/3 tahap terdokumentasi`; statusColor = '#3b82f6'; }
+
+    const content = document.getElementById('profilContent');
+    content.innerHTML = `
+      <!-- Hero -->
+      <div class="profil-hero fade-up">
+        <div class="profil-avatar-large">${initials}</div>
+        <div class="profil-name">${nama_pekurban}</div>
+        <div class="profil-badge">${hewanEmoji} Pekurban ${jenis_hewan}</div>
+        <div style="margin-top:10px;font-size:13px;font-weight:600;color:${statusColor};">${statusText}</div>
+      </div>
+
+      <!-- Info Hewan -->
+      <div class="info-card fade-up" style="animation-delay:0.05s">
+        <div class="info-card-title">📋 Detail Hewan Kurban</div>
+        <div class="info-row"><span class="info-label">Nomor Hewan</span><span class="info-value">${nomor_hewan}</span></div>
+        <div class="info-row"><span class="info-label">Jenis</span><span class="info-value">${hewanEmoji} ${jenis_hewan}</span></div>
+        <div class="info-row"><span class="info-label">Instansi</span><span class="info-value">${instansi}</span></div>
+        <div class="info-row"><span class="info-label">Wilayah Pemotongan</span><span class="info-value">📍 ${wilayah}</span></div>
+      </div>
+
+      <!-- Status Timeline -->
+      <div class="info-card fade-up" style="animation-delay:0.1s">
+        <div class="info-card-title">📅 Status Penyembelihan</div>
+        <div class="status-timeline">
+          ${renderStep('🐄', 'Hewan Hidup', status?.url_hidup, status?.tgl_hidup, status?.uploader_hidup, !!status?.url_hidup)}
+          ${renderStep('🔪', 'Ditumbangkan', status?.url_ditumbangkan, status?.tgl_ditumbangkan, status?.uploader_ditumbangkan, !!status?.url_ditumbangkan)}
+          ${renderStep('✅', 'Selesai / Mati', status?.url_mati, status?.tgl_mati, status?.uploader_mati, !!status?.url_mati)}
+        </div>
+      </div>
+
+      <!-- Foto Dokumentasi -->
+      <div class="info-card fade-up" style="animation-delay:0.15s">
+        <div class="info-card-title">📸 Foto Dokumentasi</div>
+        <div class="foto-grid">
+          ${renderFotoItem('hidup', '🐄 Kondisi Hidup', status?.url_hidup)}
+          ${renderFotoItem('tumbang', '🔪 Ditumbangkan', status?.url_ditumbangkan)}
+          ${renderFotoItem('mati', '✅ Setelah Penyembelihan', status?.url_mati)}
+        </div>
+      </div>
+
+      <!-- Sertifikat -->
+      <div class="sertifikat-card fade-up" style="animation-delay:0.2s">
+        <div class="sertifikat-icon">🏅</div>
+        <div class="sertifikat-title">Sertifikat Pekurban</div>
+        <div class="sertifikat-sub">Unduh sertifikat terima kasih atas partisipasi Anda dalam ibadah kurban</div>
+        <button class="btn-sertifikat" onclick='showSertifikat(${JSON.stringify({nama: nama_pekurban, nomor: nomor_hewan, jenis: jenis_hewan, wilayah: wilayah, instansi: instansi})})'>
+          🎓 Lihat & Unduh Sertifikat
+        </button>
+      </div>
+    `;
+
+    // Load photos
+    if (status?.url_hidup) loadFotoInline('hidup', status.url_hidup);
+    if (status?.url_ditumbangkan) loadFotoInline('tumbang', status.url_ditumbangkan);
+    if (status?.url_mati) loadFotoInline('mati', status.url_mati);
+  }
+
+  function renderStep(emoji, label, url, tgl, uploader, done) {
+    const date = tgl ? new Date(tgl).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'}) : 'Belum tercatat';
+    return `
+      <div class="status-step ${done ? 'done' : ''}">
+        <div class="step-icon">${done ? '✅' : emoji}</div>
+        <div class="step-text">
+          <div class="step-label">${label}</div>
+          <div class="step-date">${date}</div>
+          ${uploader ? `<div class="step-uploader">oleh ${uploader}</div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function renderFotoItem(key, label, url) {
+    if (!url) {
+      return `
+        <div class="foto-item">
+          <div class="foto-label">${label}</div>
+          <div class="foto-body">
+            <div class="foto-placeholder">
+              <div class="foto-placeholder-icon">📷</div>
+              <div class="foto-placeholder-text">Foto belum tersedia</div>
+            </div>
+          </div>
+        </div>`;
+    }
+    return `
+      <div class="foto-item" id="foto-item-${key}">
+        <div class="foto-label">${label}</div>
+        <div class="foto-body">
+          <div class="foto-img-wrap" id="foto-wrap-${key}">
+            <div class="foto-placeholder">
+              <div class="spinner" style="width:28px;height:28px;border-color:rgba(0,0,0,0.15);border-top-color:#2c70b7;"></div>
+              <div class="foto-placeholder-text">Memuat foto...</div>
+            </div>
+          </div>
+          <div class="foto-actions">
+            <button class="btn-download" id="btn-dl-${key}" onclick="downloadFoto('${key}')" disabled>
+              ⬇ Unduh Foto
+            </button>
+          </div>
+          <div class="foto-meta" id="foto-meta-${key}"></div>
+        </div>
+      </div>`;
+  }
+
+  // ==================== FOTO LOADING ====================
+  async function loadFotoInline(key, fileUrl) {
+    try {
+      const res = await callApi('getPhotoAsBase64', { fileUrl });
+
+      const wrap = document.getElementById(`foto-wrap-${key}`);
+      const dlBtn = document.getElementById(`btn-dl-${key}`);
+      if (!wrap) return;
+
+      if (!res.success || !res.base64) {
+        // Fallback: try direct Drive embed URL
+        const fileId = extractDriveFileId(fileUrl);
+        if (fileId) {
+          const embedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+          wrap.innerHTML = `<img src="${embedUrl}" alt="${key}" onclick="openLightbox('${embedUrl}', '${key}')">`;
+          currentFotoData[key] = { embedUrl, mime: 'image/jpeg', isEmbed: true };
+          if (dlBtn) { dlBtn.disabled = false; }
+        } else {
+          wrap.innerHTML = `<div class="foto-placeholder"><div class="foto-placeholder-icon">⚠️</div><div class="foto-placeholder-text">Gagal memuat foto</div></div>`;
+        }
+        return;
+      }
+
+      const src = `data:${res.mimeType};base64,${res.base64}`;
+      currentFotoData[key] = { src, mime: res.mimeType, fileName: res.fileName };
+      wrap.innerHTML = `<img src="${src}" alt="${key}" onclick="openLightbox('${src}', '${key}')">`;
+      if (dlBtn) { dlBtn.disabled = false; }
+      if (document.getElementById(`foto-meta-${key}`)) {
+        document.getElementById(`foto-meta-${key}`).textContent = res.fileName || '';
+      }
+    } catch(e) {
+      const wrap = document.getElementById(`foto-wrap-${key}`);
+      if (wrap) wrap.innerHTML = `<div class="foto-placeholder"><div class="foto-placeholder-icon">⚠️</div><div class="foto-placeholder-text">Gagal memuat</div></div>`;
+    }
+  }
+
+  function extractDriveFileId(url) {
+    if (!url) return null;
+    const m = url.match(/[-\w]{25,}/);
+    return m ? m[0] : null;
+  }
+
+  function downloadFoto(key) {
+    const data = currentFotoData[key];
+    if (!data) return showToast('Foto belum dimuat', 'error');
+
+    if (data.isEmbed) {
+      window.open(data.embedUrl, '_blank');
+      return;
+    }
+
+    const a = document.createElement('a');
+    a.href = data.src;
+    a.download = data.fileName || `foto_${key}.jpg`;
+    a.click();
+    showToast('Mengunduh foto...', 'success');
+  }
+
+  // ==================== LIGHTBOX ====================
+  function openLightbox(src, key) {
+    lightboxCurrentUrl = src;
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('active');
+    document.getElementById('lightboxDownload').onclick = (e) => {
+      e.stopPropagation();
+      downloadFoto(key);
+    };
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+    document.getElementById('lightboxImg').src = '';
+  }
+
+  // ==================== SERTIFIKAT ====================
+  function showSertifikat({ nama, nomor, jenis, wilayah, instansi }) {
+    const hewanEmoji = jenis?.toLowerCase().includes('sapi') ? '🐄' : '🐑';
+    document.getElementById('sertNama').textContent = nama;
+    document.getElementById('sertDetail').innerHTML = `
+      telah menunaikan ibadah qurban ${hewanEmoji}<br>
+      <strong>${nomor}</strong> · ${instansi} · ${wilayah}<br>
+      Idul Adha 1447 H / 2026 M
+    `;
+    document.getElementById('sertModal').classList.add('active');
+  }
+
+  function closeSertModal() {
+    document.getElementById('sertModal').classList.remove('active');
+  }
+
+  async function downloadSertifikat() {
+    /**
+     * TODO: Implementasi generate sertifikat PDF/gambar
+     * - Buat template sertifikat di canvas atau html2canvas
+     * - Generate PDF dengan jsPDF atau konversi canvas ke image
+     * - Download file
+     *
+     * Untuk saat ini tampilkan notifikasi bahwa fitur dalam pengembangan
+     */
+    showToast('🏗️ Fitur unduh sertifikat sedang dalam pengembangan', '');
+    // Placeholder: in the future will call generateSertifikatPDF(currentPekurban)
+  }
+
+  // ==================== INIT ====================
+  loadStats();
+</script>
+</body>
+</html>

@@ -7,6 +7,16 @@
   <title>Kurban Digital · Yayasan Bhakti Nusa Tenggara</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/png" href="assets/images/logo-bnt.png">
+  <style>
+    .lcard { transition: all 0.35s cubic-bezier(0.4,0,0.2,1); }
+    #loginForm, #portalChoice, #pekurbanPortalSection { transition: opacity 0.3s ease, transform 0.3s ease; }
+    .fade-in { animation: fadeInUp 0.4s ease forwards; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #loginForm.hidden, #portalChoice.hidden { display: none; }
+  </style>
 </head>
 <body>
 
@@ -73,11 +83,27 @@
       <!-- Portal Choice (hidden by default) -->
       <div id="portalChoice" class="portal-choice hidden">
         <p>Anda login sebagai <strong id="loggedUser"></strong></p>
-        <div class="portal-buttons">
-          <button class="portal-btn panitia" id="goUser"><i class="icon icon-user"></i> Panitia</button>
-          <button class="portal-btn admin" id="goAdmin"><i class="icon icon-settings"></i> Administrator</button>
+        <div class="portal-buttons" style="flex-direction:column; gap:12px;">
+          <button class="portal-btn panitia" id="goUser" style="width:100%;"><i class="icon icon-user"></i> Masuk sebagai Panitia</button>
+          <button class="portal-btn admin" id="goAdmin" style="width:100%;"><i class="icon icon-settings"></i> Masuk sebagai Administrator</button>
         </div>
         <button class="btn-ghost" style="margin-top:16px; width:100%;" id="logoutAfterChoice"><i class="icon icon-log-out"></i> Ganti Akun</button>
+      </div>
+
+      <!-- Pekurban Portal Divider -->
+      <div id="pekurbanPortalSection" style="margin-top:24px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+          <span style="font-size:12px;color:var(--muted);font-weight:600;">ATAU</span>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+        <a href="/pekurban" style="display:block;text-decoration:none;">
+          <button class="btn-ghost" style="width:100%;padding:14px;border:1.5px solid var(--green);color:var(--green);font-weight:700;border-radius:var(--pill);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all 0.2s;" 
+            onmouseover="this.style.background='var(--green)';this.style.color='white';"
+            onmouseout="this.style.background='transparent';this.style.color='var(--green)';">
+            <i class="icon icon-eye"></i> Portal Pekurban
+          </button>
+        </a>
       </div>
 
       <div class="lcard-foot">
@@ -122,6 +148,8 @@
   function showPortalChoice() {
     loginForm.classList.add('hidden');
     portalChoice.classList.remove('hidden');
+    portalChoice.classList.add('fade-in');
+    document.getElementById('pekurbanPortalSection').style.display = 'none';
     loggedUserSpan.textContent = `${currentUser.username} (${currentUser.role === 'admin' ? 'Administrator' : 'Panitia'})`;
     if (currentUser.role !== 'admin') {
       goAdminBtn.style.display = 'none';
@@ -134,7 +162,9 @@
     localStorage.clear();
     currentUser = null;
     loginForm.classList.remove('hidden');
+    loginForm.classList.add('fade-in');
     portalChoice.classList.add('hidden');
+    document.getElementById('pekurbanPortalSection').style.display = 'block';
     emailInput.value = '';
     passwordInput.value = '';
     loginBtn.disabled = false;

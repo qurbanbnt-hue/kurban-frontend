@@ -98,6 +98,19 @@
     .status-selesai { background: var(--green-bg); color: var(--green); }
     .status-proses { background: var(--amber-lt); color: var(--amber-dk); }
     .status-belum { background: var(--blue-lt); color: var(--blue); }
+
+    /* Transitions */
+    .tab-content { animation: tabFadeIn 0.3s ease; }
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .sb-logout {
+      cursor: pointer; padding: 8px 12px; border-radius: var(--r-md);
+      background: rgba(224,80,80,0.1); color: #E05050;
+      font-weight: 700; font-size: 13px; transition: all 0.2s;
+    }
+    .sb-logout:hover { background: #E05050; color: white; }
   </style>
 </head>
 <body>
@@ -113,7 +126,7 @@
       </div>
       <div class="sb-section">Utama</div>
       <div class="sb-item active" data-tab="dashboard"><i class="icon icon-bar-chart"></i> Dashboard</div>
-      <div class="sb-item" data-tab="hewan"><i class="icon icon-cow"></i> Data Hewan <span class="sb-badge" id="totalHewanBadge">0</span></div>
+      <div class="sb-item" data-tab="hewan"><i class="icon icon-list"></i> Data Hewan <span class="sb-badge" id="totalHewanBadge">0</span></div>
       <div class="sb-item" data-tab="pengguna"><i class="icon icon-users"></i> Pengguna <span class="sb-badge green" id="totalUserBadge">0</span></div>
       <div class="sb-item" data-tab="dokumentasi"><i class="icon icon-folder"></i> Dokumentasi</div>
       <div class="sb-footer">
@@ -123,7 +136,7 @@
             <div class="sb-uname" id="adminName">Admin</div>
             <div class="sb-urole">Administrator</div>
           </div>
-          <div class="sb-logout" onclick="logout()">↩</div>
+          <div class="sb-logout" onclick="logout()"><i class="icon icon-log-out"></i> Keluar</div>
         </div>
       </div>
     </div>
@@ -137,7 +150,7 @@
           <div class="a-actions"><button class="btn-ghost" onclick="loadDashboard()">🔄 Refresh</button></div>
         </div>
         <div class="kpi-grid">
-          <div class="kpi kpi-1"><div class="kpi-icon blue"><i class="icon icon-cow"></i></div><div class="kpi-val" id="dashTotalHewan">-</div><div class="kpi-lbl">Total Hewan</div></div>
+          <div class="kpi kpi-1"><div class="kpi-icon blue"><i class="icon icon-list"></i></div><div class="kpi-val" id="dashTotalHewan">-</div><div class="kpi-lbl">Total Hewan</div></div>
           <div class="kpi kpi-2"><div class="kpi-icon green"><i class="icon icon-check-circle"></i></div><div class="kpi-val" id="dashSelesai">-</div><div class="kpi-lbl">Selesai</div></div>
           <div class="kpi kpi-3"><div class="kpi-icon amber"><i class="icon icon-clock"></i></div><div class="kpi-val" id="dashProses">-</div><div class="kpi-lbl">Proses</div></div>
           <div class="kpi kpi-4"><div class="kpi-icon sky"><i class="icon icon-building"></i></div><div class="kpi-val" id="dashTotalInstansi">-</div><div class="kpi-lbl">Instansi</div></div>
@@ -194,9 +207,10 @@
   <!-- Bottom nav (mobile) -->
   <nav class="admin-bottom-nav">
     <button class="nav-item active" data-tab="dashboard"><i class="icon icon-bar-chart"></i><span>Dashboard</span></button>
-    <button class="nav-item" data-tab="hewan"><i class="icon icon-cow"></i><span>Hewan</span></button>
+    <button class="nav-item" data-tab="hewan"><i class="icon icon-list"></i><span>Hewan</span></button>
     <button class="nav-item" data-tab="pengguna"><i class="icon icon-users"></i><span>User</span></button>
     <button class="nav-item" data-tab="dokumentasi"><i class="icon icon-folder"></i><span>Dok</span></button>
+    <button class="nav-item" onclick="logout()" style="color:#E05050;"><i class="icon icon-log-out"></i><span>Keluar</span></button>
   </nav>
 
   <!-- Modal Hewan -->
