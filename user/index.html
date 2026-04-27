@@ -39,12 +39,115 @@
       border: 1px solid rgba(255,255,255,0.1) !important;
       box-shadow: 0 32px 80px rgba(0,0,0,0.5) !important;
     }
-    @media (min-width: 600px) {
+
+    /* Mobile: phone shell centered, max 480px */
+    @media (max-width: 899px) {
+      body.user-frame { padding: 16px; display: flex; justify-content: center; }
       .phone-shell { max-width: 480px; border-radius: 28px !important; }
     }
-    @media (min-width: 768px) {
-      body.user-frame { padding: 24px; align-items: center; min-height: 100vh; }
-      .phone-shell { max-width: 480px; border-radius: 28px !important; }
+
+    /* Desktop: full screen layout */
+    @media (min-width: 900px) {
+      body.user-frame {
+        padding: 0 !important;
+        display: block !important;
+        min-height: 100vh;
+      }
+      .phone-shell {
+        max-width: 100% !important;
+        width: 100% !important;
+        min-height: 100vh;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        display: grid !important;
+        grid-template-columns: 320px 1fr !important;
+        grid-template-rows: auto 1fr !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+      }
+
+      /* Header spans full width on desktop */
+      .u-header {
+        grid-column: 1 / -1;
+        padding: 20px 40px 36px !important;
+        background:
+          linear-gradient(150deg, rgba(10,22,40,0.82) 0%, rgba(15,44,86,0.75) 55%, rgba(26,74,138,0.78) 100%),
+          url('../assets/images/user_portal_qurban_bnt.png') center/cover no-repeat !important;
+      }
+      .u-header::after { display: none; } /* remove wave */
+      .u-topbar { margin-bottom: 12px; }
+      .u-kpi { gap: 16px; }
+      .u-kpi-item { padding: 14px 20px; }
+      .u-kpi-num { font-size: 28px; }
+
+      /* Left sidebar: screen-beranda content */
+      .u-content {
+        grid-column: 1;
+        grid-row: 2;
+        padding: 24px 20px 24px 32px !important;
+        overflow-y: auto;
+        height: calc(100vh - 160px);
+        border-right: 1px solid rgba(255,255,255,0.08);
+      }
+
+      /* Right panel: active screen (non-beranda) */
+      /* We use a wrapper trick — beranda always visible left, others right */
+      #screen-beranda {
+        display: flex !important;
+        flex-direction: column;
+        opacity: 1 !important;
+        transform: none !important;
+        animation: none !important;
+      }
+
+      /* All non-beranda screens go to right column */
+      #screen-hewan,
+      #screen-upload,
+      #screen-dokumentasi,
+      #screen-akun {
+        grid-column: 2;
+        grid-row: 2;
+        padding: 24px 32px 24px 24px;
+        overflow-y: auto;
+        height: calc(100vh - 160px);
+        display: none;
+        flex-direction: column;
+      }
+      #screen-hewan.active,
+      #screen-upload.active,
+      #screen-dokumentasi.active,
+      #screen-akun.active {
+        display: flex !important;
+        animation: screenFadeIn 0.3s ease forwards;
+      }
+
+      /* When beranda is active on desktop, right column shows placeholder */
+      #screen-beranda.active ~ #screen-hewan:not(.active),
+      #screen-beranda.active ~ #screen-upload:not(.active),
+      #screen-beranda.active ~ #screen-dokumentasi:not(.active),
+      #screen-beranda.active ~ #screen-akun:not(.active) {
+        display: none;
+      }
+
+      /* Desktop right panel empty state */
+      .desktop-right-placeholder {
+        display: flex;
+        grid-column: 2;
+        grid-row: 2;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 12px;
+        color: rgba(255,255,255,0.2);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .desktop-right-placeholder i { font-size: 48px; opacity: 0.3; }
+    }
+
+    @media (min-width: 1200px) {
+      .phone-shell { grid-template-columns: 360px 1fr !important; }
     }
 
     /* ── HEADER ── */
@@ -102,14 +205,44 @@
     .qa-btn.qa-btn-green:hover { background: rgba(34,197,94,0.2) !important; border-color: rgba(34,197,94,0.4) !important; }
 
     /* ── DETAIL ROWS ── */
-    .detail-row { border-bottom-color: rgba(255,255,255,0.08) !important; }
-    .detail-label { color: rgba(255,255,255,0.5) !important; }
-    .detail-value { color: white !important; }
+    .detail-grid { display: flex; flex-direction: column; }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    .detail-row:last-child { border-bottom: none !important; }
+    .detail-label {
+      color: rgba(255,255,255,0.5) !important;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+      min-width: 72px;
+    }
+    .detail-value {
+      color: white !important;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: right;
+      word-break: break-word;
+    }
 
     /* ── STATUS ITEMS ── */
-    .status-item { border-bottom-color: rgba(255,255,255,0.08) !important; }
-    .status-item span { color: rgba(255,255,255,0.85) !important; }
-    .status-date { color: rgba(255,255,255,0.4) !important; }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    .status-item:last-child { border-bottom: none !important; }
+    .status-item i { font-size: 20px; color: rgba(255,255,255,0.35); flex-shrink: 0; }
+    .status-item.done i { color: #22c55e; }
+    .status-item span { color: rgba(255,255,255,0.85) !important; font-size: 14px; }
+    .status-date { margin-left: auto; font-size: 12px; color: rgba(255,255,255,0.4) !important; white-space: nowrap; }
 
     /* ── UPLOAD AREA ── */
     .upload-area {
@@ -153,7 +286,24 @@
     }
 
     /* Upload Area */
-    .preview-image { max-width: 100%; border-radius: 16px; margin-top: 16px; }
+    .upload-area {
+      border: 2px dashed rgba(255,255,255,0.2);
+      border-radius: 16px;
+      padding: 32px 16px;
+      text-align: center;
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+      transition: border 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .upload-area:hover { border-color: #00A2EA !important; }
+    .upload-area i { font-size: 40px; color: rgba(255,255,255,0.6); }
+    .upload-area div { color: rgba(255,255,255,0.8); font-weight: 600; font-size: 14px; }
+    .upload-area div:last-child { font-size: 12px; color: rgba(255,255,255,0.35); }
 
     /* Upload Tabs */
     .upload-tab {
@@ -447,6 +597,11 @@
   </div>
 
   <!-- Bottom nav removed -->
+  <!-- Desktop right placeholder (shown when beranda is active on desktop) -->
+  <div class="desktop-right-placeholder" id="desktopPlaceholder">
+    <i class="icon icon-list"></i>
+    <span>Pilih hewan untuk upload foto</span>
+  </div>
 </div>
 
 <script src="../assets/js/api.js"></script>
@@ -960,22 +1115,34 @@
 
   // ==================== NAVIGATION ====================
   const screenHistory = [];
+  const isDesktop = () => window.innerWidth >= 900;
 
   function switchScreen(screenId, pushState = true) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(`screen-${screenId}`).classList.add('active');
+    const desktop = isDesktop();
 
-    // Show/hide back button
-    const btnBack = document.getElementById('btnBack');
-    if (screenId === 'beranda') {
-      btnBack.style.display = 'none';
+    if (desktop) {
+      // Desktop: beranda always visible left, others go right
+      if (screenId === 'beranda') {
+        // Show all non-beranda screens as hidden, show placeholder
+        document.querySelectorAll('.screen:not(#screen-beranda)').forEach(s => s.classList.remove('active'));
+        document.getElementById('desktopPlaceholder').style.display = 'flex';
+      } else {
+        // Hide placeholder, show target screen in right column
+        document.getElementById('desktopPlaceholder').style.display = 'none';
+        document.querySelectorAll('.screen:not(#screen-beranda)').forEach(s => s.classList.remove('active'));
+        document.getElementById(`screen-${screenId}`)?.classList.add('active');
+      }
+      // Beranda always active on desktop
+      document.getElementById('screen-beranda').classList.add('active');
     } else {
-      btnBack.style.display = 'flex';
+      // Mobile: normal single-screen switching
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(`screen-${screenId}`)?.classList.add('active');
+      const btnBack = document.getElementById('btnBack');
+      if (btnBack) btnBack.style.display = screenId === 'beranda' ? 'none' : 'flex';
     }
 
-    if (pushState) {
-      history.pushState({ screen: screenId }, '', window.location.pathname);
-    }
+    if (pushState) history.pushState({ screen: screenId }, '', window.location.pathname);
 
     if (screenId === 'beranda') renderDashboard();
     else if (screenId === 'hewan') renderHewanList('');
@@ -986,16 +1153,22 @@
 
   function goBack() { history.back(); }
 
-  // Handle browser back/forward
   window.addEventListener('popstate', (e) => {
     const screen = e.state?.screen || 'beranda';
     switchScreen(screen, false);
   });
 
-  // Set initial history state
+  // On resize, re-apply layout
+  window.addEventListener('resize', () => {
+    if (isDesktop()) {
+      document.getElementById('screen-beranda').classList.add('active');
+      const hasActiveRight = !!document.querySelector('#screen-hewan.active, #screen-upload.active, #screen-dokumentasi.active, #screen-akun.active');
+      document.getElementById('desktopPlaceholder').style.display = hasActiveRight ? 'none' : 'flex';
+    }
+  });
+
   history.replaceState({ screen: 'beranda' }, '', window.location.pathname);
 
-  // data-screen links (see-all etc)
   document.querySelectorAll('[data-screen]').forEach(el => {
     el.addEventListener('click', () => switchScreen(el.dataset.screen));
   });
@@ -1020,6 +1193,11 @@
     await loadAllData();
     renderDashboard();
     setupUploadListeners();
+    // Desktop: show placeholder on right by default
+    if (isDesktop()) {
+      document.getElementById('screen-beranda').classList.add('active');
+      document.getElementById('desktopPlaceholder').style.display = 'flex';
+    }
   })();
 </script>
 <div id="toast" class="toast"></div>
