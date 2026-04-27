@@ -136,7 +136,7 @@
       }
       .desktop-right-placeholder i { font-size: 48px; opacity: 0.3; }
       /* Hide placeholder when a screen is active */
-      .u-right-panel:has(.screen.active) .desktop-right-placeholder { display: none; }
+      .u-right-panel:has(.screen.active) .desktop-right-placeholder { display: none !important; }
     }
 
     @media (min-width: 1200px) {
@@ -1139,9 +1139,13 @@
       // Right panel screens
       document.querySelectorAll('.u-right-panel .screen').forEach(s => s.classList.remove('active'));
 
+      const placeholder = document.getElementById('desktopPlaceholder');
       if (screenId !== 'beranda') {
         const target = document.getElementById(`screen-${screenId}`);
         if (target) target.classList.add('active');
+        if (placeholder) placeholder.style.display = 'none';
+      } else {
+        if (placeholder) placeholder.style.display = 'flex';
       }
     } else {
       // Mobile: single screen
@@ -1225,7 +1229,8 @@
     // Desktop: show placeholder on right by default
     if (isDesktop()) {
       document.getElementById('screen-beranda').classList.add('active');
-      document.getElementById('desktopPlaceholder').style.display = 'flex';
+      const ph = document.getElementById('desktopPlaceholder');
+      if (ph) ph.style.display = 'flex';
     }
   })();
 </script>
