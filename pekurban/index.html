@@ -33,6 +33,12 @@
       position: fixed; inset: 0; z-index: -1;
       background: linear-gradient(135deg, rgba(15,44,86,0.88) 0%, rgba(26,74,138,0.85) 100%);
     }
+    @media (max-width: 900px) {
+      body::before {
+        background-image: url('../assets/images/pekurban_mobile_qurban_bnt.png');
+        background-position: top center;
+      }
+    }
 
     /* ==================== PAGE TRANSITIONS ==================== */
     .page { display: none; opacity: 0; transform: translateY(16px); transition: opacity 0.35s ease, transform 0.35s ease; }

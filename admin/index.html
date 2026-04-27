@@ -7,35 +7,125 @@
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="icon" type="image/png" href="../assets/images/logo-bnt.png">
   <style>
+    /* ── BACKGROUND FOTO ── */
+    body {
+      position: relative;
+      background: #0a1628;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url('../assets/images/admin_portal_qurban_bnt.png');
+      background-size: cover; background-position: center;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(135deg, rgba(10,22,40,0.92) 0%, rgba(15,44,86,0.88) 100%);
+    }
+    @media (max-width: 900px) {
+      body::before {
+        background-image: url('../assets/images/admin_mobile_qurban_bnt.png');
+        background-position: top center;
+      }
+    }
+    .admin-root { position: relative; z-index: 1; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: rgba(255,255,255,0.06) !important;
+      backdrop-filter: blur(20px);
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar::before { display: none; } /* hapus bg image lama */
+    .sb-logo-text .sn { color: white !important; }
+    .sb-logo-text .ss { color: rgba(255,255,255,0.4) !important; }
+    .sb-section { color: rgba(255,255,255,0.3) !important; }
+    .sb-item { color: rgba(255,255,255,0.55) !important; }
+    .sb-item:hover { background: rgba(255,255,255,0.08) !important; color: white !important; }
+    .sb-item.active { background: rgba(44,112,183,0.3) !important; color: white !important; border-left-color: #00A2EA !important; }
+    .sb-uname { color: white !important; }
+    .sb-urole { color: rgba(255,255,255,0.35) !important; }
+    .sb-user { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.08) !important; }
+
+    /* ── ADMIN MAIN ── */
+    .admin-main { background: transparent !important; }
+
+    /* ── TOPBAR ── */
+    .a-page-h h1 { color: white !important; }
+    .a-page-h p { color: rgba(255,255,255,0.5) !important; }
+
+    /* ── KPI CARDS ── */
+    .kpi {
+      background: rgba(255,255,255,0.1) !important;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15) !important;
+    }
+    .kpi-val { color: white !important; }
+    .kpi-lbl { color: rgba(255,255,255,0.55) !important; }
+
+    /* ── ACARD ── */
+    .acard {
+      background: rgba(255,255,255,0.1) !important;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15) !important;
+    }
+    .acard-title { color: white !important; }
+    .prog-title { color: white !important; }
+    .prog-sub { color: rgba(255,255,255,0.5) !important; }
+    .prog-name { color: rgba(255,255,255,0.85) !important; }
+    .prog-pct { color: #00A2EA !important; }
+    .prog-bar { background: rgba(255,255,255,0.12) !important; }
+
+    /* ── TABLE ── */
+    th { color: rgba(255,255,255,0.45) !important; }
+    td { color: rgba(255,255,255,0.85) !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
+    tr:hover td { background: rgba(255,255,255,0.05) !important; }
+    thead tr { border-bottom-color: rgba(255,255,255,0.12) !important; }
+
+    /* ── SEARCH INPUT ── */
+    #searchHewan {
+      background: rgba(255,255,255,0.1) !important;
+      border-color: rgba(255,255,255,0.2) !important;
+      color: white !important;
+    }
+    #searchHewan::placeholder { color: rgba(255,255,255,0.35) !important; }
+    #searchHewan:focus { background: rgba(255,255,255,0.15) !important; border-color: #00A2EA !important; }
+
+    /* ── BOTTOM NAV MOBILE ── */
+    .admin-bottom-nav {
+      background: rgba(10,22,40,0.92) !important;
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255,255,255,0.1) !important;
+    }
+    .admin-bottom-nav .nav-item { color: rgba(255,255,255,0.45) !important; }
+    .admin-bottom-nav .nav-item.active { color: #00A2EA !important; }
+
+    /* ── MOBILE TABLE CARDS ── */
+    @media (max-width: 900px) {
+      tbody tr {
+        background: rgba(255,255,255,0.08) !important;
+        border-color: rgba(255,255,255,0.12) !important;
+      }
+      td::before { color: rgba(255,255,255,0.45) !important; }
+      td { border-bottom-color: rgba(255,255,255,0.06) !important; }
+    }
+
     /* Mobile bottom nav */
     .admin-bottom-nav {
       display: none;
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--white);
-      border-top: 1px solid var(--border);
+      bottom: 0; left: 0; right: 0;
       padding: 10px 8px 16px;
       justify-content: space-around;
       z-index: 100;
-      box-shadow: 0 -4px 12px rgba(44,112,183,0.06);
     }
     .admin-bottom-nav .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      background: none;
-      border: none;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: none; border: none; font-size: 11px; font-weight: 600;
+      font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer;
     }
     .admin-bottom-nav .nav-item i { font-size: 22px; }
-    .admin-bottom-nav .nav-item.active { color: var(--blue); }
 
     @media (max-width: 900px) {
       .sidebar { display: none; }
@@ -46,173 +136,101 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     .action-bar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
-    .search-wrapper { flex: 1; max-width: 300px; }
 
     .modal {
-      display: none;
-      position: fixed;
+      display: none; position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(13,30,53,0.5);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      z-index: 1000; align-items: center; justify-content: center;
     }
     .modal.active { display: flex; }
     .modal-content {
-      background: var(--white);
-      border-radius: var(--r-xl);
-      padding: 32px;
-      width: 90%;
-      max-width: 500px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: var(--sh-lg);
+      background: white; border-radius: 20px;
+      padding: 32px; width: 90%; max-width: 500px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
     }
     .modal .form-group { margin-bottom: 16px; }
     .modal .form-group label {
-      display: block;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--slate);
-      margin-bottom: 6px;
-      text-transform: uppercase;
+      display: block; font-size: 12px; font-weight: 700;
+      color: #64748b; margin-bottom: 6px; text-transform: uppercase;
     }
-    .modal .form-group input,
-    .modal .form-group select {
-      width: 100%;
-      padding: 12px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--r-md);
-      font-family: inherit;
-      font-size: 14px;
-      text-transform: uppercase;
+    .modal .form-group input, .modal .form-group select {
+      width: 100%; padding: 12px; border: 1.5px solid #e2e8f0;
+      border-radius: 12px; font-family: inherit; font-size: 14px;
     }
     .modal-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
-    .status-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: var(--pill);
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .status-selesai { background: var(--green-bg); color: var(--green); }
-    .status-proses { background: var(--amber-lt); color: var(--amber-dk); }
-    .status-belum { background: var(--blue-lt); color: var(--blue); }
 
-    /* Transitions */
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+    .status-selesai { background: #dcfce7; color: #16a34a; }
+    .status-proses { background: #fef9c3; color: #a16207; }
+    .status-belum { background: #dbeafe; color: #1d4ed8; }
+
     .tab-content { animation: tabFadeIn 0.3s ease; }
-    @keyframes tabFadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .sb-logout {
-      cursor: pointer; padding: 10px 14px; border-radius: var(--r-md);
-      background: rgba(224,80,80,0.12); color: #E05050;
-      font-weight: 700; font-size: 13px; transition: all 0.2s;
-      border: none; width: 100%; display: flex; align-items: center;
-      justify-content: center; gap: 8px; margin-top: 10px;
-    }
-    .sb-logout:hover { background: #E05050; color: white; }
+    @keyframes tabFadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-    /* Admin loading overlay */
+    .sb-logout {
+      cursor: pointer; padding: 10px 14px; border-radius: 12px;
+      background: rgba(224,80,80,0.15); color: #ff6b6b;
+      font-weight: 700; font-size: 13px; transition: all 0.2s;
+      border: 1px solid rgba(224,80,80,0.2); width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;
+    }
+    .sb-logout:hover { background: #E05050; color: white; border-color: #E05050; }
+
     .admin-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(13,30,53,0.6); z-index: 2000;
-      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+      z-index: 2000; align-items: center; justify-content: center;
     }
     .admin-overlay.active { display: flex; }
     .admin-overlay-box {
-      background: white; border-radius: var(--r-xl);
+      background: white; border-radius: 20px;
       padding: 32px 44px; text-align: center;
-      box-shadow: var(--sh-lg); min-width: 200px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.4); min-width: 200px;
     }
     .admin-spinner {
       width: 40px; height: 40px; margin: 0 auto 16px;
-      border: 4px solid var(--border);
-      border-top-color: var(--blue);
-      border-radius: 50%;
-      animation: adminSpin 0.8s linear infinite;
+      border: 4px solid #e2e8f0; border-top-color: #2c70b7;
+      border-radius: 50%; animation: adminSpin 0.8s linear infinite;
     }
     @keyframes adminSpin { to { transform: rotate(360deg); } }
-    .admin-overlay-text { font-size: 14px; font-weight: 700; color: var(--ink); }
+    .admin-overlay-text { font-size: 14px; font-weight: 700; color: #0D1E35; }
 
     /* ── MOBILE TABLE → CARD LIST ── */
     @media (max-width: 900px) {
-      /* Wrap tabel agar bisa scroll horizontal jika diperlukan */
       .acard { overflow-x: hidden; }
-
-      /* Ubah tabel jadi card list */
       table, thead, tbody, th, td, tr { display: block; }
-
-      /* Sembunyikan header tabel */
       thead tr { position: absolute; top: -9999px; left: -9999px; }
-
-      /* Setiap baris jadi card */
       tbody tr {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: var(--r-md);
-        margin-bottom: 10px;
+        border-radius: 14px; margin-bottom: 10px;
         padding: 12px 14px;
-        box-shadow: var(--sh-xs);
       }
       tbody tr:last-child { margin-bottom: 0; }
-      tbody tr:hover td { background: transparent; }
-
-      /* Setiap sel tampil sebagai baris label: nilai */
+      tbody tr:hover td { background: transparent !important; }
       td {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 5px 0;
-        border: none;
-        border-bottom: 1px solid var(--bg);
-        font-size: 13px;
-        gap: 8px;
+        display: flex; justify-content: space-between; align-items: flex-start;
+        padding: 5px 0; border: none !important;
+        border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+        font-size: 13px; gap: 8px;
       }
-      td:last-child { border-bottom: none; padding-bottom: 0; }
-
-      /* Label dari data-label attribute */
+      td:last-child { border-bottom: none !important; padding-bottom: 0; }
       td::before {
-        content: attr(data-label);
-        font-weight: 700;
-        color: var(--slate);
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        flex-shrink: 0;
-        padding-top: 1px;
+        content: attr(data-label); font-weight: 700;
+        font-size: 11px; text-transform: uppercase;
+        letter-spacing: 0.5px; flex-shrink: 0; padding-top: 1px;
       }
-
-      /* Kolom aksi rata kanan */
-      td[data-label="Aksi"] {
-        justify-content: flex-end;
-        gap: 8px;
-      }
+      td[data-label="Aksi"] { justify-content: flex-end; gap: 8px; }
       td[data-label="Aksi"]::before { display: none; }
-
-      /* Topbar mobile */
-      .a-topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 16px;
-      }
+      .a-topbar { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
       .a-topbar .a-actions { width: 100%; }
       .a-topbar .a-actions button { width: 100%; justify-content: center; }
-
-      /* KPI grid 2 kolom */
       .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       .kpi-val { font-size: 24px; }
-
-      /* Two-col jadi satu kolom */
       .two-col { grid-template-columns: 1fr; }
-
-      /* Action bar */
       .action-bar { flex-wrap: wrap; }
       .action-bar input { min-width: 0; flex: 1; }
-
-      /* Admin main padding */
       .admin-main { padding: 16px; }
     }
   </style>
