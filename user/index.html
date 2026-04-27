@@ -81,7 +81,7 @@
       .u-kpi-item { padding: 14px 20px; }
       .u-kpi-num { font-size: 28px; }
 
-      /* Left sidebar: screen-beranda content */
+      /* Left sidebar: beranda only */
       .u-content {
         grid-column: 1;
         grid-row: 2;
@@ -91,8 +91,7 @@
         border-right: 1px solid rgba(255,255,255,0.08);
       }
 
-      /* Right panel: active screen (non-beranda) */
-      /* We use a wrapper trick — beranda always visible left, others right */
+      /* Beranda always visible on desktop */
       #screen-beranda {
         display: flex !important;
         flex-direction: column;
@@ -101,44 +100,42 @@
         animation: none !important;
       }
 
-      /* All non-beranda screens go to right column */
+      /* Hide non-beranda screens inside u-content on desktop */
       #screen-hewan,
       #screen-upload,
       #screen-dokumentasi,
       #screen-akun {
-        grid-column: 2;
-        grid-row: 2;
-        padding: 24px 32px 24px 24px;
-        overflow-y: auto;
-        height: calc(100vh - 160px);
-        display: none;
-        flex-direction: column;
-      }
-      #screen-hewan.active,
-      #screen-upload.active,
-      #screen-dokumentasi.active,
-      #screen-akun.active {
-        display: flex !important;
-        animation: screenFadeIn 0.3s ease forwards;
+        display: none !important;
       }
 
-      /* When beranda is active on desktop, right column shows placeholder */
-      #screen-beranda.active ~ #screen-hewan:not(.active),
-      #screen-beranda.active ~ #screen-upload:not(.active),
-      #screen-beranda.active ~ #screen-dokumentasi:not(.active),
-      #screen-beranda.active ~ #screen-akun:not(.active) {
-        display: none;
+      /* Right panel wrapper */
+      .u-right-panel {
+        grid-column: 2;
+        grid-row: 2;
+        overflow-y: auto;
+        height: calc(100vh - 160px);
+        padding: 24px 32px 24px 24px;
+        display: flex;
+        flex-direction: column;
       }
+
+      /* Right panel screens */
+      .u-right-panel .screen {
+        display: none;
+        flex-direction: column;
+        flex: 1;
+        animation: screenFadeIn 0.3s ease forwards;
+      }
+      .u-right-panel .screen.active { display: flex !important; }
 
       /* Desktop right panel empty state */
       .desktop-right-placeholder {
         display: flex;
-        grid-column: 2;
-        grid-row: 2;
         align-items: center;
         justify-content: center;
         flex-direction: column;
         gap: 12px;
+        flex: 1;
         color: rgba(255,255,255,0.2);
         font-size: 14px;
         font-weight: 600;
@@ -402,6 +399,22 @@
 
     /* No bottom nav */
     .u-content { padding-bottom: 20px; }
+
+    /* Mobile: right panel hidden by default, shown when active */
+    @media (max-width: 899px) {
+      .u-right-panel {
+        display: none;
+        flex-direction: column;
+        padding: 10px 16px 20px;
+        overflow-y: auto;
+      }
+      .u-right-panel.active { display: flex; }
+      .u-right-panel .screen { display: none; flex-direction: column; }
+      .u-right-panel .screen.active { display: flex !important; animation: screenFadeIn 0.3s ease forwards; }
+      .desktop-right-placeholder { display: none !important; }
+      /* When right panel is active, hide left content */
+      .u-content.hidden-mobile { display: none; }
+    }
   </style>
 </head>
 <body class="user-frame" style="padding:16px;display:flex;justify-content:center;">
@@ -477,7 +490,10 @@
         <div id="recentHewan"></div>
       </div>
     </div>
+  </div>
 
+  <!-- Right panel (desktop: col 2 | mobile: hidden, screens shown in u-content-mobile) -->
+  <div class="u-right-panel" id="uRightPanel">
     <!-- HEWAN -->
     <div id="screen-hewan" class="screen">
       <div class="search-box">
@@ -594,14 +610,15 @@
 
       <button class="btn-logout" id="logoutBtn">Keluar</button>
     </div>
+
+    <!-- Desktop right placeholder -->
+    <div class="desktop-right-placeholder" id="desktopPlaceholder">
+      <i class="icon icon-list"></i>
+      <span>Pilih hewan untuk upload foto</span>
+    </div>
   </div>
 
   <!-- Bottom nav removed -->
-  <!-- Desktop right placeholder (shown when beranda is active on desktop) -->
-  <div class="desktop-right-placeholder" id="desktopPlaceholder">
-    <i class="icon icon-list"></i>
-    <span>Pilih hewan untuk upload foto</span>
-  </div>
 </div>
 
 <script src="../assets/js/api.js"></script>
@@ -1114,32 +1131,49 @@
   }
 
   // ==================== NAVIGATION ====================
-  const screenHistory = [];
   const isDesktop = () => window.innerWidth >= 900;
 
   function switchScreen(screenId, pushState = true) {
     const desktop = isDesktop();
 
     if (desktop) {
-      // Desktop: beranda always visible left, others go right
-      if (screenId === 'beranda') {
-        // Show all non-beranda screens as hidden, show placeholder
-        document.querySelectorAll('.screen:not(#screen-beranda)').forEach(s => s.classList.remove('active'));
-        document.getElementById('desktopPlaceholder').style.display = 'flex';
-      } else {
-        // Hide placeholder, show target screen in right column
-        document.getElementById('desktopPlaceholder').style.display = 'none';
-        document.querySelectorAll('.screen:not(#screen-beranda)').forEach(s => s.classList.remove('active'));
-        document.getElementById(`screen-${screenId}`)?.classList.add('active');
-      }
-      // Beranda always active on desktop
+      // Beranda always stays in left column — never hide it
       document.getElementById('screen-beranda').classList.add('active');
+
+      // Right panel screens
+      const rightScreens = document.querySelectorAll('.u-right-panel .screen');
+      const placeholder   = document.getElementById('desktopPlaceholder');
+
+      if (screenId === 'beranda') {
+        rightScreens.forEach(s => s.classList.remove('active'));
+        placeholder.style.display = 'flex';
+      } else {
+        rightScreens.forEach(s => s.classList.remove('active'));
+        const target = document.getElementById(`screen-${screenId}`);
+        if (target) { target.classList.add('active'); }
+        placeholder.style.display = 'none';
+      }
     } else {
-      // Mobile: normal single-screen switching
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(`screen-${screenId}`)?.classList.add('active');
-      const btnBack = document.getElementById('btnBack');
-      if (btnBack) btnBack.style.display = screenId === 'beranda' ? 'none' : 'flex';
+      // Mobile: single screen
+      const uContent    = document.querySelector('.u-content');
+      const uRightPanel = document.getElementById('uRightPanel');
+      const btnBack     = document.getElementById('btnBack');
+
+      if (screenId === 'beranda') {
+        // Show left, hide right
+        uContent.classList.remove('hidden-mobile');
+        uRightPanel.classList.remove('active');
+        document.querySelectorAll('.u-right-panel .screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-beranda').classList.add('active');
+        if (btnBack) btnBack.style.display = 'none';
+      } else {
+        // Hide left, show right panel with target screen
+        uContent.classList.add('hidden-mobile');
+        uRightPanel.classList.add('active');
+        document.querySelectorAll('.u-right-panel .screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(`screen-${screenId}`)?.classList.add('active');
+        if (btnBack) btnBack.style.display = 'flex';
+      }
     }
 
     if (pushState) history.pushState({ screen: screenId }, '', window.location.pathname);
@@ -1151,18 +1185,23 @@
     else if (screenId === 'akun') renderProfilePerformance();
   }
 
-  function goBack() { history.back(); }
+  function goBack() {
+    if (!isDesktop()) {
+      switchScreen('beranda');
+    } else {
+      history.back();
+    }
+  }
 
   window.addEventListener('popstate', (e) => {
     const screen = e.state?.screen || 'beranda';
     switchScreen(screen, false);
   });
 
-  // On resize, re-apply layout
   window.addEventListener('resize', () => {
     if (isDesktop()) {
       document.getElementById('screen-beranda').classList.add('active');
-      const hasActiveRight = !!document.querySelector('#screen-hewan.active, #screen-upload.active, #screen-dokumentasi.active, #screen-akun.active');
+      const hasActiveRight = !!document.querySelector('.u-right-panel .screen.active');
       document.getElementById('desktopPlaceholder').style.display = hasActiveRight ? 'none' : 'flex';
     }
   });
