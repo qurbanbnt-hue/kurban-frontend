@@ -511,6 +511,21 @@
         <i class="icon icon-search"></i>
         <input type="text" id="searchInput" placeholder="Cari nomor, pekurban, instansi...">
       </div>
+      <!-- Filter bar -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <select id="filterWilayahUser" style="flex:1;min-width:120px;padding:10px 12px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:white;font-family:inherit;font-size:13px;font-weight:600;outline:none;color-scheme:dark;" onchange="applyHewanFilter()">
+          <option value="">Semua Wilayah</option>
+        </select>
+        <select id="filterInstansiUser" style="flex:1;min-width:130px;padding:10px 12px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:white;font-family:inherit;font-size:13px;font-weight:600;outline:none;color-scheme:dark;" onchange="applyHewanFilter()">
+          <option value="">Semua Instansi</option>
+        </select>
+        <select id="filterStatusUser" style="flex:1;min-width:120px;padding:10px 12px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:white;font-family:inherit;font-size:13px;font-weight:600;outline:none;color-scheme:dark;" onchange="applyHewanFilter()">
+          <option value="">Semua Status</option>
+          <option value="selesai">Selesai</option>
+          <option value="proses">Proses</option>
+          <option value="belum">Belum</option>
+        </select>
+      </div>
       <div id="allHewanList"></div>
     </div>
 
@@ -751,22 +766,64 @@
   }
 
   // ==================== HEWAN LIST ====================
-  function renderHewanList(filter = '') {
-    if (allHewan.length === 0) loadAllData().then(() => renderHewanList(filter));
-    const q = filter.toLowerCase();
-    const filtered = allHewan.filter(h => 
-      h.nomor_hewan.toLowerCase().includes(q) || 
-      (h.daftar_pekurban||'').toLowerCase().includes(q) ||
-      h.instansi.toLowerCase().includes(q) || 
-      h.wilayah.toLowerCase().includes(q)
-    );
-    document.getElementById('allHewanList').innerHTML = filtered.map(h => `
+  function populateHewanFilters() {
+    const wilayahSet  = new Set(allHewan.map(h => h.wilayah).filter(Boolean));
+    const instansiSet = new Set(allHewan.map(h => h.instansi).filter(Boolean));
+    const wSel = document.getElementById('filterWilayahUser');
+    const iSel = document.getElementById('filterInstansiUser');
+    const wVal = wSel.value, iVal = iSel.value;
+    wSel.innerHTML = '<option value="">Semua Wilayah</option>' +
+      [...wilayahSet].sort().map(w => `<option value="${w}">${w}</option>`).join('');
+    iSel.innerHTML = '<option value="">Semua Instansi</option>' +
+      [...instansiSet].sort().map(i => `<option value="${i}">${i}</option>`).join('');
+    wSel.value = wVal;
+    iSel.value = iVal;
+  }
+
+  function applyHewanFilter() {
+    const q        = document.getElementById('searchInput').value.toLowerCase();
+    const wilayah  = document.getElementById('filterWilayahUser').value;
+    const instansi = document.getElementById('filterInstansiUser').value;
+    const status   = document.getElementById('filterStatusUser').value;
+
+    const filtered = allHewan.filter(h => {
+      const p = getPhaseCount(h.status);
+      const statusMatch = !status ||
+        (status === 'selesai' && p === 3) ||
+        (status === 'proses'  && p > 0 && p < 3) ||
+        (status === 'belum'   && p === 0);
+      return statusMatch &&
+        (!wilayah  || h.wilayah  === wilayah) &&
+        (!instansi || h.instansi === instansi) &&
+        (!q || h.nomor_hewan.toLowerCase().includes(q) ||
+               (h.daftar_pekurban||'').toLowerCase().includes(q) ||
+               h.instansi.toLowerCase().includes(q) ||
+               h.wilayah.toLowerCase().includes(q));
+    });
+    renderHewanList(filtered);
+  }
+
+  function renderHewanList(data) {
+    if (!Array.isArray(data)) {
+      // Called with a filter string (legacy) or no arg
+      const q = typeof data === 'string' ? data : '';
+      if (allHewan.length === 0) { loadAllData().then(() => renderHewanList(allHewan)); return; }
+      data = allHewan.filter(h =>
+        !q ||
+        h.nomor_hewan.toLowerCase().includes(q.toLowerCase()) ||
+        (h.daftar_pekurban||'').toLowerCase().includes(q.toLowerCase()) ||
+        h.instansi.toLowerCase().includes(q.toLowerCase()) ||
+        h.wilayah.toLowerCase().includes(q.toLowerCase())
+      );
+    }
+    if (allHewan.length > 0) populateHewanFilters();
+    document.getElementById('allHewanList').innerHTML = data.map(h => `
       <div class="a-row" data-nomor="${h.nomor_hewan}">
         <div class="a-ava">${getEmoji(h.jenis_hewan)}</div>
-        <div class="a-info"><div class="aname">${h.nomor_hewan}</div><div class="asub">${h.instansi}</div></div>
+        <div class="a-info"><div class="aname">${h.nomor_hewan}</div><div class="asub">${h.instansi} · ${h.wilayah}</div></div>
         <span class="abadge ${getPhaseCount(h.status)===3?'ab-done':'ab-prgs'}">${getPhaseCount(h.status)}/3</span>
       </div>
-    `).join('');
+    `).join('') || '<div style="color:rgba(255,255,255,0.4);text-align:center;padding:24px;font-size:13px;">Tidak ada data</div>';
     document.querySelectorAll('#allHewanList .a-row').forEach(el => {
       el.addEventListener('click', () => selectHewanFromList(el.dataset.nomor));
     });
@@ -1188,7 +1245,7 @@
     if (pushState) history.pushState({ screen: screenId }, '', window.location.pathname);
 
     if (screenId === 'beranda') renderDashboard();
-    else if (screenId === 'hewan') renderHewanList('');
+    else if (screenId === 'hewan') { populateHewanFilters(); applyHewanFilter(); }
     else if (screenId === 'upload') renderUploadDetail();
     else if (screenId === 'dokumentasi') initDokScreen();
     else if (screenId === 'akun') renderProfilePerformance();
@@ -1221,7 +1278,7 @@
     el.addEventListener('click', () => switchScreen(el.dataset.screen));
   });
 
-  document.getElementById('searchInput').addEventListener('input', e => renderHewanList(e.target.value));
+  document.getElementById('searchInput').addEventListener('input', applyHewanFilter);
   document.getElementById('logoutBtn').addEventListener('click', () => {
     localStorage.clear();
     window.location.href = '/';
