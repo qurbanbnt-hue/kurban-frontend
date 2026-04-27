@@ -622,7 +622,7 @@
       const instansiList = [...new Set(allHewan.map(h => h.instansi).filter(Boolean))].sort();
       buildDropdown('wilayah',  wilayahList);
       buildDropdown('instansi', instansiList);
-      buildDropdown('status',   ['selesai', 'proses', 'belum']);
+      buildDropdown('status',   ['hidup', 'tumbang', 'sembelih']);
     }
 
     function renderHewanTable(data) {
@@ -653,9 +653,9 @@
       const filtered = allHewan.filter(h => {
         const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
         const statusMatch = !status ||
-          (status === 'selesai' && p === 3) ||
-          (status === 'proses'  && p > 0 && p < 3) ||
-          (status === 'belum'   && p === 0);
+          (status === 'hidup'    && !!h.status?.url_hidup && !h.status?.url_ditumbangkan) ||
+          (status === 'tumbang'  && !!h.status?.url_ditumbangkan && !h.status?.url_mati) ||
+          (status === 'sembelih' && !!h.status?.url_mati);
         return statusMatch &&
           (!wilayah  || h.wilayah  === wilayah) &&
           (!instansi || h.instansi === instansi) &&
