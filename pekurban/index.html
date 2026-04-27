@@ -16,9 +16,22 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: linear-gradient(135deg, #0f2c56 0%, #1a4a8a 100%);
       min-height: 100vh;
       font-family: 'Plus Jakarta Sans', sans-serif;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background-image: url('../assets/images/pekurban_portal_qurban_bnt.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background: linear-gradient(135deg, rgba(15,44,86,0.88) 0%, rgba(26,74,138,0.85) 100%);
     }
 
     /* ==================== PAGE TRANSITIONS ==================== */

@@ -470,7 +470,9 @@ i.icon, .icon {
 }
 .screen.active { display: flex; }
 .u-header {
-  background: linear-gradient(150deg, var(--blue-dk) 0%, var(--blue) 55%, var(--sky) 100%);
+  background:
+    linear-gradient(150deg, rgba(26,74,133,0.9) 0%, rgba(44,112,183,0.85) 55%, rgba(0,162,234,0.88) 100%),
+    url('../images/user_portal_qurban_bnt.png') center/cover no-repeat;
   padding: 24px 22px 44px;
   position: relative;
   overflow: hidden;
@@ -801,7 +803,10 @@ i.icon, .icon {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 20% 20%, rgba(44,112,183,.2) 0%, transparent 55%);
+  background-image: url('../images/admin_portal_qurban_bnt.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.12;
   pointer-events: none;
 }
 .sidebar::after {
@@ -1204,7 +1209,23 @@ tr:hover td { background: var(--bg); }
   .two-col { grid-template-columns: 1fr; }
   .sidebar { display: none; }
 }
-/* Toast Notification */
+/* Admin mobile: subtle photo background on the bottom nav */
+@media (max-width: 900px) {
+  .admin-bottom-nav {
+    background: var(--ink);
+    background-image: url('../images/admin_portal_qurban_bnt.png');
+    background-size: cover;
+    background-position: center top;
+    position: relative;
+  }
+  .admin-bottom-nav::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(13,30,53,0.88);
+    pointer-events: none;
+  }
+  .admin-bottom-nav .nav-item { position: relative; z-index: 1; }
+}
 .toast {
   position: fixed;
   bottom: 24px;
