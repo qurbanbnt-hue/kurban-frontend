@@ -83,7 +83,7 @@
     tr:hover td { background: rgba(255,255,255,0.05) !important; }
     thead tr { border-bottom-color: rgba(255,255,255,0.12) !important; }
 
-    /* ── SEARCH INPUT ── */
+    /* ── SEARCH INPUT & FILTER SELECTS ── */
     #searchHewan {
       background: rgba(255,255,255,0.1) !important;
       border-color: rgba(255,255,255,0.2) !important;
@@ -91,6 +91,16 @@
     }
     #searchHewan::placeholder { color: rgba(255,255,255,0.35) !important; }
     #searchHewan:focus { background: rgba(255,255,255,0.15) !important; border-color: #00A2EA !important; }
+    #filterWilayah, #filterInstansi, #filterStatus {
+      background: rgba(255,255,255,0.1) !important;
+      border-color: rgba(255,255,255,0.2) !important;
+      color: white !important;
+      color-scheme: dark;
+      padding-left: 12px !important;
+    }
+    #filterWilayah option, #filterInstansi option, #filterStatus option {
+      background: #0f2c56; color: white;
+    }
 
     /* ── BOTTOM NAV MOBILE ── */
     .admin-bottom-nav {
@@ -272,7 +282,6 @@
         <div class="a-topbar">
           <div class="a-page-h"><h1>Dashboard</h1><p>Idul Adha 1447 H · Data real-time</p></div>
           <div class="a-actions">
-            <button class="btn-ghost" onclick="loadDashboard()">🔄 Refresh</button>
             <button class="btn-ghost" onclick="logout()" style="color:#E05050;border-color:#E05050;"><i class="icon icon-log-out"></i> Keluar</button>
           </div>
         </div>
@@ -302,8 +311,19 @@
           <div class="a-actions"><button class="btn-primary" onclick="openHewanModal()">＋ Tambah</button></div>
         </div>
         <div class="action-bar">
-          <input type="text" id="searchHewan" class="field" placeholder="Cari hewan..." style="background:white;" oninput="filterHewan()">
-          <button class="btn-ghost" onclick="loadHewan()">🔄</button>
+          <input type="text" id="searchHewan" class="field" placeholder="Cari nomor, pekurban..." oninput="filterHewan()">
+          <select id="filterWilayah" class="field" style="max-width:160px;" onchange="filterHewan()">
+            <option value="">Semua Wilayah</option>
+          </select>
+          <select id="filterInstansi" class="field" style="max-width:180px;" onchange="filterHewan()">
+            <option value="">Semua Instansi</option>
+          </select>
+          <select id="filterStatus" class="field" style="max-width:150px;" onchange="filterHewan()">
+            <option value="">Semua Status</option>
+            <option value="selesai">Selesai</option>
+            <option value="proses">Proses</option>
+            <option value="belum">Belum</option>
+          </select>
         </div>
         <div class="acard">
           <table><thead><tr><th>No</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="hewanTableBody"></tbody></table>
@@ -508,7 +528,26 @@
     // ==================== HEWAN CRUD ====================
     async function loadHewan() {
       await loadAllData();
+      populateFilterDropdowns();
       renderHewanTable(allHewan);
+    }
+
+    function populateFilterDropdowns() {
+      const wilayahSet  = new Set(allHewan.map(h => h.wilayah).filter(Boolean));
+      const instansiSet = new Set(allHewan.map(h => h.instansi).filter(Boolean));
+
+      const wSelect = document.getElementById('filterWilayah');
+      const iSelect = document.getElementById('filterInstansi');
+      const wVal = wSelect.value, iVal = iSelect.value;
+
+      wSelect.innerHTML = '<option value="">Semua Wilayah</option>' +
+        [...wilayahSet].sort().map(w => `<option value="${w}">${w}</option>`).join('');
+      iSelect.innerHTML = '<option value="">Semua Instansi</option>' +
+        [...instansiSet].sort().map(i => `<option value="${i}">${i}</option>`).join('');
+
+      // Restore previous selection
+      wSelect.value = wVal;
+      iSelect.value = iVal;
     }
 
     function renderHewanTable(data) {
@@ -531,11 +570,28 @@
     }
 
     function filterHewan() {
-      const q = document.getElementById('searchHewan').value.toLowerCase();
-      renderHewanTable(allHewan.filter(h => 
-        h.nomor_hewan.toLowerCase().includes(q) || h.daftar_pekurban.toLowerCase().includes(q) ||
-        h.instansi.toLowerCase().includes(q) || h.wilayah.toLowerCase().includes(q)
-      ));
+      const q        = document.getElementById('searchHewan').value.toLowerCase();
+      const wilayah  = document.getElementById('filterWilayah').value;
+      const instansi = document.getElementById('filterInstansi').value;
+      const status   = document.getElementById('filterStatus').value;
+
+      const filtered = allHewan.filter(h => {
+        const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
+        const statusMatch = !status ||
+          (status === 'selesai' && p === 3) ||
+          (status === 'proses'  && p > 0 && p < 3) ||
+          (status === 'belum'   && p === 0);
+
+        return statusMatch &&
+          (!wilayah  || h.wilayah  === wilayah) &&
+          (!instansi || h.instansi === instansi) &&
+          (!q || h.nomor_hewan.toLowerCase().includes(q) ||
+                 h.daftar_pekurban.toLowerCase().includes(q) ||
+                 h.instansi.toLowerCase().includes(q) ||
+                 h.wilayah.toLowerCase().includes(q));
+      });
+
+      renderHewanTable(filtered);
     }
 
     window.editHewan = (nomor) => {
