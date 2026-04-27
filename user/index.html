@@ -124,9 +124,11 @@
         display: none;
         flex-direction: column;
         flex: 1;
+      }
+      .u-right-panel .screen.active {
+        display: flex !important;
         animation: screenFadeIn 0.3s ease forwards;
       }
-      .u-right-panel .screen.active { display: flex !important; }
 
       /* Desktop right panel empty state */
       .desktop-right-placeholder {
@@ -141,6 +143,8 @@
         font-weight: 600;
       }
       .desktop-right-placeholder i { font-size: 48px; opacity: 0.3; }
+      /* Hide placeholder when a screen is active */
+      .u-right-panel:has(.screen.active) .desktop-right-placeholder { display: none; }
     }
 
     @media (min-width: 1200px) {
@@ -1137,21 +1141,15 @@
     const desktop = isDesktop();
 
     if (desktop) {
-      // Beranda always stays in left column — never hide it
+      // Beranda always stays in left column
       document.getElementById('screen-beranda').classList.add('active');
 
       // Right panel screens
-      const rightScreens = document.querySelectorAll('.u-right-panel .screen');
-      const placeholder   = document.getElementById('desktopPlaceholder');
+      document.querySelectorAll('.u-right-panel .screen').forEach(s => s.classList.remove('active'));
 
-      if (screenId === 'beranda') {
-        rightScreens.forEach(s => s.classList.remove('active'));
-        placeholder.style.display = 'flex';
-      } else {
-        rightScreens.forEach(s => s.classList.remove('active'));
+      if (screenId !== 'beranda') {
         const target = document.getElementById(`screen-${screenId}`);
-        if (target) { target.classList.add('active'); }
-        placeholder.style.display = 'none';
+        if (target) target.classList.add('active');
       }
     } else {
       // Mobile: single screen
