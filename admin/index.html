@@ -135,6 +135,86 @@
     }
     @keyframes adminSpin { to { transform: rotate(360deg); } }
     .admin-overlay-text { font-size: 14px; font-weight: 700; color: var(--ink); }
+
+    /* ── MOBILE TABLE → CARD LIST ── */
+    @media (max-width: 900px) {
+      /* Wrap tabel agar bisa scroll horizontal jika diperlukan */
+      .acard { overflow-x: hidden; }
+
+      /* Ubah tabel jadi card list */
+      table, thead, tbody, th, td, tr { display: block; }
+
+      /* Sembunyikan header tabel */
+      thead tr { position: absolute; top: -9999px; left: -9999px; }
+
+      /* Setiap baris jadi card */
+      tbody tr {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        margin-bottom: 10px;
+        padding: 12px 14px;
+        box-shadow: var(--sh-xs);
+      }
+      tbody tr:last-child { margin-bottom: 0; }
+      tbody tr:hover td { background: transparent; }
+
+      /* Setiap sel tampil sebagai baris label: nilai */
+      td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 5px 0;
+        border: none;
+        border-bottom: 1px solid var(--bg);
+        font-size: 13px;
+        gap: 8px;
+      }
+      td:last-child { border-bottom: none; padding-bottom: 0; }
+
+      /* Label dari data-label attribute */
+      td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: var(--slate);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+        padding-top: 1px;
+      }
+
+      /* Kolom aksi rata kanan */
+      td[data-label="Aksi"] {
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      td[data-label="Aksi"]::before { display: none; }
+
+      /* Topbar mobile */
+      .a-topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .a-topbar .a-actions { width: 100%; }
+      .a-topbar .a-actions button { width: 100%; justify-content: center; }
+
+      /* KPI grid 2 kolom */
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .kpi-val { font-size: 24px; }
+
+      /* Two-col jadi satu kolom */
+      .two-col { grid-template-columns: 1fr; }
+
+      /* Action bar */
+      .action-bar { flex-wrap: wrap; }
+      .action-bar input { min-width: 0; flex: 1; }
+
+      /* Admin main padding */
+      .admin-main { padding: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -385,7 +465,12 @@
       const recent = allHewan.slice(0,5);
       document.getElementById('recentHewanTable').innerHTML = recent.map(h => {
         const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
-        return `<tr><td>${h.nomor_hewan} (${h.jenis_hewan})</td><td>${h.instansi}</td><td>${h.wilayah}</td><td>${p}/3</td></tr>`;
+        return `<tr>
+          <td data-label="Hewan">${h.nomor_hewan} (${h.jenis_hewan})</td>
+          <td data-label="Instansi">${h.instansi}</td>
+          <td data-label="Wilayah">${h.wilayah}</td>
+          <td data-label="Progress">${p}/3</td>
+        </tr>`;
       }).join('') || '<tr><td colspan="4">Belum ada data</td></tr>';
 
       const wilayahMap = {};
@@ -415,7 +500,15 @@
         let cls = 'status-belum', txt = 'Belum';
         if (p===3) { cls='status-selesai'; txt='Selesai'; }
         else if (p>0) { cls='status-proses'; txt=`${p}/3`; }
-        return `<tr><td>${h.nomor_hewan}</td><td>${h.jenis_hewan}</td><td>${h.daftar_pekurban}</td><td>${h.instansi}</td><td>${h.wilayah}</td><td><span class="status-badge ${cls}">${txt}</span></td><td><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')">✏️</button><button class="act-btn" onclick="confirmDeleteHewan('${h.nomor_hewan}')">🗑️</button></td></tr>`;
+        return `<tr>
+          <td data-label="Nomor">${h.nomor_hewan}</td>
+          <td data-label="Jenis">${h.jenis_hewan}</td>
+          <td data-label="Pekurban" style="word-break:break-word;max-width:160px;">${h.daftar_pekurban}</td>
+          <td data-label="Instansi">${h.instansi}</td>
+          <td data-label="Wilayah">${h.wilayah}</td>
+          <td data-label="Status"><span class="status-badge ${cls}">${txt}</span></td>
+          <td data-label="Aksi"><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')">✏️</button><button class="act-btn" onclick="confirmDeleteHewan('${h.nomor_hewan}')">🗑️</button></td>
+        </tr>`;
       }).join('');
     }
 
@@ -493,7 +586,12 @@
     }
 
     function renderUserTable(data) {
-      document.getElementById('userTableBody').innerHTML = data.map(u => `<tr><td>${u.email}</td><td>${u.username}</td><td>${u.role}</td><td><button class="act-btn" onclick="editUser('${u.email}')">✏️</button><button class="act-btn" onclick="confirmDeleteUser('${u.email}')">🗑️</button></td></tr>`).join('');
+      document.getElementById('userTableBody').innerHTML = data.map(u => `<tr>
+        <td data-label="Email" style="word-break:break-all;">${u.email}</td>
+        <td data-label="Username">${u.username}</td>
+        <td data-label="Role">${u.role}</td>
+        <td data-label="Aksi"><button class="act-btn" onclick="editUser('${u.email}')">✏️</button><button class="act-btn" onclick="confirmDeleteUser('${u.email}')">🗑️</button></td>
+      </tr>`).join('');
     }
 
     window.editUser = (email) => {
@@ -589,7 +687,14 @@
       const res = await callApi('getDokumentasi',{email});
       if(res.success){
         allDok = res.data||[];
-        document.getElementById('dokTableBody').innerHTML = allDok.map(d => `<tr><td>${d.instansi}</td><td>${d.wilayah}</td><td>${d.jenis}</td><td>${d.uploader}</td><td>${d.tglUpload?new Date(d.tglUpload).toLocaleDateString('id-ID'):'-'}</td><td><a href="${d.folderUrl}" target="_blank">📂 Buka</a></td></tr>`).join('') || '<tr><td colspan="6">Belum ada dokumentasi</td></tr>';
+        document.getElementById('dokTableBody').innerHTML = allDok.map(d => `<tr>
+          <td data-label="Instansi">${d.instansi}</td>
+          <td data-label="Wilayah">${d.wilayah}</td>
+          <td data-label="Jenis">${d.jenis}</td>
+          <td data-label="Uploader">${d.uploader}</td>
+          <td data-label="Tanggal">${d.tglUpload?new Date(d.tglUpload).toLocaleDateString('id-ID'):'-'}</td>
+          <td data-label="Folder"><a href="${d.folderUrl}" target="_blank">📂 Buka</a></td>
+        </tr>`).join('') || '<tr><td colspan="6">Belum ada dokumentasi</td></tr>';
       }
     }
 
