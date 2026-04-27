@@ -253,6 +253,21 @@
     }
     .field:focus { border-color: #00A2EA !important; background: rgba(255,255,255,0.15) !important; }
 
+    /* Dropdown options — dark theme */
+    select.field option {
+      background: #0f2c56;
+      color: white;
+    }
+    select.field option:hover,
+    select.field option:checked {
+      background: #2C70B7;
+      color: white;
+    }
+    /* Force dark background on select in all browsers */
+    select.field {
+      color-scheme: dark;
+    }
+
     /* ── PROFIL CARDS ── */
     .perf-card {
       background: rgba(255,255,255,0.1) !important;
