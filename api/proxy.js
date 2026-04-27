@@ -21,6 +21,8 @@ const ALLOWED_ACTIONS = new Set([
   'searchPekurban',
   'getPekurbanDetail',
   'getPhotoAsBase64',
+  'getDokumentasiWilayah',
+  'getDokFotoById',
 ]);
 
 // Domain yang diizinkan mengakses API ini

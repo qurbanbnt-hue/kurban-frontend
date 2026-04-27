@@ -247,7 +247,26 @@
     @keyframes adminSpin { to { transform: rotate(360deg); } }
     .admin-overlay-text { font-size: 14px; font-weight: 700; color: #0D1E35; }
 
-    /* ── MOBILE TABLE → CARD LIST ── */
+    /* ── FLOATING ADD BUTTON (mobile) ── */
+    .fab-add {
+      display: none;
+      position: fixed;
+      bottom: 80px; right: 20px;
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #2C70B7, #00A2EA);
+      color: white; border: none; border-radius: 50%;
+      font-size: 28px; font-weight: 300;
+      cursor: pointer; z-index: 150;
+      box-shadow: 0 6px 20px rgba(44,112,183,0.5);
+      align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .fab-add:hover { transform: scale(1.08); }
+    @media (max-width: 900px) {
+      .fab-add { display: flex; }
+      /* Hide desktop add button on mobile */
+      .a-actions .btn-primary { display: none; }
+    }
     @media (max-width: 900px) {
       .acard { overflow-x: hidden; }
       table, thead, tbody, th, td, tr { display: block; }
@@ -320,9 +339,7 @@
       <div id="tab-dashboard" class="tab-content active">
         <div class="a-topbar">
           <div class="a-page-h"><h1>Dashboard</h1><p>Idul Adha 1447 H · Data real-time</p></div>
-          <div class="a-actions">
-            <button class="btn-ghost" onclick="logout()" style="color:#E05050;border-color:#E05050;"><i class="icon icon-log-out"></i> Keluar</button>
-          </div>
+          <div class="a-actions"></div>
         </div>
         <div class="kpi-grid">
           <div class="kpi kpi-1"><div class="kpi-icon blue"><i class="icon icon-list"></i></div><div class="kpi-val" id="dashTotalHewan">-</div><div class="kpi-lbl">Total Hewan</div></div>
@@ -455,6 +472,10 @@
     </div>
   </div>
 
+  <!-- FAB buttons (mobile only) -->
+  <button class="fab-add" id="fabHewan" onclick="openHewanModal()" style="display:none;" title="Tambah Hewan">＋</button>
+  <button class="fab-add" id="fabUser"  onclick="openUserModal()"  style="display:none;" title="Tambah Pengguna">＋</button>
+
   <!-- Toast -->
   <div id="toast" class="toast"></div>
 
@@ -503,6 +524,11 @@
       document.querySelector(`.admin-bottom-nav .nav-item[data-tab="${tab}"]`)?.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.getElementById(`tab-${tab}`)?.classList.add('active');
+
+      // FAB visibility (mobile only)
+      document.getElementById('fabHewan').style.display = (tab === 'hewan')    ? 'flex' : 'none';
+      document.getElementById('fabUser').style.display  = (tab === 'pengguna') ? 'flex' : 'none';
+
       if (tab === 'dashboard') loadDashboard();
       else if (tab === 'hewan') loadHewan();
       else if (tab === 'pengguna') loadUsers();
@@ -834,7 +860,9 @@
       const res = await callApi('getDokumentasi',{email});
       if(res.success){
         allDok = res.data||[];
-        document.getElementById('dokTableBody').innerHTML = allDok.map(d => `<tr>
+        // Hanya tampilkan yang sudah ada link Drive-nya
+        const withLink = allDok.filter(d => d.folderUrl && d.folderUrl.startsWith('http'));
+        document.getElementById('dokTableBody').innerHTML = withLink.map(d => `<tr>
           <td data-label="Instansi">${d.instansi}</td>
           <td data-label="Wilayah">${d.wilayah}</td>
           <td data-label="Jenis">${d.jenis}</td>

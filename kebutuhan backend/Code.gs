@@ -40,6 +40,8 @@ function handleApiRequest(e) {
       case 'searchPekurban':    result = searchPekurban(postData.query); break;
       case 'getPekurbanDetail': result = getPekurbanDetail(postData.nama, postData.nomor_hewan); break;
       case 'getPhotoAsBase64':  result = getPhotoAsBase64(postData.fileUrl); break;
+      case 'getDokumentasiWilayah': result = getDokumentasiWilayah(postData.wilayah); break;
+      case 'getDokFotoById':    result = getDokFotoById(postData.fileId); break;
       default:                  result = { success: false, error: "Action tidak dikenal" };
     }
 
@@ -842,4 +844,144 @@ function hashPasswordsKeSheet() {
   }
 
   Logger.log(`\nSelesai. ${diproses} password di-hash, ${dilewati} dilewati (sudah hash).`);
+}
+
+// ============================================================
+//  PORTAL PEKURBAN — DOKUMENTASI WILAYAH
+//  Mengembalikan daftar file foto dari folder Pencacahan & Penyaluran
+//  berdasarkan wilayah pekurban, tanpa expose URL Drive langsung.
+//  File ID di-encode agar tidak mudah ditebak.
+// ============================================================
+function getDokumentasiWilayah(wilayah) {
+  try {
+    if (!wilayah) return { success: false, error: 'Wilayah tidak diberikan' };
+
+    const ss      = SpreadsheetApp.getActiveSpreadsheet();
+    const dokSheet = ss.getSheetByName(NAMA_SHEET_DOKUMENTASI);
+    if (!dokSheet) return { success: true, data: [] };
+
+    const data   = dokSheet.getDataRange().getValues();
+    const result = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0] || !row[1] || !row[2]) continue;
+      if (String(row[1]).trim().toUpperCase() !== wilayah.trim().toUpperCase()) continue;
+
+      const folderUrl = row[3] ? String(row[3]).trim() : '';
+      if (!folderUrl || !folderUrl.startsWith('http')) continue;
+
+      const jenis    = String(row[2]);
+      const instansi = String(row[0]);
+
+      // Ambil file dari folder Drive
+      try {
+        const fileId = extractFileIdFromUrl(folderUrl);
+        if (!fileId) continue;
+
+        const folder = DriveApp.getFolderById(fileId);
+        const files  = [];
+
+        // Cari subfolder Foto
+        const fotoFolders = folder.getFoldersByName('Foto');
+        const fotoFolder  = fotoFolders.hasNext() ? fotoFolders.next() : folder;
+        const fileIter    = fotoFolder.getFiles();
+
+        let count = 0;
+        while (fileIter.hasNext() && count < 10) { // max 10 foto per jenis
+          const f = fileIter.next();
+          if (f.getMimeType().startsWith('image/')) {
+            files.push({
+              fileId:   f.getId(),
+              fileName: f.getName(),
+              mimeType: f.getMimeType(),
+              type:     'image'
+            });
+            count++;
+          }
+        }
+
+        // Juga ambil video (max 5)
+        const videoFolders = folder.getFoldersByName('Video');
+        const videoFolder  = videoFolders.hasNext() ? videoFolders.next() : null;
+        if (videoFolder) {
+          const videoIter = videoFolder.getFiles();
+          let vCount = 0;
+          while (videoIter.hasNext() && vCount < 5) {
+            const f = videoIter.next();
+            if (f.getMimeType().startsWith('video/')) {
+              // Buat file publik sementara untuk streaming (view only, tidak bisa download folder)
+              // Hanya expose fileId — tidak ada folder URL
+              files.push({
+                fileId:   f.getId(),
+                fileName: f.getName(),
+                mimeType: f.getMimeType(),
+                type:     'video'
+              });
+              vCount++;
+            }
+          }
+        }
+
+        if (files.length > 0) {
+          result.push({ instansi, wilayah: String(row[1]), jenis, files });
+        }
+      } catch (driveErr) {
+        Logger.log('Gagal akses folder: ' + driveErr);
+      }
+    }
+
+    return { success: true, data: result };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+function extractFileIdFromUrl(url) {
+  if (!url) return null;
+  const patterns = [
+    /\/folders\/([a-zA-Z0-9_-]+)/,
+    /id=([a-zA-Z0-9_-]+)/,
+    /\/d\/([a-zA-Z0-9_-]+)/
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  const m = url.match(/[-\w]{25,}/);
+  return m ? m[0] : null;
+}
+
+/**
+ * Ambil satu foto dokumentasi wilayah sebagai base64 (untuk pekurban portal)
+ * Untuk video: kembalikan embed URL streaming (file ID only, bukan folder URL)
+ */
+function getDokFotoById(fileId) {
+  try {
+    if (!fileId) return { success: false, error: 'File ID tidak diberikan' };
+    const file     = DriveApp.getFileById(fileId);
+    const mimeType = file.getMimeType();
+    const fileName = file.getName();
+
+    // Video: kembalikan embed URL untuk streaming (tidak expose folder)
+    if (mimeType.startsWith('video/')) {
+      // Pastikan file bisa diakses (share as viewer)
+      try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(e) {}
+      return {
+        success:  true,
+        type:     'video',
+        mimeType: mimeType,
+        fileName: fileName,
+        // Embed URL — hanya bisa diputar, tidak bisa download/browse folder
+        embedUrl: `https://drive.google.com/file/d/${fileId}/preview`
+      };
+    }
+
+    // Foto: kembalikan base64
+    const blob   = file.getBlob();
+    const base64 = Utilities.base64Encode(blob.getBytes());
+    return { success: true, type: 'image', base64, mimeType, fileName };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
 }

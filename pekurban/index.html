@@ -425,9 +425,46 @@
       border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
     }
 
-    @media (max-width: 480px) {
-      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .stat-num { font-size: 26px; }
+    /* ==================== DOKUMENTASI WILAYAH ==================== */
+    .dok-wilayah-card {
+      background: white; border-radius: 16px;
+      padding: 18px 20px; margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .dok-wilayah-tabs {
+      display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .dok-wilayah-tab {
+      padding: 7px 16px; border-radius: 100px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc; color: #64748b;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .dok-wilayah-tab.active {
+      background: #0f2c56; color: white; border-color: #0f2c56;
+    }
+    .dok-wilayah-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    }
+    .dok-wilayah-img-wrap {
+      border-radius: 10px; overflow: hidden;
+      background: #e2e8f0; aspect-ratio: 4/3;
+      display: flex; align-items: center; justify-content: center;
+      cursor: zoom-in; position: relative;
+    }
+    .dok-wilayah-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .dok-wilayah-loading {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      color: #94a3b8; font-size: 11px;
+    }
+    .dok-wilayah-empty {
+      text-align: center; padding: 20px; color: #94a3b8; font-size: 13px;
+    }
+
+    @media (min-width: 900px) {
+      /* On desktop, dokumentasi wilayah goes below sertifikat in col 3 */
+      .profil-col-right { gap: 14px; }
     }
 
     /* ==================== DESKTOP PROFIL LAYOUT ==================== */
@@ -827,7 +864,7 @@
         </div>
       </div>
 
-      <!-- COL 3: Sertifikat -->
+      <!-- COL 3: Sertifikat + Dokumentasi Wilayah -->
       <div class="profil-col-right">
         <div class="sertifikat-card fade-up" style="animation-delay:0.2s">
           <div class="sertifikat-icon"><i class="icon icon-award" style="font-family:'lucide'!important;font-style:normal;font-size:40px;color:white;"></i></div>
@@ -837,6 +874,17 @@
             <i class="icon icon-award"></i> Lihat &amp; Unduh Sertifikat
           </button>
         </div>
+
+        <!-- Dokumentasi Wilayah -->
+        <div class="dok-wilayah-card fade-up" style="animation-delay:0.25s">
+          <div class="info-card-title"><i class="icon icon-image"></i> Dokumentasi Wilayah ${wilayah}</div>
+          <div id="dokWilayahContent">
+            <div class="dok-wilayah-loading">
+              <div class="spinner" style="width:24px;height:24px;border-color:rgba(0,0,0,0.1);border-top-color:#2c70b7;"></div>
+              <span>Memuat dokumentasi...</span>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -844,6 +892,9 @@
     if (status?.url_hidup) loadFotoInline('hidup', status.url_hidup);
     if (status?.url_ditumbangkan) loadFotoInline('tumbang', status.url_ditumbangkan);
     if (status?.url_mati) loadFotoInline('mati', status.url_mati);
+
+    // Load dokumentasi wilayah
+    loadDokumentasiWilayah(wilayah);
   }
 
   function renderStep(emoji, label, url, tgl, uploader, done) {
@@ -993,6 +1044,123 @@
      */
     showToast('🏗️ Fitur unduh sertifikat sedang dalam pengembangan', '');
     // Placeholder: in the future will call generateSertifikatPDF(currentPekurban)
+  }
+
+  // ==================== DOKUMENTASI WILAYAH ====================
+  let dokWilayahData = []; // [{ instansi, wilayah, jenis, files: [{fileId, fileName, mimeType}] }]
+  let dokWilayahFotoCache = {}; // fileId -> base64 src
+  let activeDokJenis = '';
+
+  async function loadDokumentasiWilayah(wilayah) {
+    const container = document.getElementById('dokWilayahContent');
+    if (!container) return;
+
+    try {
+      const res = await callApi('getDokumentasiWilayah', { wilayah });
+      if (!res.success || !res.data || res.data.length === 0) {
+        container.innerHTML = '<div class="dok-wilayah-empty">Belum ada dokumentasi untuk wilayah ini</div>';
+        return;
+      }
+
+      dokWilayahData = res.data;
+      // Default: tampilkan jenis pertama
+      activeDokJenis = res.data[0].jenis;
+      renderDokWilayah();
+    } catch(e) {
+      const container = document.getElementById('dokWilayahContent');
+      if (container) container.innerHTML = '<div class="dok-wilayah-empty">Gagal memuat dokumentasi</div>';
+    }
+  }
+
+  function renderDokWilayah() {
+    const container = document.getElementById('dokWilayahContent');
+    if (!container) return;
+
+    const jenisList = [...new Set(dokWilayahData.map(d => d.jenis))];
+    const activeData = dokWilayahData.filter(d => d.jenis === activeDokJenis);
+    const allFiles = activeData.flatMap(d => d.files);
+
+    const tabsHtml = jenisList.map(j => `
+      <button class="dok-wilayah-tab ${j === activeDokJenis ? 'active' : ''}"
+        onclick="switchDokJenis('${j}')">${j}</button>
+    `).join('');
+
+    if (allFiles.length === 0) {
+      container.innerHTML = `
+        <div class="dok-wilayah-tabs">${tabsHtml}</div>
+        <div class="dok-wilayah-empty">Belum ada foto untuk kategori ini</div>`;
+      return;
+    }
+
+    const gridHtml = allFiles.map((f) => `
+      <div class="dok-wilayah-img-wrap${f.type === 'video' ? '" style="grid-column:1/-1;aspect-ratio:16/9' : ''}" id="dwrap-${f.fileId}">
+        <div class="dok-wilayah-loading">
+          <div class="spinner" style="width:20px;height:20px;border-color:rgba(0,0,0,0.1);border-top-color:#2c70b7;"></div>
+        </div>
+      </div>`).join('');
+
+    container.innerHTML = `
+      <div class="dok-wilayah-tabs">${tabsHtml}</div>
+      <div class="dok-wilayah-grid">${gridHtml}</div>`;
+
+    // Load each foto
+    allFiles.forEach(f => loadDokFoto(f.fileId, f.mimeType));
+  }
+
+  function switchDokJenis(jenis) {
+    activeDokJenis = jenis;
+    renderDokWilayah();
+  }
+
+  async function loadDokFoto(fileId, mimeType) {
+    const wrap = document.getElementById(`dwrap-${fileId}`);
+    if (!wrap) return;
+
+    // Use cache if available
+    if (dokWilayahFotoCache[fileId]) {
+      const cached = dokWilayahFotoCache[fileId];
+      wrap.innerHTML = cached.html;
+      if (cached.fotoData) currentFotoData[`dw-${fileId}`] = cached.fotoData;
+      return;
+    }
+
+    try {
+      const res = await callApi('getDokFotoById', { fileId });
+      if (!res.success) {
+        wrap.innerHTML = '<div class="dok-wilayah-loading" style="font-size:11px;">⚠️</div>';
+        return;
+      }
+
+      let html, fotoData;
+
+      if (res.type === 'video') {
+        // Video: embed iframe player — tidak expose URL folder
+        html = `
+          <div style="position:relative;width:100%;padding-top:75%;background:#000;border-radius:10px;overflow:hidden;">
+            <iframe
+              src="${res.embedUrl}"
+              style="position:absolute;inset:0;width:100%;height:100%;border:none;"
+              allow="autoplay"
+              allowfullscreen>
+            </iframe>
+            <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;">
+              <i class="icon icon-film" style="font-size:10px;"></i> VIDEO
+            </div>
+          </div>`;
+        fotoData = null; // video tidak bisa di-download via base64
+      } else {
+        // Foto: base64
+        const src = `data:${res.mimeType};base64,${res.base64}`;
+        fotoData = { src, mime: res.mimeType, fileName: res.fileName };
+        currentFotoData[`dw-${fileId}`] = fotoData;
+        html = `<img src="${src}" alt="dokumentasi" onclick="openLightbox('${src}','dw-${fileId}')">`;
+      }
+
+      dokWilayahFotoCache[fileId] = { html, fotoData };
+      wrap.innerHTML = html;
+    } catch(e) {
+      if (wrap) wrap.innerHTML = '<div class="dok-wilayah-loading" style="font-size:11px;">⚠️</div>';
+    }
   }
 
   // ==================== INIT ====================
