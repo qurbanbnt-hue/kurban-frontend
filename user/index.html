@@ -1237,8 +1237,8 @@
         container.innerHTML = result.data.map(d => `
           <div class="instansi-item">
             <div><strong>${d.instansi} (${d.wilayah})</strong> - ${d.jenis}</div>
-            <div style="font-size:12px; color:var(--muted);">${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'} oleh ${d.uploader}</div>
-            <a href="${d.folderUrl}" target="_blank" style="color:var(--blue);">📂 Buka Folder</a>
+            <div style="font-size:12px; color:rgba(255,255,255,0.4);">${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'} oleh ${d.uploader}</div>
+            ${d.folderUrl && d.folderUrl.startsWith('http') ? `<a href="${d.folderUrl}" target="_blank" style="color:#00A2EA;font-size:12px;font-weight:600;"><i class="icon icon-folder" style="font-size:12px;"></i> Buka Folder</a>` : ''}
           </div>
         `).join('');
       } else {
