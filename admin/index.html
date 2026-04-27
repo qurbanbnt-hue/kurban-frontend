@@ -102,6 +102,45 @@
       background: #0f2c56; color: white;
     }
 
+    /* ── CUSTOM FILTER DROPDOWN ── */
+    .filter-select-wrap {
+      position: relative; flex: 1; min-width: 120px;
+    }
+    .filter-select-btn {
+      width: 100%; padding: 10px 32px 10px 14px;
+      background: rgba(255,255,255,0.1);
+      border: 1.5px solid rgba(255,255,255,0.18);
+      border-radius: 100px; color: white;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; text-align: left;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    }
+    .filter-select-btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
+    .filter-select-btn.open { border-color: #00A2EA; background: rgba(0,162,234,0.15); }
+    .filter-select-btn i { font-size: 14px; opacity: 0.6; flex-shrink: 0; transition: transform 0.2s; }
+    .filter-select-btn.open i { transform: rotate(180deg); }
+    .filter-dropdown {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0;
+      min-width: 100%; max-height: 220px; overflow-y: auto;
+      background: #0f2c56; border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 14px; z-index: 200;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      padding: 6px;
+    }
+    .filter-dropdown.open { display: block; animation: fdFadeIn 0.15s ease; }
+    @keyframes fdFadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+    .filter-option {
+      padding: 9px 12px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8);
+      cursor: pointer; transition: background 0.15s; white-space: nowrap;
+    }
+    .filter-option:hover { background: rgba(255,255,255,0.1); color: white; }
+    .filter-option.selected { background: rgba(0,162,234,0.25); color: #00A2EA; }
+    .filter-dropdown::-webkit-scrollbar { width: 4px; }
+    .filter-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
     /* ── BOTTOM NAV MOBILE ── */
     .admin-bottom-nav {
       background: rgba(10,22,40,0.92) !important;
@@ -312,18 +351,24 @@
         </div>
         <div class="action-bar">
           <input type="text" id="searchHewan" class="field" placeholder="Cari nomor, pekurban..." oninput="filterHewan()">
-          <select id="filterWilayah" class="field" style="max-width:160px;" onchange="filterHewan()">
-            <option value="">Semua Wilayah</option>
-          </select>
-          <select id="filterInstansi" class="field" style="max-width:180px;" onchange="filterHewan()">
-            <option value="">Semua Instansi</option>
-          </select>
-          <select id="filterStatus" class="field" style="max-width:150px;" onchange="filterHewan()">
-            <option value="">Semua Status</option>
-            <option value="selesai">Selesai</option>
-            <option value="proses">Proses</option>
-            <option value="belum">Belum</option>
-          </select>
+          <div class="filter-select-wrap">
+            <button class="filter-select-btn" id="btnWilayah" onclick="toggleFilter('wilayah')">
+              <span id="lblWilayah">Semua Wilayah</span><i class="icon icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown" id="ddWilayah"></div>
+          </div>
+          <div class="filter-select-wrap">
+            <button class="filter-select-btn" id="btnInstansi" onclick="toggleFilter('instansi')">
+              <span id="lblInstansi">Semua Instansi</span><i class="icon icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown" id="ddInstansi"></div>
+          </div>
+          <div class="filter-select-wrap" style="min-width:110px;max-width:130px;">
+            <button class="filter-select-btn" id="btnStatus" onclick="toggleFilter('status')">
+              <span id="lblStatus">Semua Status</span><i class="icon icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown" id="ddStatus"></div>
+          </div>
         </div>
         <div class="acard">
           <table><thead><tr><th>No</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="hewanTableBody"></tbody></table>
@@ -526,6 +571,46 @@
     }
 
     // ==================== HEWAN CRUD ====================
+    // Custom filter state
+    const filterState = { wilayah: '', instansi: '', status: '' };
+
+    function toggleFilter(key) {
+      const dd  = document.getElementById(`dd${key.charAt(0).toUpperCase()+key.slice(1)}`);
+      const btn = document.getElementById(`btn${key.charAt(0).toUpperCase()+key.slice(1)}`);
+      const isOpen = dd.classList.contains('open');
+      // Close all
+      document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));
+      document.querySelectorAll('.filter-select-btn').forEach(b => b.classList.remove('open'));
+      if (!isOpen) { dd.classList.add('open'); btn.classList.add('open'); }
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.filter-select-wrap')) {
+        document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.filter-select-btn').forEach(b => b.classList.remove('open'));
+      }
+    });
+
+    function buildDropdown(key, options) {
+      const ddId  = `dd${key.charAt(0).toUpperCase()+key.slice(1)}`;
+      const lblId = `lbl${key.charAt(0).toUpperCase()+key.slice(1)}`;
+      const dd    = document.getElementById(ddId);
+      const allLabel = key === 'wilayah' ? 'Semua Wilayah' : key === 'instansi' ? 'Semua Instansi' : 'Semua Status';
+      dd.innerHTML = [{ value: '', label: allLabel }, ...options.map(o => ({ value: o, label: o }))]
+        .map(o => `<div class="filter-option${filterState[key]===o.value?' selected':''}" onclick="selectFilter('${key}','${o.value}','${o.label}')">${o.label}</div>`)
+        .join('');
+    }
+
+    function selectFilter(key, value, label) {
+      filterState[key] = value;
+      const lblId = `lbl${key.charAt(0).toUpperCase()+key.slice(1)}`;
+      document.getElementById(lblId).textContent = label;
+      document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));
+      document.querySelectorAll('.filter-select-btn').forEach(b => b.classList.remove('open'));
+      filterHewan();
+    }
+
     async function loadHewan() {
       await loadAllData();
       populateFilterDropdowns();
@@ -533,21 +618,11 @@
     }
 
     function populateFilterDropdowns() {
-      const wilayahSet  = new Set(allHewan.map(h => h.wilayah).filter(Boolean));
-      const instansiSet = new Set(allHewan.map(h => h.instansi).filter(Boolean));
-
-      const wSelect = document.getElementById('filterWilayah');
-      const iSelect = document.getElementById('filterInstansi');
-      const wVal = wSelect.value, iVal = iSelect.value;
-
-      wSelect.innerHTML = '<option value="">Semua Wilayah</option>' +
-        [...wilayahSet].sort().map(w => `<option value="${w}">${w}</option>`).join('');
-      iSelect.innerHTML = '<option value="">Semua Instansi</option>' +
-        [...instansiSet].sort().map(i => `<option value="${i}">${i}</option>`).join('');
-
-      // Restore previous selection
-      wSelect.value = wVal;
-      iSelect.value = iVal;
+      const wilayahList  = [...new Set(allHewan.map(h => h.wilayah).filter(Boolean))].sort();
+      const instansiList = [...new Set(allHewan.map(h => h.instansi).filter(Boolean))].sort();
+      buildDropdown('wilayah',  wilayahList);
+      buildDropdown('instansi', instansiList);
+      buildDropdown('status',   ['selesai', 'proses', 'belum']);
     }
 
     function renderHewanTable(data) {
@@ -571,9 +646,9 @@
 
     function filterHewan() {
       const q        = document.getElementById('searchHewan').value.toLowerCase();
-      const wilayah  = document.getElementById('filterWilayah').value;
-      const instansi = document.getElementById('filterInstansi').value;
-      const status   = document.getElementById('filterStatus').value;
+      const wilayah  = filterState.wilayah;
+      const instansi = filterState.instansi;
+      const status   = filterState.status;
 
       const filtered = allHewan.filter(h => {
         const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
@@ -581,7 +656,6 @@
           (status === 'selesai' && p === 3) ||
           (status === 'proses'  && p > 0 && p < 3) ||
           (status === 'belum'   && p === 0);
-
         return statusMatch &&
           (!wilayah  || h.wilayah  === wilayah) &&
           (!instansi || h.instansi === instansi) &&
@@ -590,7 +664,6 @@
                  h.instansi.toLowerCase().includes(q) ||
                  h.wilayah.toLowerCase().includes(q));
       });
-
       renderHewanTable(filtered);
     }
 
