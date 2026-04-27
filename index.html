@@ -8,292 +8,604 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/png" href="assets/images/logo-bnt.png">
   <style>
-    .lcard { transition: all 0.35s cubic-bezier(0.4,0,0.2,1); }
-    #loginForm, #portalChoice, #pekurbanPortalSection { transition: opacity 0.3s ease, transform 0.3s ease; }
-    .fade-in { animation: fadeInUp 0.4s ease forwards; }
-    @keyframes fadeInUp {
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #0D1E35;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── BACKGROUND ── */
+    .hero-bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(160deg, #0a1628 0%, #0f2c56 45%, #1a4a8a 100%);
+    }
+    .hero-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 30%, rgba(44,112,183,0.35) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 70%, rgba(0,162,234,0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 60% 10%, rgba(239,172,21,0.08) 0%, transparent 40%);
+    }
+    .hero-bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(
+        -55deg, transparent 0px, transparent 40px,
+        rgba(44,112,183,0.04) 40px, rgba(44,112,183,0.04) 41px
+      );
+    }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 32px;
+      background: rgba(13,30,53,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .navbar-brand {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .navbar-logo {
+      width: 36px; height: 36px;
+      background: white; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+    .navbar-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .navbar-name {
+      font-family: 'Sora', sans-serif;
+      font-size: 13px; font-weight: 700;
+      color: white; line-height: 1.3;
+    }
+    .navbar-sub { font-size: 10px; color: rgba(255,255,255,0.4); }
+    .btn-login-nav {
+      padding: 10px 22px;
+      background: linear-gradient(135deg, #2C70B7, #00A2EA);
+      color: white; border: none; border-radius: 10px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 7px;
+      box-shadow: 0 4px 16px rgba(44,112,183,0.4);
+      white-space: nowrap;
+    }
+    .btn-login-nav:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(44,112,183,0.5); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 100px 24px 40px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 12px; font-weight: 700;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      margin-bottom: 28px;
+      animation: fadeUp 0.5s ease forwards;
+    }
+    .hero-eyebrow-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hero-title {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(32px, 6vw, 64px);
+      font-weight: 800; line-height: 1.1;
+      color: white; margin-bottom: 8px;
+      animation: fadeUp 0.5s 0.1s ease both;
+    }
+    .hero-title .accent-blue { color: #00A2EA; }
+    .hero-title .accent-green { color: #7CBE5A; }
+    .hero-sub {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(18px, 3vw, 28px);
+      font-weight: 600; color: rgba(255,255,255,0.55);
+      margin-bottom: 20px;
+      animation: fadeUp 0.5s 0.15s ease both;
+    }
+    .hero-desc {
+      font-size: clamp(14px, 1.8vw, 16px);
+      color: rgba(255,255,255,0.45);
+      max-width: 480px; line-height: 1.8;
+      margin-bottom: 44px;
+      animation: fadeUp 0.5s 0.2s ease both;
+    }
+
+    /* ── CTA BUTTONS ── */
+    .hero-cta {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 14px;
+      width: 100%; max-width: 360px;
+      animation: fadeUp 0.5s 0.25s ease both;
+    }
+    .btn-pekurban {
+      width: 100%; padding: 18px 28px;
+      background: linear-gradient(135deg, #2C70B7 0%, #00A2EA 100%);
+      color: white; border: none; border-radius: 14px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px; font-weight: 800;
+      cursor: pointer; transition: all 0.25s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 8px 28px rgba(44,112,183,0.45);
+      letter-spacing: 0.02em;
+    }
+    .btn-pekurban:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(44,112,183,0.55); }
+    .btn-pekurban:active { transform: translateY(0); }
+    .btn-pekurban-arrow {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+
+    /* ── STATS BAND ── */
+    .stats-band {
+      width: 100%; max-width: 480px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      display: flex;
+      backdrop-filter: blur(8px);
+      overflow: hidden;
+      animation: fadeUp 0.5s 0.3s ease both;
+    }
+    .stat-item {
+      flex: 1; padding: 18px 12px;
+      text-align: center;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(22px, 4vw, 30px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #00A2EA, #2C70B7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+    }
+    .stat-lbl {
+      font-size: 10px; color: rgba(255,255,255,0.4);
+      margin-top: 4px; font-weight: 600; letter-spacing: 0.3px;
+    }
+
+    /* ── FOOTER ── */
+    .hero-footer {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 20px 24px 32px;
+      font-size: 12px; color: rgba(255,255,255,0.25);
+    }
+
+    /* ── LOGIN MODAL ── */
+    .login-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .login-modal-overlay.active { display: flex; animation: fadeUp 0.25s ease; }
+    .login-modal {
+      background: white; border-radius: 24px;
+      width: 100%; max-width: 400px;
+      padding: 36px 32px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+      position: relative;
+    }
+    .login-modal::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      border-radius: 24px 24px 0 0;
+      background: linear-gradient(90deg, #2C70B7, #00A2EA, #EFAC15);
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: #f1f5f9; border: none; border-radius: 8px;
+      width: 32px; height: 32px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: #64748b; transition: all 0.2s;
+    }
+    .modal-close:hover { background: #e2e8f0; }
+    .modal-logo-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
+    }
+    .modal-logo-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #2C70B7, #00A2EA);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; padding: 4px;
+    }
+    .modal-logo-icon img { width: 100%; height: 100%; object-fit: contain; }
+    .modal-brand { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #0D1E35; }
+    .modal-brand-sub { font-size: 11px; color: #94a3b8; }
+    .modal-title { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; color: #0D1E35; margin-bottom: 4px; }
+    .modal-sub { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+    /* Portal choice inside modal */
+    .modal-portal-btns { display: flex; flex-direction: column; gap: 10px; }
+    .modal-portal-btn {
+      width: 100%; padding: 14px 18px;
+      border: none; border-radius: 12px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .modal-portal-btn.panitia {
+      background: linear-gradient(135deg, #2C70B7, #00A2EA);
+      color: white; box-shadow: 0 4px 16px rgba(44,112,183,0.3);
+    }
+    .modal-portal-btn.admin {
+      background: linear-gradient(135deg, #C48A00, #EFAC15);
+      color: #0D1E35; box-shadow: 0 4px 16px rgba(239,172,21,0.3);
+    }
+    .modal-portal-btn:hover { transform: translateY(-2px); }
+
+    /* Login form inside modal */
+    .modal-back-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
+    }
+    .modal-back-btn {
+      background: none; border: none; cursor: pointer;
+      color: #94a3b8; font-size: 13px;
+      display: flex; align-items: center; gap: 4px; padding: 0;
+      font-family: inherit;
+    }
+    .modal-back-btn:hover { color: #2C70B7; }
+    .modal-back-label { font-size: 14px; font-weight: 700; color: #0D1E35; }
+    .fgroup { margin-bottom: 14px; }
+    .flabel {
+      display: block; font-size: 11px; font-weight: 700;
+      color: #64748b; letter-spacing: 0.8px;
+      text-transform: uppercase; margin-bottom: 6px;
+    }
+    .field-wrap { position: relative; }
+    .field-icon {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%); opacity: 0.4; font-size: 16px;
+    }
+    .field {
+      width: 100%; padding: 12px 14px 12px 42px;
+      border: 1.5px solid #e2e8f0; border-radius: 12px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; color: #0D1E35;
+      background: #f8fafc; outline: none; transition: all 0.2s;
+    }
+    .field:focus { border-color: #2C70B7; background: white; box-shadow: 0 0 0 3px rgba(44,112,183,0.1); }
+    .btn-submit-modal {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #2C70B7, #00A2EA);
+      color: white; border: none; border-radius: 12px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; margin-top: 4px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 16px rgba(44,112,183,0.3);
+    }
+    .btn-submit-modal:hover { transform: translateY(-1px); }
+    .btn-submit-modal:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .error-message { color: #E05050; font-size: 13px; margin-top: 10px; text-align: center; }
+
+    /* Logged in state */
+    .modal-logged-info {
+      font-size: 13px; color: #64748b; margin-bottom: 16px; text-align: center;
+    }
+    .modal-logged-info strong { color: #0D1E35; }
+    .btn-ghost-modal {
+      width: 100%; padding: 12px; margin-top: 10px;
+      background: #f1f5f9; color: #64748b;
+      border: 1.5px solid #e2e8f0; border-radius: 12px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-ghost-modal:hover { border-color: #2C70B7; color: #2C70B7; }
+
+    .modal-foot {
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid #f1f5f9;
+      text-align: center; font-size: 11px; color: #94a3b8;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    #loginForm.hidden, #portalChoice.hidden { display: none; }
+    .fade-in { animation: fadeUp 0.3s ease forwards; }
+    .hidden { display: none !important; }
 
-    /* Portal buttons stacked vertically */
-    .portal-buttons-stacked {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      animation: fadeInUp 0.3s ease forwards;
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .navbar { padding: 12px 16px; }
+      .navbar-name { font-size: 12px; }
+      .btn-login-nav { padding: 9px 16px; font-size: 12px; }
+      .hero { padding: 90px 20px 32px; }
+      .login-modal { padding: 28px 20px; }
     }
-    .portal-btn-stacked {
-      width: 100%;
-      padding: 15px 20px;
-      border: none;
-      border-radius: var(--r-md);
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-    .portal-btn-stacked.panitia {
-      background: linear-gradient(135deg, var(--blue) 0%, var(--sky) 100%);
-      color: white;
-      box-shadow: var(--sh-sm);
-    }
-    .portal-btn-stacked.admin {
-      background: linear-gradient(135deg, var(--amber-dk) 0%, var(--amber) 100%);
-      color: var(--ink);
-      box-shadow: var(--sh-amb);
-    }
-    .portal-btn-stacked.pekurban {
-      background: transparent;
-      color: var(--green);
-      border: 2px solid var(--green);
-    }
-    .portal-btn-stacked:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
-    .portal-btn-stacked.pekurban:hover { background: var(--green); color: white; }
-
-    /* Divider between login portal and pekurban portal */
-    .portal-divider {
-      display: flex; align-items: center; gap: 10px; margin: 20px 0 16px;
-    }
-    .portal-divider-line { flex: 1; height: 1px; background: var(--border); }
-    .portal-divider-text { font-size: 12px; color: var(--muted); font-weight: 600; }
   </style>
 </head>
 <body>
 
-<div class="login-wrap">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
+<!-- Background -->
+<div class="hero-bg"></div>
 
-  <!-- Left Panel -->
-  <div class="login-left">
-    <div class="bnt-logo-row">
-      <img class="bnt-logo-img" src="assets/images/logo-bnt.png" alt="Yayasan Bhakti Nusa Tenggara">
-      <div>
-        <div class="bnt-name">Yayasan Bhakti<br>Nusa Tenggara</div>
-        <div class="bnt-tagline">Kurban Digital · 1447 H</div>
-      </div>
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="navbar-logo">
+      <img src="assets/images/logo-bnt.png" alt="BNT">
     </div>
     <div>
-      <div class="login-headline">Dokumentasi <span class="accent-blue">Qurban</span> yang <span class="accent-green">Terdigital</span></div>
-      <p class="login-desc">Platform terpadu untuk mengelola dan memantau proses penyembelihan hewan qurban secara real-time.</p>
-    </div>
-    <div class="stats-band">
-      <div class="stat-item"><div class="stat-num" id="statHewan">—</div><div class="stat-lbl">Hewan Terdaftar</div></div>
-      <div class="stat-item"><div class="stat-num" id="statInstansi">—</div><div class="stat-lbl">Instansi Aktif</div></div>
-      <div class="stat-item"><div class="stat-num" id="statPekurban">—</div><div class="stat-lbl">Total Pekurban</div></div>
+      <div class="navbar-name">Yayasan Bhakti Nusa Tenggara</div>
+      <div class="navbar-sub">Kurban Digital · 1447 H</div>
     </div>
   </div>
+  <button class="btn-login-nav" id="btnOpenLogin">
+    <i class="icon icon-log-in"></i> Login Penyelenggara
+  </button>
+</nav>
 
-  <!-- Right Card -->
-  <div class="login-right">
-    <div class="lcard">
-      <div class="lcard-logo">
-        <div class="lcard-icon">
-          <img src="assets/images/logo-bnt.png" alt="BNT">
-        </div>
-        <div>
-          <div class="lcard-brand-name">Kurban Digital</div>
-          <div class="lcard-brand-sub">Yayasan BNT</div>
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <span class="hero-eyebrow-dot"></span>
+    Idul Adha 1447 H · 2026 M
+  </div>
+
+  <h1 class="hero-title">
+    Dokumentasi <span class="accent-blue">Qurban</span><br>
+    yang <span class="accent-green">Terdigital</span>
+  </h1>
+  <div class="hero-sub">Yayasan Bhakti Nusa Tenggara</div>
+  <p class="hero-desc">
+    Platform terpadu untuk memantau dan mendokumentasikan proses penyembelihan hewan qurban secara real-time.
+  </p>
+
+  <!-- CTA utama: Portal Pekurban -->
+  <div class="hero-cta">
+    <a href="/pekurban" style="text-decoration:none;width:100%;">
+      <button class="btn-pekurban">
+        <i class="icon icon-search" style="font-size:18px;"></i>
+        Cek Status Kurban Saya
+        <span class="btn-pekurban-arrow"><i class="icon icon-chevron-right"></i></span>
+      </button>
+    </a>
+
+    <!-- Stats -->
+    <div class="stats-band">
+      <div class="stat-item">
+        <div class="stat-num" id="statHewan">—</div>
+        <div class="stat-lbl">Hewan Terdaftar</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="statSelesai">—</div>
+        <div class="stat-lbl">Sudah Dipotong</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="statPekurban">—</div>
+        <div class="stat-lbl">Total Pekurban</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<div class="hero-footer">
+  Dikelola oleh <strong style="color:rgba(255,255,255,0.4);">Yayasan Bhakti Nusa Tenggara</strong>
+</div>
+
+<!-- Login Modal -->
+<div class="login-modal-overlay" id="loginModalOverlay">
+  <div class="login-modal">
+    <button class="modal-close" id="btnCloseModal">✕</button>
+
+    <div class="modal-logo-row">
+      <div class="modal-logo-icon">
+        <img src="assets/images/logo-bnt.png" alt="BNT">
+      </div>
+      <div>
+        <div class="modal-brand">Kurban Digital</div>
+        <div class="modal-brand-sub">Yayasan BNT</div>
+      </div>
+    </div>
+
+    <!-- State 1: Pilih portal (default) -->
+    <div id="statePortal">
+      <div class="modal-title">Selamat Datang</div>
+      <div class="modal-sub">Masuk sebagai penyelenggara</div>
+      <div class="modal-portal-btns">
+        <button class="modal-portal-btn panitia" id="btnGoLoginForm">
+          <i class="icon icon-user"></i> Login Panitia / Admin
+        </button>
+      </div>
+    </div>
+
+    <!-- State 2: Form login -->
+    <div id="stateForm" class="hidden">
+      <div class="modal-back-row">
+        <button class="modal-back-btn" id="btnBackToPortal">
+          <i class="icon icon-chevron-left"></i> Kembali
+        </button>
+        <span class="modal-back-label">Login Penyelenggara</span>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Email</label>
+        <div class="field-wrap">
+          <span class="field-icon"><i class="icon icon-mail"></i></span>
+          <input class="field" type="email" id="email" placeholder="email@bnt.or.id" required autocomplete="off">
         </div>
       </div>
-      <div class="lcard-title">Selamat Datang</div>
-      <div class="lcard-sub">Pilih portal untuk melanjutkan</div>
-
-      <!-- Portal Pilihan Utama (Login Panitia/Admin) -->
-      <div id="loginPortalSection">
-        <div class="portal-buttons-stacked" id="mainPortalButtons">
-          <button class="portal-btn-stacked panitia" id="openLoginBtn">
-            <i class="icon icon-user"></i> Portal Panitia &amp; Admin
-          </button>
-          <a href="/pekurban" style="text-decoration:none;">
-            <button class="portal-btn-stacked pekurban" style="width:100%;">
-              <i class="icon icon-eye"></i> Portal Pekurban
-            </button>
-          </a>
+      <div class="fgroup">
+        <label class="flabel">Kata Sandi</label>
+        <div class="field-wrap">
+          <span class="field-icon"><i class="icon icon-lock"></i></span>
+          <input class="field" type="password" id="password" placeholder="••••••••" required>
         </div>
       </div>
+      <button class="btn-submit-modal" id="loginBtn">
+        Masuk <i class="icon icon-chevron-right"></i>
+      </button>
+      <div id="loginError" class="error-message"></div>
+    </div>
 
-      <!-- Form Login (hidden by default) -->
-      <form id="loginForm" class="hidden" style="margin-top:0;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
-          <button type="button" id="backToPortal" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:4px;padding:0;">
-            <i class="icon icon-chevron-left"></i> Kembali
-          </button>
-          <span style="font-size:14px;font-weight:700;color:var(--ink);">Login Panitia / Admin</span>
-        </div>
-        <div class="fgroup">
-          <label class="flabel">Email</label>
-          <div class="field-wrap">
-            <span class="field-icon"><i class="icon icon-mail"></i></span>
-            <input class="field" type="email" id="email" placeholder="email@bnt.or.id" required autocomplete="off">
-          </div>
-        </div>
-        <div class="fgroup">
-          <label class="flabel">Kata Sandi</label>
-          <div class="field-wrap">
-            <span class="field-icon"><i class="icon icon-lock"></i></span>
-            <input class="field" type="password" id="password" placeholder="••••••••" required>
-          </div>
-        </div>
-        <button type="submit" class="btn-submit panitia" id="loginBtn">Lanjutkan <i class="icon icon-chevron-right"></i></button>
-        <div id="loginError" class="error-message"></div>
-      </form>
-
-      <!-- Portal Choice (hidden by default, shown after login) -->
-      <div id="portalChoice" class="portal-choice hidden">
-        <p>Anda login sebagai <strong id="loggedUser"></strong></p>
-        <div class="portal-buttons-stacked">
-          <button class="portal-btn-stacked panitia" id="goUser"><i class="icon icon-user"></i> Masuk sebagai Panitia</button>
-          <button class="portal-btn-stacked admin" id="goAdmin"><i class="icon icon-settings"></i> Masuk sebagai Administrator</button>
-        </div>
-        <button class="btn-ghost" style="margin-top:16px; width:100%;" id="logoutAfterChoice"><i class="icon icon-log-out"></i> Ganti Akun</button>
+    <!-- State 3: Sudah login, pilih portal -->
+    <div id="stateLoggedIn" class="hidden">
+      <div class="modal-title">Pilih Portal</div>
+      <div class="modal-logged-info">Login sebagai <strong id="loggedUser"></strong></div>
+      <div class="modal-portal-btns">
+        <button class="modal-portal-btn panitia" id="goUser">
+          <i class="icon icon-user"></i> Masuk sebagai Panitia
+        </button>
+        <button class="modal-portal-btn admin" id="goAdmin">
+          <i class="icon icon-settings"></i> Masuk sebagai Administrator
+        </button>
       </div>
+      <button class="btn-ghost-modal" id="logoutAfterChoice">
+        <i class="icon icon-log-out"></i> Ganti Akun
+      </button>
+    </div>
 
-      <div class="lcard-foot">
-        Dikelola oleh <strong>Yayasan Bhakti Nusa Tenggara</strong><br>
-        Idul Adha 1447 H · 2026 M
-      </div>
+    <div class="modal-foot">
+      Idul Adha 1447 H · 2026 M
     </div>
   </div>
 </div>
 
 <script src="assets/js/api.js"></script>
 <script>
-  // Elements
-  const loginForm = document.getElementById('loginForm');
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
-  const loginBtn = document.getElementById('loginBtn');
-  const errorDiv = document.getElementById('loginError');
-  const portalChoice = document.getElementById('portalChoice');
-  const loggedUserSpan = document.getElementById('loggedUser');
-  const goUserBtn = document.getElementById('goUser');
-  const goAdminBtn = document.getElementById('goAdmin');
-  const logoutAfterChoice = document.getElementById('logoutAfterChoice');
-  const mainPortalButtons = document.getElementById('mainPortalButtons');
-  const openLoginBtn = document.getElementById('openLoginBtn');
-  const backToPortal = document.getElementById('backToPortal');
-
   let currentUser = null;
 
-  // Tampilkan form login saat klik tombol Portal Panitia & Admin
-  openLoginBtn.addEventListener('click', () => {
-    mainPortalButtons.style.display = 'none';
-    loginForm.classList.remove('hidden');
-    loginForm.classList.add('fade-in');
+  // ── Modal open/close ──
+  const overlay = document.getElementById('loginModalOverlay');
+  document.getElementById('btnOpenLogin').addEventListener('click', () => {
+    overlay.classList.add('active');
+  });
+  document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  function closeModal() {
+    overlay.classList.remove('active');
+  }
+
+  // ── State switching ──
+  function showState(id) {
+    ['statePortal','stateForm','stateLoggedIn'].forEach(s => {
+      document.getElementById(s).classList.toggle('hidden', s !== id);
+    });
+  }
+
+  document.getElementById('btnGoLoginForm').addEventListener('click', () => showState('stateForm'));
+  document.getElementById('btnBackToPortal').addEventListener('click', () => {
+    showState('statePortal');
+    document.getElementById('loginError').textContent = '';
   });
 
-  // Kembali ke pilihan portal
-  backToPortal.addEventListener('click', () => {
-    loginForm.classList.add('hidden');
-    mainPortalButtons.style.display = 'flex';
-    errorDiv.textContent = '';
-  });
-
-  // Cek session ketika halaman dimuat
+  // ── Session check ──
   function checkExistingSession() {
     const email = localStorage.getItem('userEmail');
-    const role = localStorage.getItem('userRole');
+    const role  = localStorage.getItem('userRole');
     const expiry = Number(localStorage.getItem('loginExpiry'));
     if (email && role && Date.now() < expiry) {
       currentUser = {
-        email: email,
-        username: localStorage.getItem('username') || email.split('@')[0],
-        role: role
+        email, role,
+        username: localStorage.getItem('username') || email.split('@')[0]
       };
-      showPortalChoice();
+      showLoggedIn();
     }
   }
 
-  function showPortalChoice() {
-    mainPortalButtons.style.display = 'none';
-    loginForm.classList.add('hidden');
-    portalChoice.classList.remove('hidden');
-    portalChoice.classList.add('fade-in');
-    loggedUserSpan.textContent = `${currentUser.username} (${currentUser.role === 'admin' ? 'Administrator' : 'Panitia'})`;
-    if (currentUser.role !== 'admin') {
-      goAdminBtn.style.display = 'none';
-    } else {
-      goAdminBtn.style.display = 'flex';
-    }
+  function showLoggedIn() {
+    document.getElementById('loggedUser').textContent =
+      `${currentUser.username} (${currentUser.role === 'admin' ? 'Administrator' : 'Panitia'})`;
+    document.getElementById('goAdmin').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+    showState('stateLoggedIn');
   }
 
-  function resetToLogin() {
-    localStorage.clear();
-    currentUser = null;
-    portalChoice.classList.add('hidden');
-    mainPortalButtons.style.display = 'flex';
-    loginForm.classList.add('hidden');
-    emailInput.value = '';
-    passwordInput.value = '';
-    loginBtn.disabled = false;
-    loginBtn.innerHTML = 'Lanjutkan <i class="icon icon-chevron-right"></i>';
-  }
+  // ── Login ──
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('loginError');
+    const btn      = document.getElementById('loginBtn');
 
-  // Login handler
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+    if (!email || !password) { errorDiv.textContent = 'Email dan password harus diisi'; return; }
 
-    if (!email || !password) {
-      errorDiv.textContent = 'Email dan password harus diisi';
-      return;
-    }
-
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = 'Memverifikasi...';
+    btn.disabled = true;
+    btn.innerHTML = 'Memverifikasi...';
     errorDiv.textContent = '';
 
     try {
       const result = await callApi('login', { email, password });
       if (result.success) {
-        localStorage.setItem('userEmail', result.email);
-        localStorage.setItem('username', result.username);
-        localStorage.setItem('userRole', result.role);
-        localStorage.setItem('loginExpiry', Date.now() + 8*60*60*1000);
-
-        currentUser = {
-          email: result.email,
-          username: result.username,
-          role: result.role
-        };
-        showPortalChoice();
+        localStorage.setItem('userEmail',    result.email);
+        localStorage.setItem('username',     result.username);
+        localStorage.setItem('userRole',     result.role);
+        localStorage.setItem('loginExpiry',  Date.now() + 8*60*60*1000);
+        currentUser = { email: result.email, username: result.username, role: result.role };
+        showLoggedIn();
       } else {
         throw new Error(result.error || 'Login gagal');
       }
     } catch (err) {
       errorDiv.textContent = err.message;
-      loginBtn.disabled = false;
-      loginBtn.innerHTML = 'Lanjutkan <i class="icon icon-chevron-right"></i>';
     }
+    btn.disabled = false;
+    btn.innerHTML = 'Masuk <i class="icon icon-chevron-right"></i>';
   });
 
-  // Portal selection
-  goUserBtn.addEventListener('click', () => { window.location.href = '/user'; });
-  goAdminBtn.addEventListener('click', () => { window.location.href = '/admin'; });
-  logoutAfterChoice.addEventListener('click', resetToLogin);
+  // Enter key on password field
+  document.getElementById('password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
+  });
 
-  // Load public stats for left panel
+  // ── Portal navigation ──
+  document.getElementById('goUser').addEventListener('click',  () => { window.location.href = '/user'; });
+  document.getElementById('goAdmin').addEventListener('click', () => { window.location.href = '/admin'; });
+  document.getElementById('logoutAfterChoice').addEventListener('click', () => {
+    localStorage.clear();
+    currentUser = null;
+    showState('statePortal');
+    document.getElementById('email').value = '';
+    document.getElementById('password').value = '';
+  });
+
+  // ── Stats ──
   async function loadStats() {
     try {
-      const result = await callApi('getPublicStats', {});
-      if (result && result.totalHewan !== undefined) {
-        document.getElementById('statHewan').textContent = result.totalHewan;
-        document.getElementById('statInstansi').textContent = result.totalInstansi;
-        document.getElementById('statPekurban').textContent = result.totalPekurban;
+      const r = await callApi('getPublicStats', {});
+      if (r && r.totalHewan !== undefined) {
+        document.getElementById('statHewan').textContent    = r.totalHewan;
+        document.getElementById('statSelesai').textContent  = r.totalSelesai ?? '—';
+        document.getElementById('statPekurban').textContent = r.totalPekurban;
       }
-    } catch (e) { /* biarkan default — */ }
+    } catch(e) {}
   }
 
-  // Initial
   checkExistingSession();
   loadStats();
 </script>
