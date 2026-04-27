@@ -321,7 +321,7 @@
       <div class="sb-item" data-tab="dokumentasi"><i class="icon icon-folder"></i> Dokumentasi</div>
       <div class="sb-footer">
         <div class="sb-user">
-          <div class="sb-ava" id="adminAvatar">👤</div>
+          <div class="sb-ava" id="adminAvatar" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;"></div>
           <div>
             <div class="sb-uname" id="adminName">Admin</div>
             <div class="sb-urole">Administrator</div>
@@ -663,7 +663,7 @@
           <td data-label="Instansi">${h.instansi}</td>
           <td data-label="Wilayah">${h.wilayah}</td>
           <td data-label="Status"><span class="status-badge ${cls}">${txt}</span></td>
-          <td data-label="Aksi"><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')">✏️</button><button class="act-btn" onclick="confirmDeleteHewan('${h.nomor_hewan}')">🗑️</button></td>
+          <td data-label="Aksi"><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')" title="Edit"><i class="icon icon-pencil"></i></button><button class="act-btn" onclick="confirmDeleteHewan('${h.nomor_hewan}')" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button></td>
         </tr>`;
       }).join('');
     }
@@ -761,7 +761,7 @@
         <td data-label="Email" style="word-break:break-all;">${u.email}</td>
         <td data-label="Username">${u.username}</td>
         <td data-label="Role">${u.role}</td>
-        <td data-label="Aksi"><button class="act-btn" onclick="editUser('${u.email}')">✏️</button><button class="act-btn" onclick="confirmDeleteUser('${u.email}')">🗑️</button></td>
+        <td data-label="Aksi"><button class="act-btn" onclick="editUser('${u.email}')" title="Edit"><i class="icon icon-pencil"></i></button><button class="act-btn" onclick="confirmDeleteUser('${u.email}')" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button></td>
       </tr>`).join('');
     }
 
@@ -866,7 +866,7 @@
           <td data-label="Jenis">${d.jenis}</td>
           <td data-label="Uploader">${d.uploader}</td>
           <td data-label="Tanggal">${d.tglUpload?new Date(d.tglUpload).toLocaleDateString('id-ID'):'-'}</td>
-          <td data-label="Folder"><a href="${d.folderUrl}" target="_blank">📂 Buka</a></td>
+          <td data-label="Folder"><a href="${d.folderUrl}" target="_blank"><i class="icon icon-folder-open" style="font-size:14px;"></i> Buka</a></td>
         </tr>`).join('') || '<tr><td colspan="6">Belum ada dokumentasi</td></tr>';
       }
     }

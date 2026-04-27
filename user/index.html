@@ -484,7 +484,7 @@
           <div class="u-brand-sub">Yayasan BNT 1447 H</div>
         </div>
       </div>
-      <button class="u-avatar" id="avatarInitial" onclick="switchScreen('akun')" style="cursor:pointer;border:none;">👤</button>
+      <button class="u-avatar" id="avatarInitial" onclick="switchScreen('akun')" style="cursor:pointer;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;"></button>
     </div>
     <div class="u-greet">
       <div class="u-hi">Assalamu'alaikum,</div>
@@ -733,9 +733,9 @@
     // ==================== UTILITIES ====================
   function getEmoji(jenis) {
     const j = (jenis||'').toLowerCase();
-    if (j.includes('kambing')||j.includes('domba')) return '🐑';
-    if (j.includes('kerbau')) return '🐃';
-    return '🐄';
+    if (j.includes('kambing')||j.includes('domba')) return '<i class="icon icon-sheep" style="font-size:20px;"></i>';
+    if (j.includes('kerbau')) return '<i class="icon icon-beef" style="font-size:20px;"></i>';
+    return '<i class="icon icon-beef" style="font-size:20px;"></i>';
   }
   function getPhaseCount(status) {
     return [status.url_hidup, status.url_ditumbangkan, status.url_mati].filter(Boolean).length;

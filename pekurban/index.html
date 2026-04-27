@@ -731,7 +731,7 @@
         resultsContainer.innerHTML = `
           <div class="results-section">
             <div class="empty-state">
-              <div class="empty-state-icon">🔍</div>
+              <div class="empty-state-icon"><i class="icon icon-search" style="font-size:40px;color:#94a3b8;"></i></div>
               <div class="empty-state-text">Nama tidak ditemukan. Coba kata lain.</div>
             </div>
           </div>`;
@@ -742,7 +742,7 @@
         resultsContainer.innerHTML = `
           <div class="results-section">
             <div class="empty-state">
-              <div class="empty-state-icon">😕</div>
+              <div class="empty-state-icon"><i class="icon icon-search-x" style="font-size:40px;color:#94a3b8;"></i></div>
               <div class="empty-state-text">Tidak ada nama yang cocok dengan "<strong>${query}</strong>"</div>
             </div>
           </div>`;
@@ -751,13 +751,15 @@
 
       const items = res.data.map(r => {
         const initials = r.nama_pekurban.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
-        const hewanEmoji = r.jenis_hewan?.toLowerCase().includes('sapi') ? '🐄' : '🐑';
+        const hewanIcon = r.jenis_hewan?.toLowerCase().includes('sapi')
+          ? '<i class="icon icon-beef" style="font-size:13px;"></i>'
+          : '<i class="icon icon-rabbit" style="font-size:13px;"></i>';
         return `
           <div class="result-item" onclick='openProfil(${JSON.stringify(r)})'>
             <div class="result-avatar">${initials}</div>
             <div>
               <div class="result-name">${r.nama_pekurban}</div>
-              <div class="result-meta">${hewanEmoji} ${r.nomor_hewan} · ${r.instansi} · ${r.wilayah}</div>
+              <div class="result-meta">${hewanIcon} ${r.nomor_hewan} · ${r.instansi} · ${r.wilayah}</div>
             </div>
             <div class="result-arrow"><i class="icon icon-chevron-right" style="font-family:'lucide'!important;font-style:normal;"></i></div>
           </div>`;
@@ -772,7 +774,7 @@
       resultsContainer.innerHTML = `
         <div class="results-section">
           <div class="empty-state">
-            <div class="empty-state-icon">⚠️</div>
+            <div class="empty-state-icon"><i class="icon icon-wifi-off" style="font-size:40px;color:#94a3b8;"></i></div>
             <div class="empty-state-text">Gagal terhubung ke server. Coba lagi.</div>
           </div>
         </div>`;
@@ -800,25 +802,27 @@
       });
 
       if (!res.success || !res.data) {
-        content.innerHTML = `<div class="info-card"><div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Data tidak ditemukan</div></div></div>`;
+        content.innerHTML = `<div class="info-card"><div class="empty-state"><div class="empty-state-icon"><i class="icon icon-x-circle" style="font-size:40px;color:#94a3b8;"></i></div><div class="empty-state-text">Data tidak ditemukan</div></div></div>`;
         return;
       }
 
       renderProfil(res.data);
     } catch(e) {
-      content.innerHTML = `<div class="info-card"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Gagal memuat data</div></div></div>`;
+      content.innerHTML = `<div class="info-card"><div class="empty-state"><div class="empty-state-icon"><i class="icon icon-alert-triangle" style="font-size:40px;color:#94a3b8;"></i></div><div class="empty-state-text">Gagal memuat data</div></div></div>`;
     }
   }
 
   function renderProfil(data) {
     const { nama_pekurban, nomor_hewan, jenis_hewan, instansi, wilayah, status } = data;
     const initials = nama_pekurban.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
-    const hewanEmoji = jenis_hewan?.toLowerCase().includes('sapi') ? '🐄' : '🐑';
+    const hewanIcon = jenis_hewan?.toLowerCase().includes('sapi')
+      ? '<i class="icon icon-beef" style="font-size:14px;"></i>'
+      : '<i class="icon icon-rabbit" style="font-size:14px;"></i>';
 
     const statusDone = [status?.url_hidup, status?.url_ditumbangkan, status?.url_mati].filter(Boolean).length;
     let statusText = 'Belum ada dokumentasi';
     let statusColor = '#f59e0b';
-    if (statusDone === 3) { statusText = 'Semua tahap selesai ✅'; statusColor = '#22c55e'; }
+    if (statusDone === 3) { statusText = 'Semua tahap selesai'; statusColor = '#22c55e'; }
     else if (statusDone > 0) { statusText = `${statusDone}/3 tahap terdokumentasi`; statusColor = '#3b82f6'; }
 
     const sertBtn = `showSertifikat(${JSON.stringify({nama: nama_pekurban, nomor: nomor_hewan, jenis: jenis_hewan, wilayah, instansi})})`;
@@ -830,14 +834,14 @@
         <div class="profil-hero fade-up">
           <div class="profil-avatar-large">${initials}</div>
           <div class="profil-name">${nama_pekurban}</div>
-          <div class="profil-badge">${hewanEmoji} Pekurban ${jenis_hewan}</div>
+          <div class="profil-badge">${hewanIcon} Pekurban ${jenis_hewan}</div>
           <div style="margin-top:10px;font-size:13px;font-weight:600;color:${statusColor};">${statusText}</div>
         </div>
 
         <div class="info-card fade-up" style="animation-delay:0.05s">
           <div class="info-card-title"><i class="icon icon-clipboard-list"></i> Detail Hewan Kurban</div>
           <div class="info-row"><span class="info-label">Nomor Hewan</span><span class="info-value">${nomor_hewan}</span></div>
-          <div class="info-row"><span class="info-label">Jenis</span><span class="info-value">${hewanEmoji} ${jenis_hewan}</span></div>
+          <div class="info-row"><span class="info-label">Jenis</span><span class="info-value">${hewanIcon} ${jenis_hewan}</span></div>
           <div class="info-row"><span class="info-label">Instansi</span><span class="info-value">${instansi}</span></div>
           <div class="info-row"><span class="info-label">Wilayah</span><span class="info-value"><i class="icon icon-map-pin" style="font-size:12px;"></i> ${wilayah}</span></div>
         </div>
@@ -845,9 +849,9 @@
         <div class="info-card fade-up" style="animation-delay:0.1s">
           <div class="info-card-title"><i class="icon icon-calendar"></i> Status Penyembelihan</div>
           <div class="status-timeline">
-            ${renderStep('🐄', 'Hewan Hidup', status?.url_hidup, status?.tgl_hidup, status?.uploader_hidup, !!status?.url_hidup)}
-            ${renderStep('🔪', 'Ditumbangkan', status?.url_ditumbangkan, status?.tgl_ditumbangkan, status?.uploader_ditumbangkan, !!status?.url_ditumbangkan)}
-            ${renderStep('✅', 'Selesai / Mati', status?.url_mati, status?.tgl_mati, status?.uploader_mati, !!status?.url_mati)}
+            ${renderStep('hidup',   'Hewan Hidup',    status?.url_hidup,        status?.tgl_hidup,        status?.uploader_hidup,        !!status?.url_hidup)}
+            ${renderStep('tumbang', 'Ditumbangkan',   status?.url_ditumbangkan, status?.tgl_ditumbangkan, status?.uploader_ditumbangkan, !!status?.url_ditumbangkan)}
+            ${renderStep('mati',    'Selesai / Mati', status?.url_mati,         status?.tgl_mati,         status?.uploader_mati,         !!status?.url_mati)}
           </div>
         </div>
       </div>
@@ -897,11 +901,13 @@
     loadDokumentasiWilayah(wilayah);
   }
 
-  function renderStep(emoji, label, url, tgl, uploader, done) {
+  function renderStep(key, label, url, tgl, uploader, done) {
     const date = tgl ? new Date(tgl).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'}) : 'Belum tercatat';
+    const iconMap = { hidup: 'icon-heart', tumbang: 'icon-scissors', mati: 'icon-check-circle' };
+    const iconClass = done ? 'icon-check-circle' : (iconMap[key] || 'icon-circle');
     return `
       <div class="status-step ${done ? 'done' : ''}">
-        <div class="step-icon">${done ? '✅' : emoji}</div>
+        <div class="step-icon"><i class="icon ${iconClass}" style="font-size:16px;"></i></div>
         <div class="step-text">
           <div class="step-label">${label}</div>
           <div class="step-date">${date}</div>
@@ -935,7 +941,7 @@
           </div>
           <div class="foto-actions">
             <button class="btn-download" id="btn-dl-${key}" onclick="downloadFoto('${key}')" disabled>
-              ⬇ Unduh Foto
+              <i class="icon icon-download"></i> Unduh Foto
             </button>
           </div>
           <div class="foto-meta" id="foto-meta-${key}"></div>
@@ -961,7 +967,7 @@
           currentFotoData[key] = { embedUrl, mime: 'image/jpeg', isEmbed: true };
           if (dlBtn) { dlBtn.disabled = false; }
         } else {
-          wrap.innerHTML = `<div class="foto-placeholder"><div class="foto-placeholder-icon">⚠️</div><div class="foto-placeholder-text">Gagal memuat foto</div></div>`;
+          wrap.innerHTML = `<div class="foto-placeholder"><i class="icon icon-alert-triangle" style="font-size:28px;color:#94a3b8;"></i><div class="foto-placeholder-text">Gagal memuat foto</div></div>`;
         }
         return;
       }
@@ -975,7 +981,7 @@
       }
     } catch(e) {
       const wrap = document.getElementById(`foto-wrap-${key}`);
-      if (wrap) wrap.innerHTML = `<div class="foto-placeholder"><div class="foto-placeholder-icon">⚠️</div><div class="foto-placeholder-text">Gagal memuat</div></div>`;
+      if (wrap) wrap.innerHTML = `<div class="foto-placeholder"><i class="icon icon-alert-triangle" style="font-size:28px;color:#94a3b8;"></i><div class="foto-placeholder-text">Gagal memuat</div></div>`;
     }
   }
 
@@ -1019,10 +1025,10 @@
 
   // ==================== SERTIFIKAT ====================
   function showSertifikat({ nama, nomor, jenis, wilayah, instansi }) {
-    const hewanEmoji = jenis?.toLowerCase().includes('sapi') ? '🐄' : '🐑';
+    const hewanLabel = jenis?.toLowerCase().includes('sapi') ? 'Sapi' : 'Kambing/Domba';
     document.getElementById('sertNama').textContent = nama;
     document.getElementById('sertDetail').innerHTML = `
-      telah menunaikan ibadah qurban ${hewanEmoji}<br>
+      telah menunaikan ibadah qurban (${hewanLabel})<br>
       <strong>${nomor}</strong> · ${instansi} · ${wilayah}<br>
       Idul Adha 1447 H / 2026 M
     `;
@@ -1042,7 +1048,7 @@
      *
      * Untuk saat ini tampilkan notifikasi bahwa fitur dalam pengembangan
      */
-    showToast('🏗️ Fitur unduh sertifikat sedang dalam pengembangan', '');
+    showToast('Fitur unduh sertifikat sedang dalam pengembangan', '');
     // Placeholder: in the future will call generateSertifikatPDF(currentPekurban)
   }
 
@@ -1127,7 +1133,7 @@
     try {
       const res = await callApi('getDokFotoById', { fileId });
       if (!res.success) {
-        wrap.innerHTML = '<div class="dok-wilayah-loading" style="font-size:11px;">⚠️</div>';
+        wrap.innerHTML = '<div class="dok-wilayah-loading"><i class="icon icon-alert-triangle" style="font-size:18px;color:#94a3b8;"></i></div>';
         return;
       }
 
@@ -1159,7 +1165,7 @@
       dokWilayahFotoCache[fileId] = { html, fotoData };
       wrap.innerHTML = html;
     } catch(e) {
-      if (wrap) wrap.innerHTML = '<div class="dok-wilayah-loading" style="font-size:11px;">⚠️</div>';
+      if (wrap) wrap.innerHTML = '<div class="dok-wilayah-loading"><i class="icon icon-alert-triangle" style="font-size:18px;color:#94a3b8;"></i></div>';
     }
   }
 
