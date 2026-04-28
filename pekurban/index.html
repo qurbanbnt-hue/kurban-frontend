@@ -861,9 +861,9 @@
         <div class="info-card fade-up" style="animation-delay:0.15s;height:100%;">
           <div class="info-card-title"><i class="icon icon-camera"></i> Foto Dokumentasi</div>
           <div class="foto-grid">
-            ${renderFotoItem('hidup', '<i class="icon icon-image"></i> Kondisi Hidup', status?.url_hidup)}
-            ${renderFotoItem('tumbang', '<i class="icon icon-scissors"></i> Ditumbangkan', status?.url_ditumbangkan)}
-            ${renderFotoItem('mati', '<i class="icon icon-check-circle"></i> Setelah Penyembelihan', status?.url_mati)}
+            ${renderFotoItem('hidup',  '<img src="../assets/images/Icon/icon_sapi.png" style="width:13px;height:13px;object-fit:contain;vertical-align:middle;"> Kondisi Hidup', status?.url_hidup)}
+            ${renderFotoItem('tumbang','<img src="../assets/images/Icon/ditumbangkan.webp" style="width:13px;height:13px;object-fit:contain;vertical-align:middle;"> Ditumbangkan', status?.url_ditumbangkan)}
+            ${renderFotoItem('mati',   '<img src="../assets/images/Icon/disembelih.webp" style="width:13px;height:13px;object-fit:contain;vertical-align:middle;"> Setelah Penyembelihan', status?.url_mati)}
           </div>
         </div>
       </div>
@@ -903,11 +903,17 @@
 
   function renderStep(key, label, url, tgl, uploader, done) {
     const date = tgl ? new Date(tgl).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'}) : 'Belum tercatat';
-    const iconMap = { hidup: 'icon-heart', tumbang: 'icon-scissors', mati: 'icon-check-circle' };
-    const iconClass = done ? 'icon-check-circle' : (iconMap[key] || 'icon-circle');
+    const iconSrc = {
+      hidup:   '../assets/images/Icon/icon_sapi.png',
+      tumbang: '../assets/images/Icon/ditumbangkan.webp',
+      mati:    '../assets/images/Icon/disembelih.webp'
+    };
+    const src = iconSrc[key] || iconSrc.hidup;
     return `
       <div class="status-step ${done ? 'done' : ''}">
-        <div class="step-icon"><i class="icon ${iconClass}" style="font-size:16px;"></i></div>
+        <div class="step-icon">
+          <img src="${src}" style="width:20px;height:20px;object-fit:contain;${done ? 'filter:none;' : 'opacity:0.45;'}">
+        </div>
         <div class="step-text">
           <div class="step-label">${label}</div>
           <div class="step-date">${date}</div>

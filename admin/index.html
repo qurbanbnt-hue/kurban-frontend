@@ -658,7 +658,7 @@
         else if (p>0) { cls='status-proses'; txt=`${p}/3`; }
         return `<tr>
           <td data-label="Nomor">${h.nomor_hewan}</td>
-          <td data-label="Jenis">${h.jenis_hewan}</td>
+          <td data-label="Jenis"><img src="../assets/images/Icon/${h.jenis_hewan?.toLowerCase().includes('kambing')||h.jenis_hewan?.toLowerCase().includes('domba') ? 'icon_kambing.png' : 'icon_sapi.png'}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;"> ${h.jenis_hewan}</td>
           <td data-label="Pekurban" style="word-break:break-word;max-width:160px;">${h.daftar_pekurban}</td>
           <td data-label="Instansi">${h.instansi}</td>
           <td data-label="Wilayah">${h.wilayah}</td>
