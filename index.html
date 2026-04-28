@@ -561,6 +561,7 @@
     try {
       const result = await callApi('login', { email, password });
       if (result.success) {
+        localStorage.setItem('authToken',    result.token);
         localStorage.setItem('userEmail',    result.email);
         localStorage.setItem('username',     result.username);
         localStorage.setItem('userRole',     result.role);

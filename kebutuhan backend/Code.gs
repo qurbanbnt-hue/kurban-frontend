@@ -7,8 +7,13 @@ const NAMA_SHEET_AKUN        = "Akun";
 const NAMA_SHEET_DOKUMENTASI = "DokumentasiInstansi";
 const ROOT_FOLDER_ID         = "GANTI_DENGAN_ID_FOLDER_DRIVE_KAMU";
 
+// Secret key — harus sama persis dengan GAS_SECRET di .env Vercel
+// Simpan di Script Properties: File → Project Properties → Script Properties
+// Key: SCRIPT_SECRET  Value: (sama dengan GAS_SECRET di Vercel)
+const SCRIPT_SECRET = PropertiesService.getScriptProperties().getProperty('SCRIPT_SECRET') || '';
+
 // ============================================================
-//  ENTRY POINT (Web App API)
+//  ENTRY POINT
 // ============================================================
 function doGet(e)  { return handleApiRequest(e); }
 function doPost(e) { return handleApiRequest(e); }
@@ -16,44 +21,93 @@ function doPost(e) { return handleApiRequest(e); }
 function handleApiRequest(e) {
   try {
     const action = e.parameter.action;
-    let postData = {};
+    let body = {};
     if (e.postData && e.postData.contents) {
-      try { postData = JSON.parse(e.postData.contents); } catch (err) {}
+      try { body = JSON.parse(e.postData.contents); } catch (err) {}
+    }
+
+    // ── Validasi secret — tolak semua request tanpa secret yang benar ──
+    if (!SCRIPT_SECRET || body.secret !== SCRIPT_SECRET) {
+      return jsonResponse({ success: false, error: 'Akses ditolak' });
+    }
+
+    // data = payload dari proxy, user = objek user terverifikasi dari JWT
+    const data = body.data || {};
+    const user = body.user || null; // { email, role } — sudah diverifikasi proxy
+
+    // ── Rate limiting per user via CacheService ──
+    if (user && !checkGasRateLimit(user.email)) {
+      return jsonResponse({ success: false, error: 'Terlalu banyak permintaan' });
     }
 
     let result;
     switch (action) {
-      case 'login':             result = doLogin(postData.email, postData.password); break;
-      case 'getPublicStats':    result = getPublicStats(); break;
-      case 'getHewan':          result = getDataForUi(postData.email); break;
-      case 'uploadFoto':        result = uploadFotoJenis(postData); break;
-      case 'getDokumentasi':    result = getDokumentasiInstansi(postData.email); break;
-      case 'uploadDokumentasi': result = uploadDokumentasiInstansi(postData); break;
-      case 'getAdminData':      result = getAdminData(postData.email); break;
-      case 'addHewan':          result = addHewan(postData.email, postData.hewan); break;
-      case 'updateHewan':       result = updateHewan(postData.email, postData.hewan); break;
-      case 'deleteHewan':       result = deleteHewan(postData.email, postData.nomor_hewan); break;
-      case 'addUser':           result = addUser(postData.email, postData.newUser); break;
-      case 'updateUser':        result = updateUser(postData.email, postData.user); break;
-      case 'deleteUser':        result = deleteUser(postData.email, postData.targetEmail); break;
-      // ── Portal Pekurban ──
-      case 'searchPekurban':    result = searchPekurban(postData.query); break;
-      case 'getPekurbanDetail': result = getPekurbanDetail(postData.nama, postData.nomor_hewan); break;
-      case 'getPhotoAsBase64':  result = getPhotoAsBase64(postData.fileUrl); break;
-      case 'getDokumentasiWilayah': result = getDokumentasiWilayah(postData.wilayah); break;
-      case 'getDokFotoById':    result = getDokFotoById(postData.fileId); break;
-      default:                  result = { success: false, error: "Action tidak dikenal" };
+      // Public — tidak butuh user
+      case 'login':                 result = doLogin(data.email, data.password); break;
+      case 'getPublicStats':        result = getPublicStats(); break;
+      case 'searchPekurban':        result = searchPekurban(data.query); break;
+      case 'getPekurbanDetail':     result = getPekurbanDetail(data.nama, data.nomor_hewan); break;
+      case 'getDokumentasiWilayah': result = getDokumentasiWilayah(data.wilayah); break;
+
+      // User — butuh user terverifikasi
+      case 'getHewan':          result = requireUser(user) || getDataForUi(user.email); break;
+      case 'uploadFoto':        result = requireUser(user) || uploadFotoJenis(data, user); break;
+      case 'getDokumentasi':    result = requireUser(user) || getDokumentasiInstansi(user.email); break;
+      case 'uploadDokumentasi': result = requireUser(user) || uploadDokumentasiInstansi(data, user); break;
+      case 'getPhotoAsBase64':  result = requireUser(user) || getPhotoAsBase64(data.fileUrl); break;
+      case 'getDokFotoById':    result = requireUser(user) || getDokFotoById(data.fileId); break;
+
+      // Admin only — butuh role admin
+      case 'getAdminData':  result = requireAdmin(user) || getAdminData(user.email); break;
+      case 'addHewan':      result = requireAdmin(user) || addHewan(user.email, data.hewan); break;
+      case 'updateHewan':   result = requireAdmin(user) || updateHewan(user.email, data.hewan); break;
+      case 'deleteHewan':   result = requireAdmin(user) || deleteHewan(user.email, data.nomor_hewan); break;
+      case 'addUser':       result = requireAdmin(user) || addUser(user.email, data.newUser); break;
+      case 'updateUser':    result = requireAdmin(user) || updateUser(user.email, data.user); break;
+      case 'deleteUser':    result = requireAdmin(user) || deleteUser(user.email, data.targetEmail); break;
+
+      default: result = { success: false, error: 'Action tidak dikenal' };
     }
 
-    return ContentService
-      .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
+    return jsonResponse(result);
 
   } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    Logger.log('GAS Error: ' + err.toString());
+    return jsonResponse({ success: false, error: 'Internal server error' });
   }
+}
+
+// ── Helper: buat response JSON ────────────────────────────────
+function jsonResponse(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ── Helper: cek user terverifikasi ────────────────────────────
+function requireUser(user) {
+  if (!user || !user.email || !user.role) {
+    return { success: false, error: 'Autentikasi diperlukan' };
+  }
+  return null; // null = lolos, lanjut eksekusi
+}
+
+// ── Helper: cek role admin ────────────────────────────────────
+function requireAdmin(user) {
+  const check = requireUser(user);
+  if (check) return check;
+  if (user.role !== 'admin') return { success: false, error: 'Akses ditolak' };
+  return null;
+}
+
+// ── Rate limiting GAS via CacheService ───────────────────────
+function checkGasRateLimit(email) {
+  const cache = CacheService.getScriptCache();
+  const key   = 'rl_' + email;
+  const count = parseInt(cache.get(key) || '0', 10);
+  if (count >= 60) return false; // max 60 request per menit
+  cache.put(key, String(count + 1), 60); // TTL 60 detik
+  return true;
 }
 
 // ============================================================
@@ -68,33 +122,8 @@ function hashPass(plainText) {
   return bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
 }
 
-function isValidUser(email) {
-  try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
-    if (!sheet) return false;
-    const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (data[i] && data[i][0] && String(data[i][0]).trim().toLowerCase() === email.toLowerCase()) return true;
-    }
-    return false;
-  } catch (e) { return false; }
-}
-
-function isAdmin(email) {
-  try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
-    if (!sheet) return false;
-    const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      if (!row || !row[0]) continue;
-      if (String(row[0]).trim().toLowerCase() === email.toLowerCase()) {
-        return (row[3] ? String(row[3]).trim().toLowerCase() : 'user') === 'admin';
-      }
-    }
-    return false;
-  } catch (e) { return false; }
-}
+// isValidUser dan isAdmin dihapus — autentikasi kini dilakukan di proxy via JWT.
+// GAS hanya menerima user object yang sudah diverifikasi proxy.
 
 function safeVal(v) {
   if (!v && v !== 0) return '';
@@ -190,7 +219,6 @@ function doLogin(email, password) {
 // ============================================================
 function getDataForUi(email) {
   try {
-    if (!email || !isValidUser(email)) return { success: false, error: "Akses ditolak" };
     const ss           = SpreadsheetApp.getActiveSpreadsheet();
     const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
     const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
@@ -370,11 +398,10 @@ function getPhotoAsBase64(fileUrl) {
 // ============================================================
 //  UPLOAD FOTO HEWAN (Panitia)
 // ============================================================
-function uploadFotoJenis(params) {
+function uploadFotoJenis(data, user) {
   try {
-    const { email, username, nomor_hewan, jenis_foto, base64Data, mimeType } = params;
-    if (!email || !isValidUser(email)) return { success: false, error: "Akses ditolak" };
-    if (!['hidup','ditumbangkan','mati'].includes(jenis_foto)) return { success: false, error: "Jenis foto tidak valid" };
+    const { nomor_hewan, jenis_foto, base64Data, mimeType } = data;
+    const username = data.username || user.email;
 
     const ss      = SpreadsheetApp.getActiveSpreadsheet();
     const dbSheet = ss.getSheetByName(NAMA_SHEET_DB);
@@ -442,11 +469,10 @@ function uploadFotoJenis(params) {
 // ============================================================
 //  UPLOAD DOKUMENTASI INSTANSI (Panitia)
 // ============================================================
-function uploadDokumentasiInstansi(params) {
+function uploadDokumentasiInstansi(data, user) {
   try {
-    const { email, username, instansi, wilayah, jenis_dokumentasi, files } = params;
-    if (!email || !isValidUser(email)) return { success: false, error: "Akses ditolak" };
-    if (!files || files.length === 0) return { success: false, error: "Tidak ada file" };
+    const { instansi, wilayah, jenis_dokumentasi, files } = data;
+    const username = data.username || user.email;
 
     const ss         = SpreadsheetApp.getActiveSpreadsheet();
     const rootFolder = DriveApp.getFolderById(ROOT_FOLDER_ID);
@@ -494,7 +520,6 @@ function uploadDokumentasiInstansi(params) {
 // ============================================================
 function getDokumentasiInstansi(email) {
   try {
-    if (!email || !isValidUser(email)) return { success: false, error: "Akses ditolak" };
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_DOKUMENTASI);
     if (!sheet) return { success: true, data: [] };
     const data   = sheet.getDataRange().getValues();
@@ -516,7 +541,6 @@ function getDokumentasiInstansi(email) {
 //  ADMIN — GET ALL DATA
 // ============================================================
 function getAdminData(adminEmail) {
-  if (!isAdmin(adminEmail)) return { success: false, error: "Akses ditolak" };
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // Users
@@ -593,7 +617,6 @@ function getHewanStatus(ss, nomorHewan) {
 //  ADMIN — CRUD HEWAN
 // ============================================================
 function addHewan(adminEmail, hewan) {
-  if (!isAdmin(adminEmail)) return { success: false, error: "Akses ditolak" };
   try {
     const ss           = SpreadsheetApp.getActiveSpreadsheet();
     const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
@@ -612,7 +635,6 @@ function addHewan(adminEmail, hewan) {
 }
 
 function updateHewan(adminEmail, hewan) {
-  if (!isAdmin(adminEmail)) return { success: false, error: "Akses ditolak" };
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_DB);
     const data  = sheet.getDataRange().getValues();
@@ -631,7 +653,6 @@ function updateHewan(adminEmail, hewan) {
 }
 
 function deleteHewan(adminEmail, nomor_hewan) {
-  if (!isAdmin(adminEmail)) return { success: false, error: "Akses ditolak" };
   try {
     const ss           = SpreadsheetApp.getActiveSpreadsheet();
     const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
@@ -685,7 +706,6 @@ function deleteHewan(adminEmail, nomor_hewan) {
 //  ADMIN — CRUD USER
 // ============================================================
 function addUser(adminEmail, newUser) {
-  if (!isAdmin(adminEmail)) return { success: false, error: "Akses ditolak" };
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
     const data  = sheet.getDataRange().getValues();
@@ -700,7 +720,6 @@ function addUser(adminEmail, newUser) {
 }
 
 function updateUser(adminEmail, user) {
-  if (!isAdmin(adminEmail)) return { success: false, error: "Akses ditolak" };
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
     const data  = sheet.getDataRange().getValues();
@@ -717,7 +736,6 @@ function updateUser(adminEmail, user) {
 }
 
 function deleteUser(adminEmail, targetEmail) {
-  if (!isAdmin(adminEmail)) return { success: false, error: "Akses ditolak" };
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
     const data  = sheet.getDataRange().getValues();
@@ -965,14 +983,12 @@ function getDokFotoById(fileId) {
 
     // Video: kembalikan embed URL untuk streaming (tidak expose folder)
     if (mimeType.startsWith('video/')) {
-      // Pastikan file bisa diakses (share as viewer)
-      try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(e) {}
+      // File video tidak di-share publik — hanya bisa diakses via proxy
       return {
         success:  true,
         type:     'video',
         mimeType: mimeType,
         fileName: fileName,
-        // Embed URL — hanya bisa diputar, tidak bisa download/browse folder
         embedUrl: `https://drive.google.com/file/d/${fileId}/preview`
       };
     }

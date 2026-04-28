@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "http-server . -p 8080"
   },
+  "dependencies": {
+    "jose": "^5.9.6"
+  },
   "devDependencies": {
     "http-server": "^14.1.1"
   }

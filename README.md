@@ -143,9 +143,16 @@ npm install
 Buat file `.env.local`:
 ```
 APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
+GAS_SECRET=string_acak_min_32_karakter
+JWT_SECRET=string_acak_min_32_karakter_berbeda
+ALLOWED_ORIGINS=https://YOUR_VERCEL_DOMAIN.vercel.app
 ```
 
-Jalankan lokal:
+Generate secret key:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+Jalankan dua kali — satu untuk `GAS_SECRET`, satu untuk `JWT_SECRET`.
 ```bash
 npm run dev
 ```
