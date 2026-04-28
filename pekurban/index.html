@@ -956,56 +956,58 @@
   }
 
   // ==================== FOTO LOADING ====================
-  async function loadFotoInline(key, fileUrl) {
-    try {
-      const res = await callApi('getPhotoAsBase64', { fileUrl });
-
-      const wrap = document.getElementById(`foto-wrap-${key}`);
-      const dlBtn = document.getElementById(`btn-dl-${key}`);
-      if (!wrap) return;
-
-      if (!res.success || !res.base64) {
-        // Fallback: coba embed URL Drive langsung
-        const fileId = extractDriveFileId(fileUrl);
-        if (fileId) {
-          const embedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
-          wrap.innerHTML = `<img src="${embedUrl}" alt="${key}" onclick="openLightbox('${embedUrl}', '${key}')">`;
-          currentFotoData[key] = { embedUrl, mime: 'image/jpeg', isEmbed: true };
-          if (dlBtn) { dlBtn.disabled = false; }
-        } else {
-          wrap.innerHTML = `<div class="foto-placeholder"><i class="icon icon-alert-triangle" style="font-size:28px;color:#94a3b8;"></i><div class="foto-placeholder-text">Gagal memuat foto</div></div>`;
-        }
-        return;
-      }
-
-      const src = `data:${res.mimeType};base64,${res.base64}`;
-      currentFotoData[key] = { src, mime: res.mimeType, fileName: res.fileName };
-      wrap.innerHTML = `<img src="${src}" alt="${key}" onclick="openLightbox('${src}', '${key}')">`;
-      if (dlBtn) { dlBtn.disabled = false; }
-      if (document.getElementById(`foto-meta-${key}`)) {
-        document.getElementById(`foto-meta-${key}`).textContent = res.fileName || '';
-      }
-    } catch(e) {
-      const wrap = document.getElementById(`foto-wrap-${key}`);
-      if (wrap) wrap.innerHTML = `<div class="foto-placeholder"><i class="icon icon-alert-triangle" style="font-size:28px;color:#94a3b8;"></i><div class="foto-placeholder-text">Gagal memuat</div></div>`;
-    }
-  }
-
+  // fileId diekstrak di frontend — API tidak pernah menerima fileUrl
   function extractDriveFileId(url) {
     if (!url) return null;
+    const patterns = [
+      /\/file\/d\/([a-zA-Z0-9_-]+)/,
+      /id=([a-zA-Z0-9_-]+)/,
+      /\/d\/([a-zA-Z0-9_-]+)/,
+    ];
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) return m[1];
+    }
     const m = url.match(/[-\w]{25,}/);
     return m ? m[0] : null;
   }
 
-  function downloadFoto(key) {
-    const data = currentFotoData[key];
-    if (!data) return showToast('Foto belum dimuat', 'error');
+  async function loadFotoInline(key, fileUrl) {
+    const wrap  = document.getElementById(`foto-wrap-${key}`);
+    const dlBtn = document.getElementById(`btn-dl-${key}`);
+    if (!wrap) return;
 
-    if (data.isEmbed) {
-      window.open(data.embedUrl, '_blank');
+    const fileId = extractDriveFileId(fileUrl);
+    if (!fileId) {
+      wrap.innerHTML = `<div class="foto-placeholder"><i class="icon icon-alert-triangle" style="font-size:28px;color:#94a3b8;"></i><div class="foto-placeholder-text">Gagal memuat</div></div>`;
       return;
     }
 
+    try {
+      const res = await callApi('getFileById', { fileId });
+      if (!res.success) {
+        wrap.innerHTML = `<div class="foto-placeholder"><i class="icon icon-alert-triangle" style="font-size:28px;color:#94a3b8;"></i><div class="foto-placeholder-text">Gagal memuat foto</div></div>`;
+        return;
+      }
+      if (res.type === 'video') {
+        wrap.innerHTML = `<iframe src="${res.embedUrl}" style="width:100%;height:200px;border:none;border-radius:10px;" allowfullscreen></iframe>`;
+        return;
+      }
+      const src = `data:${res.mimeType};base64,${res.base64}`;
+      currentFotoData[key] = { src, mime: res.mimeType, fileName: res.fileName };
+      wrap.innerHTML = `<img src="${src}" alt="${key}" onclick="openLightbox('${src}','${key}')">`;
+      if (dlBtn) dlBtn.disabled = false;
+      if (document.getElementById(`foto-meta-${key}`)) {
+        document.getElementById(`foto-meta-${key}`).textContent = res.fileName || '';
+      }
+    } catch {
+      if (wrap) wrap.innerHTML = `<div class="foto-placeholder"><i class="icon icon-alert-triangle" style="font-size:28px;color:#94a3b8;"></i><div class="foto-placeholder-text">Gagal memuat</div></div>`;
+    }
+  }
+
+  function downloadFoto(key) {
+    const data = currentFotoData[key];
+    if (!data || !data.src) return showToast('Foto belum dimuat', 'error');
     const a = document.createElement('a');
     a.href = data.src;
     a.download = data.fileName || `foto_${key}.jpg`;
@@ -1128,7 +1130,7 @@
     }
 
     try {
-      const res = await callApi('getDokFotoById', { fileId });
+      const res = await callApi('getFileById', { fileId });
       if (!res.success) {
         wrap.innerHTML = '<div class="dok-wilayah-loading"><i class="icon icon-alert-triangle" style="font-size:18px;color:#94a3b8;"></i></div>';
         return;

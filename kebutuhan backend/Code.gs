@@ -43,7 +43,7 @@ function handleApiRequest(e) {
     let result;
     switch (action) {
       // Public — tidak butuh user
-      case 'login':                 result = doLogin(data.email, data.password); break;
+      case 'verifyCredentials':     result = verifyCredentials(data.email, data.password); break;
       case 'getPublicStats':        result = getPublicStats(); break;
       case 'searchPekurban':        result = searchPekurban(data.query); break;
       case 'getPekurbanDetail':     result = getPekurbanDetail(data.nama, data.nomor_hewan); break;
@@ -54,8 +54,7 @@ function handleApiRequest(e) {
       case 'uploadFoto':        result = requireUser(user) || uploadFotoJenis(data, user); break;
       case 'getDokumentasi':    result = requireUser(user) || getDokumentasiInstansi(user.email); break;
       case 'uploadDokumentasi': result = requireUser(user) || uploadDokumentasiInstansi(data, user); break;
-      case 'getPhotoAsBase64':  result = requireUser(user) || getPhotoAsBase64(data.fileUrl); break;
-      case 'getDokFotoById':    result = requireUser(user) || getDokFotoById(data.fileId); break;
+      case 'getFileById':       result = requireUser(user) || getFileById(data.fileId, user); break;
 
       // Admin only — butuh role admin
       case 'getAdminData':  result = requireAdmin(user) || getAdminData(user.email); break;
@@ -113,13 +112,39 @@ function checkGasRateLimit(email) {
 // ============================================================
 //  HELPER FUNCTIONS
 // ============================================================
-function hashPass(plainText) {
-  const bytes = Utilities.computeDigest(
+
+// Hash dengan salt — format simpan: hash|salt
+// Iterasi 500x untuk memperlambat brute force
+function hashPass(plainText, salt) {
+  if (!salt) salt = Utilities.base64Encode(Utilities.computeDigest(
     Utilities.DigestAlgorithm.SHA_256,
-    plainText.toString(),
+    String(Date.now()) + Math.random(),
     Utilities.Charset.UTF_8
-  );
-  return bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+  )).slice(0, 16);
+
+  let hash = plainText + salt;
+  for (let i = 0; i < 500; i++) {
+    const bytes = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256,
+      hash,
+      Utilities.Charset.UTF_8
+    );
+    hash = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+  }
+  return { hash, salt };
+}
+
+function verifyPassword(plainText, storedHash, storedSalt) {
+  if (!storedSalt) {
+    // Legacy: plain SHA-256 tanpa salt (untuk akun lama)
+    const bytes = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256, plainText, Utilities.Charset.UTF_8
+    );
+    const legacyHash = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+    return legacyHash === storedHash;
+  }
+  const { hash } = hashPass(plainText, storedSalt);
+  return hash === storedHash;
 }
 
 // isValidUser dan isAdmin dihapus — autentikasi kini dilakukan di proxy via JWT.
@@ -187,31 +212,40 @@ function getPublicStats() {
 }
 
 // ============================================================
-//  LOGIN
+//  VERIFIKASI KREDENSIAL (dipanggil proxy untuk login)
+//  GAS hanya verifikasi — JWT dibuat di proxy, bukan di sini
 // ============================================================
-function doLogin(email, password) {
+function verifyCredentials(email, password) {
   try {
-    if (!email || !password) return { success: false, error: "Email dan password harus diisi" };
+    if (!email || !password) return { success: false, error: 'Internal server error' };
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
-    if (!sheet) return { success: false, error: "Sheet Akun tidak ditemukan" };
+    if (!sheet) return { success: false, error: 'Internal server error' };
     const data = sheet.getDataRange().getValues();
-    if (data.length < 2) return { success: false, error: "Sheet Akun kosong" };
 
-    const hashedInput = hashPass(password);
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (!row || row.length === 0) continue;
-      const validEmail  = row[0] ? String(row[0]).trim() : '';
-      const storedPass  = row[1] ? String(row[1]).trim() : '';
-      const username    = row[2] ? String(row[2]).trim() : (validEmail ? validEmail.split('@')[0] : '');
+      if (!row || !row[0]) continue;
+      const storedEmail = String(row[0]).trim();
+      const storedHash  = row[1] ? String(row[1]).trim() : '';
+      const storedSalt  = row[4] ? String(row[4]).trim() : ''; // kolom E: salt
+      const username    = row[2] ? String(row[2]).trim() : storedEmail.split('@')[0];
       const role        = row[3] ? String(row[3]).trim().toLowerCase() : 'user';
-      if (!validEmail || !storedPass) continue;
-      if (validEmail.toLowerCase() !== email.toLowerCase()) continue;
-      const passMatch = storedPass.length === 64 ? storedPass === hashedInput : storedPass === password;
-      if (passMatch) return { success: true, email: validEmail, username, role };
+
+      if (storedEmail.toLowerCase() !== email.toLowerCase()) continue;
+      if (!storedHash) continue;
+
+      if (verifyPassword(password, storedHash, storedSalt)) {
+        return { success: true, email: storedEmail, username, role };
+      } else {
+        // Jangan bocorkan alasan gagal
+        return { success: false, error: 'Kredensial tidak valid' };
+      }
     }
-    return { success: false, error: "Email atau password salah" };
-  } catch (err) { return { success: false, error: err.toString() }; }
+    return { success: false, error: 'Kredensial tidak valid' };
+  } catch (err) {
+    Logger.log('verifyCredentials error: ' + err.toString());
+    return { success: false, error: 'Internal server error' };
+  }
 }
 
 // ============================================================
@@ -255,7 +289,7 @@ function getDataForUi(email) {
       });
     }
     return { success: true, data: result };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 // ============================================================
@@ -306,7 +340,7 @@ function searchPekurban(query) {
 
     if (results.length === 0) return { success: false, error: "Nama tidak ditemukan" };
     return { success: true, data: results };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 // ============================================================
@@ -352,46 +386,50 @@ function getPekurbanDetail(nama, nomor_hewan) {
         status:        status
       }
     };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 // ============================================================
-//  PORTAL PEKURBAN — AMBIL FOTO SEBAGAI BASE64
-//  Mengambil file dari Google Drive dan mengembalikannya
-//  sebagai base64 agar foto tampil langsung di web app
-//  tanpa redirect ke Drive.
 // ============================================================
-function getPhotoAsBase64(fileUrl) {
+//  AKSES FILE — hanya via fileId, TIDAK pernah via fileUrl
+//  Menggantikan getPhotoAsBase64 dan getDokFotoById
+// ============================================================
+function getFileById(fileId, user) {
   try {
-    if (!fileUrl) return { success: false, error: "URL tidak diberikan" };
-
-    // Ekstrak file ID dari URL Drive
-    let fileId = null;
-    const patterns = [
-      /\/file\/d\/([a-zA-Z0-9_-]+)/,
-      /id=([a-zA-Z0-9_-]+)/,
-      /\/d\/([a-zA-Z0-9_-]+)/
-    ];
-    for (const p of patterns) {
-      const m = fileUrl.match(p);
-      if (m) { fileId = m[1]; break; }
+    if (!fileId || typeof fileId !== 'string' || fileId.length > 100) {
+      return { success: false, error: 'fileId tidak valid' };
     }
-    if (!fileId) {
-      // Coba ambil ID dari string panjang
-      const m = fileUrl.match(/[-\w]{25,}/);
-      if (m) fileId = m[0];
+    // Validasi format fileId Drive (hanya alfanumerik, dash, underscore)
+    if (!/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) {
+      return { success: false, error: 'fileId tidak valid' };
     }
-    if (!fileId) return { success: false, error: "File ID tidak ditemukan dari URL" };
 
     const file     = DriveApp.getFileById(fileId);
-    const blob     = file.getBlob();
-    const base64   = Utilities.base64Encode(blob.getBytes());
-    const mimeType = blob.getContentType();
+    const mimeType = file.getMimeType();
     const fileName = file.getName();
 
-    return { success: true, base64, mimeType, fileName };
+    // Video: kembalikan preview URL (tidak expose folder)
+    if (mimeType.startsWith('video/')) {
+      return {
+        success:  true,
+        type:     'video',
+        mimeType: mimeType,
+        fileName: fileName,
+        embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+      };
+    }
+
+    // Gambar: kembalikan base64
+    if (mimeType.startsWith('image/')) {
+      const blob   = file.getBlob();
+      const base64 = Utilities.base64Encode(blob.getBytes());
+      return { success: true, type: 'image', base64, mimeType, fileName };
+    }
+
+    return { success: false, error: 'Tipe file tidak didukung' };
   } catch (err) {
-    return { success: false, error: err.toString() };
+    Logger.log('getFileById error: ' + err.toString());
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -463,7 +501,7 @@ function uploadFotoJenis(data, user) {
     laporanSheet.getRange(rowIndex, cols.uploaderCol).setValue(username);
 
     return { success: true, fileUrl };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 // ============================================================
@@ -512,7 +550,7 @@ function uploadDokumentasiInstansi(data, user) {
       sheet.getRange(rowIndex, 7).setValue(`Foto: ${fotoCount}, Video: ${videoCount} (update)`);
     }
     return { success: true, fotoCount, videoCount };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 // ============================================================
@@ -534,7 +572,7 @@ function getDokumentasiInstansi(email) {
       });
     }
     return { success: true, data: result };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 // ============================================================
@@ -631,7 +669,7 @@ function addHewan(adminEmail, hewan) {
         '', '', '', '', '', '', '', '']);
     }
     return { success: true };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 function updateHewan(adminEmail, hewan) {
@@ -649,7 +687,7 @@ function updateHewan(adminEmail, hewan) {
       }
     }
     return { success: false, error: "Hewan tidak ditemukan" };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 function deleteHewan(adminEmail, nomor_hewan) {
@@ -699,7 +737,7 @@ function deleteHewan(adminEmail, nomor_hewan) {
       }
     }
     return { success: true };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 // ============================================================
@@ -711,12 +749,19 @@ function addUser(adminEmail, newUser) {
     const data  = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] && String(data[i][0]).toLowerCase() === newUser.email.toLowerCase()) {
-        return { success: false, error: "Email sudah terdaftar" };
+        return { success: false, error: 'Email sudah terdaftar' };
       }
     }
-    sheet.appendRow([newUser.email, newUser.password ? hashPass(newUser.password) : '', newUser.username, newUser.role || 'user']);
+    // Hash dengan salt — simpan di kolom B (hash) dan kolom E (salt)
+    let hashVal = '', saltVal = '';
+    if (newUser.password) {
+      const result = hashPass(newUser.password, null);
+      hashVal = result.hash;
+      saltVal = result.salt;
+    }
+    sheet.appendRow([newUser.email, hashVal, newUser.username, newUser.role || 'user', saltVal]);
     return { success: true };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: 'Internal server error' }; }
 }
 
 function updateUser(adminEmail, user) {
@@ -727,12 +772,16 @@ function updateUser(adminEmail, user) {
       if (data[i][0] && String(data[i][0]).toLowerCase() === user.email.toLowerCase()) {
         if (user.username) sheet.getRange(i+1, 3).setValue(user.username);
         if (user.role)     sheet.getRange(i+1, 4).setValue(user.role);
-        if (user.password) sheet.getRange(i+1, 2).setValue(hashPass(user.password));
+        if (user.password) {
+          const { hash, salt } = hashPass(user.password, null);
+          sheet.getRange(i+1, 2).setValue(hash);
+          sheet.getRange(i+1, 5).setValue(salt); // kolom E: salt
+        }
         return { success: true };
       }
     }
-    return { success: false, error: "User tidak ditemukan" };
-  } catch (err) { return { success: false, error: err.toString() }; }
+    return { success: false, error: 'User tidak ditemukan' };
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: 'Internal server error' }; }
 }
 
 function deleteUser(adminEmail, targetEmail) {
@@ -746,7 +795,7 @@ function deleteUser(adminEmail, targetEmail) {
       }
     }
     return { success: false, error: "User tidak ditemukan" };
-  } catch (err) { return { success: false, error: err.toString() }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
 }
 
 // ============================================================
@@ -826,42 +875,42 @@ function testSearchPekurban() {
 }
 
 // ============================================================
-//  HASH PASSWORD LANGSUNG KE SHEET AKUN
+//  HASH PASSWORD LANGSUNG KE SHEET AKUN (dengan salt)
 //  Cara pakai:
 //    1. Buka sheet Akun, isi kolom A (email), kolom B (password PLAINTEXT)
 //    2. Klik Run → hashPasswordsKeSheet
-//    3. Kolom B otomatis terganti dengan hash SHA-256
-//    4. Selesai — password plaintext tidak tersimpan lagi
+//    3. Kolom B = hash, kolom E = salt. Password plaintext hilang.
 // ============================================================
 function hashPasswordsKeSheet() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
   if (!sheet) { Logger.log('❌ Sheet Akun tidak ditemukan'); return; }
 
   const data = sheet.getDataRange().getValues();
-  let diproses = 0;
-  let dilewati = 0;
+  let diproses = 0, dilewati = 0;
 
   for (let i = 1; i < data.length; i++) {
     const row      = data[i];
     const email    = row[0] ? String(row[0]).trim() : '';
     const password = row[1] ? String(row[1]).trim() : '';
+    const saltCol  = row[4] ? String(row[4]).trim() : '';
 
     if (!email || !password) continue;
 
-    // Kalau sudah 64 karakter hex → sudah di-hash, lewati
-    if (/^[a-f0-9]{64}$/.test(password)) {
-      Logger.log(`⏭️  [baris ${i+1}] ${email} — sudah di-hash, dilewati`);
+    // Sudah di-hash (ada salt di kolom E) → lewati
+    if (saltCol && /^[a-f0-9]{64}$/.test(password)) {
+      Logger.log(`⏭️  [baris ${i+1}] ${email} — sudah di-hash dengan salt, dilewati`);
       dilewati++;
       continue;
     }
 
-    const hash = hashPass(password);
+    const { hash, salt } = hashPass(password, null);
     sheet.getRange(i + 1, 2).setValue(hash);
-    Logger.log(`✅ [baris ${i+1}] ${email} — password berhasil di-hash`);
+    sheet.getRange(i + 1, 5).setValue(salt); // kolom E: salt
+    Logger.log(`✅ [baris ${i+1}] ${email} — password berhasil di-hash dengan salt`);
     diproses++;
   }
 
-  Logger.log(`\nSelesai. ${diproses} password di-hash, ${dilewati} dilewati (sudah hash).`);
+  Logger.log(`\nSelesai. ${diproses} password di-hash, ${dilewati} dilewati.`);
 }
 
 // ============================================================
@@ -951,7 +1000,7 @@ function getDokumentasiWilayah(wilayah) {
 
     return { success: true, data: result };
   } catch (err) {
-    return { success: false, error: err.toString() };
+    Logger.log(err.toString()); return { success: false, error: "Internal server error" };
   }
 }
 
@@ -970,34 +1019,4 @@ function extractFileIdFromUrl(url) {
   return m ? m[0] : null;
 }
 
-/**
- * Ambil satu foto dokumentasi wilayah sebagai base64 (untuk pekurban portal)
- * Untuk video: kembalikan embed URL streaming (file ID only, bukan folder URL)
- */
-function getDokFotoById(fileId) {
-  try {
-    if (!fileId) return { success: false, error: 'File ID tidak diberikan' };
-    const file     = DriveApp.getFileById(fileId);
-    const mimeType = file.getMimeType();
-    const fileName = file.getName();
-
-    // Video: kembalikan embed URL untuk streaming (tidak expose folder)
-    if (mimeType.startsWith('video/')) {
-      // File video tidak di-share publik — hanya bisa diakses via proxy
-      return {
-        success:  true,
-        type:     'video',
-        mimeType: mimeType,
-        fileName: fileName,
-        embedUrl: `https://drive.google.com/file/d/${fileId}/preview`
-      };
-    }
-
-    // Foto: kembalikan base64
-    const blob   = file.getBlob();
-    const base64 = Utilities.base64Encode(blob.getBytes());
-    return { success: true, type: 'image', base64, mimeType, fileName };
-  } catch (err) {
-    return { success: false, error: err.toString() };
-  }
-}
+// getDokFotoById digabung ke getFileById — lihat fungsi di atas
