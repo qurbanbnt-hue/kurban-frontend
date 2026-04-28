@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Kurban Digital · Panitia</title>
   <link rel="stylesheet" href="../assets/css/style.css">
-  <link rel="icon" type="image/png" href="../assets/images/logo-bnt.png">
+  <link rel="icon" type="image/png" href="../assets/images/logo/logo-bnt.webp">
   <style>
     /* ── BACKGROUND FOTO ── */
     body.user-frame {
@@ -15,7 +15,7 @@
     body.user-frame::before {
       content: '';
       position: fixed; inset: 0; z-index: 0;
-      background-image: url('../assets/images/user_portal_qurban_bnt.png');
+      background-image: url('../assets/images/bg_desktop/user_portal_qurban_bnt.webp');
       background-size: cover; background-position: center;
     }
     body.user-frame::after {
@@ -25,7 +25,7 @@
     }
     @media (max-width: 900px) {
       body.user-frame::before {
-        background-image: url('../assets/images/user_mobile_qurban_bnt.png');
+        background-image: url('../assets/images/bg_mobile/user_mobile_qurban_bnt.webp');
         background-position: top center;
       }
     }
@@ -73,7 +73,7 @@
         padding: 20px 40px 36px !important;
         background:
           linear-gradient(150deg, rgba(10,22,40,0.82) 0%, rgba(15,44,86,0.75) 55%, rgba(26,74,138,0.78) 100%),
-          url('../assets/images/user_portal_qurban_bnt.png') center/cover no-repeat !important;
+          url('../assets/images/bg_desktop/user_portal_qurban_bnt.webp') center/cover no-repeat !important;
       }
       .u-header::after { display: none; } /* remove wave */
       .u-topbar { margin-bottom: 12px; }
@@ -147,7 +147,7 @@
     .u-header {
       background:
         linear-gradient(150deg, rgba(10,22,40,0.7) 0%, rgba(15,44,86,0.6) 55%, rgba(26,74,138,0.65) 100%),
-        url('../assets/images/user_portal_qurban_bnt.png') center/cover no-repeat !important;
+        url('../assets/images/bg_desktop/user_portal_qurban_bnt.webp') center/cover no-repeat !important;
       backdrop-filter: blur(8px);
     }
 
@@ -477,7 +477,7 @@
           <i class="icon icon-chevron-left"></i>
         </button>
         <div class="u-brand-icon">
-          <img src="../assets/images/logo-bnt.png" alt="BNT">
+          <img src="../assets/images/logo/logo-bnt.webp" alt="BNT">
         </div>
         <div>
           <div class="u-brand-name">Kurban Digital</div>
@@ -733,9 +733,9 @@
     // ==================== UTILITIES ====================
   function getEmoji(jenis) {
     const j = (jenis||'').toLowerCase();
-    if (j.includes('kambing')||j.includes('domba')) return '<i class="icon icon-sheep" style="font-size:20px;"></i>';
-    if (j.includes('kerbau')) return '<i class="icon icon-beef" style="font-size:20px;"></i>';
-    return '<i class="icon icon-beef" style="font-size:20px;"></i>';
+    if (j.includes('kambing')||j.includes('domba'))
+      return '<img src="../assets/images/Icon/icon_kambing.png" style="width:28px;height:28px;object-fit:contain;">';
+    return '<img src="../assets/images/Icon/icon_sapi.png" style="width:28px;height:28px;object-fit:contain;">';
   }
   function getPhaseCount(status) {
     return [status.url_hidup, status.url_ditumbangkan, status.url_mati].filter(Boolean).length;

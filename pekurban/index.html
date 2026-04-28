@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Portal Pekurban · Kurban Digital BNT</title>
   <link rel="stylesheet" href="../assets/css/style.css">
-  <link rel="icon" type="image/png" href="../assets/images/logo-bnt.png">
+  <link rel="icon" type="image/png" href="../assets/images/logo/logo-bnt.webp">
   <style>
     :root {
       --green: #22c55e;
@@ -23,7 +23,7 @@
     body::before {
       content: '';
       position: fixed; inset: 0; z-index: -1;
-      background-image: url('../assets/images/pekurban_portal_qurban_bnt.png');
+      background-image: url('../assets/images/bg_desktop/pekurban_portal_qurban_bnt.webp');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -35,7 +35,7 @@
     }
     @media (max-width: 900px) {
       body::before {
-        background-image: url('../assets/images/pekurban_mobile_qurban_bnt.png');
+        background-image: url('../assets/images/bg_mobile/pekurban_mobile_qurban_bnt.webp');
         background-position: top center;
       }
     }
@@ -547,7 +547,7 @@
 <!-- Header -->
 <div class="pk-header">
   <div class="pk-header-logo">
-    <img src="../assets/images/logo-bnt.png" alt="BNT">
+    <img src="../assets/images/logo/logo-bnt.webp" alt="BNT">
   </div>
   <div class="pk-header-text">
     <div class="pk-header-title">Portal Pekurban</div>
@@ -752,8 +752,8 @@
       const items = res.data.map(r => {
         const initials = r.nama_pekurban.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
         const hewanIcon = r.jenis_hewan?.toLowerCase().includes('sapi')
-          ? '<i class="icon icon-beef" style="font-size:13px;"></i>'
-          : '<i class="icon icon-rabbit" style="font-size:13px;"></i>';
+          ? '<img src="../assets/images/Icon/icon_sapi.png" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;">'
+          : '<img src="../assets/images/Icon/icon_kambing.png" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;">';
         return `
           <div class="result-item" onclick='openProfil(${JSON.stringify(r)})'>
             <div class="result-avatar">${initials}</div>
@@ -816,8 +816,8 @@
     const { nama_pekurban, nomor_hewan, jenis_hewan, instansi, wilayah, status } = data;
     const initials = nama_pekurban.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
     const hewanIcon = jenis_hewan?.toLowerCase().includes('sapi')
-      ? '<i class="icon icon-beef" style="font-size:14px;"></i>'
-      : '<i class="icon icon-rabbit" style="font-size:14px;"></i>';
+      ? '<img src="../assets/images/Icon/icon_sapi.png" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;">'
+      : '<img src="../assets/images/Icon/icon_kambing.png" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;">';
 
     const statusDone = [status?.url_hidup, status?.url_ditumbangkan, status?.url_mati].filter(Boolean).length;
     let statusText = 'Belum ada dokumentasi';
