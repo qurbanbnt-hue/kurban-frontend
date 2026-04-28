@@ -664,7 +664,7 @@
     const page = document.getElementById(`page-${id}`);
     page.classList.add('active');
     document.getElementById('backBtn').style.display = id === 'dashboard' ? 'none' : 'block';
-    // Lock body scroll on desktop only when viewing profil
+    // Kunci scroll body di desktop saat halaman profil aktif
     document.body.classList.toggle('profil-active', id === 'profil');
     if (pushState) history.pushState({ page: id }, '', window.location.pathname);
     window.scrollTo(0, 0);
@@ -698,7 +698,7 @@
         document.getElementById('statHewan').textContent = res.totalHewan;
         document.getElementById('statPekurban').textContent = res.totalPekurban;
         document.getElementById('statInstansi').textContent = res.totalInstansi;
-        // selesai not returned by default — will show dash
+        // totalSelesai mungkin tidak selalu ada di response
         document.getElementById('statSelesai').textContent = res.totalSelesai ?? '—';
       }
     } catch(e) { /* ignore */ }
@@ -965,7 +965,7 @@
       if (!wrap) return;
 
       if (!res.success || !res.base64) {
-        // Fallback: try direct Drive embed URL
+        // Fallback: coba embed URL Drive langsung
         const fileId = extractDriveFileId(fileUrl);
         if (fileId) {
           const embedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
@@ -1046,21 +1046,12 @@
   }
 
   async function downloadSertifikat() {
-    /**
-     * TODO: Implementasi generate sertifikat PDF/gambar
-     * - Buat template sertifikat di canvas atau html2canvas
-     * - Generate PDF dengan jsPDF atau konversi canvas ke image
-     * - Download file
-     *
-     * Untuk saat ini tampilkan notifikasi bahwa fitur dalam pengembangan
-     */
     showToast('Fitur unduh sertifikat sedang dalam pengembangan', '');
-    // Placeholder: in the future will call generateSertifikatPDF(currentPekurban)
   }
 
   // ==================== DOKUMENTASI WILAYAH ====================
-  let dokWilayahData = []; // [{ instansi, wilayah, jenis, files: [{fileId, fileName, mimeType}] }]
-  let dokWilayahFotoCache = {}; // fileId -> base64 src
+  let dokWilayahData = [];
+  let dokWilayahFotoCache = {}; // cache fileId → base64
   let activeDokJenis = '';
 
   async function loadDokumentasiWilayah(wilayah) {
@@ -1075,7 +1066,7 @@
       }
 
       dokWilayahData = res.data;
-      // Default: tampilkan jenis pertama
+      // Tampilkan jenis pertama secara default
       activeDokJenis = res.data[0].jenis;
       renderDokWilayah();
     } catch(e) {
@@ -1128,7 +1119,7 @@
     const wrap = document.getElementById(`dwrap-${fileId}`);
     if (!wrap) return;
 
-    // Use cache if available
+    // Gunakan cache jika sudah pernah dimuat
     if (dokWilayahFotoCache[fileId]) {
       const cached = dokWilayahFotoCache[fileId];
       wrap.innerHTML = cached.html;

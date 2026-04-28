@@ -5,7 +5,7 @@ const NAMA_SHEET_DB          = "Database";
 const NAMA_SHEET_LAPORAN     = "Laporan";
 const NAMA_SHEET_AKUN        = "Akun";
 const NAMA_SHEET_DOKUMENTASI = "DokumentasiInstansi";
-const ROOT_FOLDER_ID         = "1RPDv3Jj9srfMvV0Wvv5wkD182klzSWNA";
+const ROOT_FOLDER_ID         = "GANTI_DENGAN_ID_FOLDER_DRIVE_KAMU";
 
 // ============================================================
 //  ENTRY POINT (Web App API)

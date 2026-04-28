@@ -523,7 +523,7 @@
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.getElementById(`tab-${tab}`)?.classList.add('active');
 
-      // FAB visibility (mobile only)
+      // Tampilkan/sembunyikan FAB sesuai tab aktif (mobile)
       document.getElementById('fabHewan').style.display = (tab === 'hewan')    ? 'flex' : 'none';
       document.getElementById('fabUser').style.display  = (tab === 'pengguna') ? 'flex' : 'none';
 
@@ -602,13 +602,13 @@
       const dd  = document.getElementById(`dd${key.charAt(0).toUpperCase()+key.slice(1)}`);
       const btn = document.getElementById(`btn${key.charAt(0).toUpperCase()+key.slice(1)}`);
       const isOpen = dd.classList.contains('open');
-      // Close all
+      // Tutup semua dropdown dulu
       document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));
       document.querySelectorAll('.filter-select-btn').forEach(b => b.classList.remove('open'));
       if (!isOpen) { dd.classList.add('open'); btn.classList.add('open'); }
     }
 
-    // Close dropdowns when clicking outside
+    // Tutup dropdown saat klik di luar
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.filter-select-wrap')) {
         document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));

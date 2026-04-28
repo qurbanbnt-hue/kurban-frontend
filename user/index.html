@@ -757,7 +757,7 @@
       if (hewanRes.success) allHewan = hewanRes.data || [];
       if (dokRes.success) allDokumentasi = dokRes.data || [];
     } catch (e) {
-      console.error('Gagal memuat data:', e);
+      // silent fail — data akan kosong
     }
   }
 
@@ -886,7 +886,7 @@
 
   function renderHewanList(data) {
     if (!Array.isArray(data)) {
-      // Called with a filter string (legacy) or no arg
+      // Dipanggil tanpa argumen atau dengan string filter
       const q = typeof data === 'string' ? data : '';
       if (allHewan.length === 0) { loadAllData().then(() => renderHewanList(allHewan)); return; }
       data = allHewan.filter(h =>
@@ -918,10 +918,8 @@
   }
 
   // ==================== UPLOAD ====================
-  // Upload screen no longer has a dropdown — hewan is set by clicking from the list.
   function renderUploadDetail() {
     if (!selectedHewan) {
-      // Shouldn't happen normally, but guard anyway
       switchScreen('hewan');
       return;
     }
@@ -1109,7 +1107,7 @@
     document.getElementById('dokUploadArea').addEventListener('click', () => dokInput.click());
 
     const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
-    let selectedFiles = []; // array of File objects
+    let selectedFiles = [];
 
     function formatSize(bytes) {
       if (bytes < 1024) return bytes + ' B';
@@ -1165,7 +1163,7 @@
       }).join('');
     }
 
-    // Expose remove function globally so onclick works
+    // Fungsi hapus file — perlu global agar onclick di template bisa akses
     window.removeDokFile = (idx) => {
       selectedFiles.splice(idx, 1);
       renderFileList();
@@ -1174,13 +1172,13 @@
 
     dokInput.addEventListener('change', (e) => {
       const newFiles = Array.from(e.target.files);
-      // Merge, avoid duplicates by name+size
+      // Hindari duplikat berdasarkan nama+ukuran
       newFiles.forEach(nf => {
         if (!selectedFiles.some(sf => sf.name === nf.name && sf.size === nf.size)) {
           selectedFiles.push(nf);
         }
       });
-      dokInput.value = ''; // reset so same file can be re-added after removal
+      dokInput.value = ''; // reset agar file yang sama bisa dipilih ulang setelah dihapus
       renderFileList();
       updateFileSizeUI();
     });
@@ -1286,10 +1284,10 @@
     const desktop = isDesktop();
 
     if (desktop) {
-      // Beranda always stays in left column
+      // Desktop: beranda tetap di kolom kiri
       document.getElementById('screen-beranda').classList.add('active');
 
-      // Right panel screens
+      // Kosongkan panel kanan dulu
       document.querySelectorAll('.u-right-panel .screen').forEach(s => s.classList.remove('active'));
 
       const placeholder = document.getElementById('desktopPlaceholder');
@@ -1301,20 +1299,20 @@
         if (placeholder) placeholder.style.display = 'flex';
       }
     } else {
-      // Mobile: single screen
+      // Mobile: satu layar aktif sekaligus
       const uContent    = document.querySelector('.u-content');
       const uRightPanel = document.getElementById('uRightPanel');
       const btnBack     = document.getElementById('btnBack');
 
       if (screenId === 'beranda') {
-        // Show left, hide right
+        // Tampilkan kiri, sembunyikan kanan
         uContent.classList.remove('hidden-mobile');
         uRightPanel.classList.remove('active');
         document.querySelectorAll('.u-right-panel .screen').forEach(s => s.classList.remove('active'));
         document.getElementById('screen-beranda').classList.add('active');
         if (btnBack) btnBack.style.display = 'none';
       } else {
-        // Hide left, show right panel with target screen
+        // Sembunyikan kiri, tampilkan panel kanan
         uContent.classList.add('hidden-mobile');
         uRightPanel.classList.add('active');
         document.querySelectorAll('.u-right-panel .screen').forEach(s => s.classList.remove('active'));
@@ -1379,7 +1377,7 @@
     await loadAllData();
     renderDashboard();
     setupUploadListeners();
-    // Desktop: show placeholder on right by default
+    // Desktop: tampilkan placeholder di panel kanan
     if (isDesktop()) {
       document.getElementById('screen-beranda').classList.add('active');
       const ph = document.getElementById('desktopPlaceholder');
