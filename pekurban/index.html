@@ -655,8 +655,8 @@
 <script src="../assets/js/api.js"></script>
 <script>
   // ==================== STATE ====================
-  let currentPekurban = null; // { nama, nomor_hewan, jenis_hewan, instansi, wilayah }
-  let currentFotoData = {}; // { hidup: {base64, mime, loaded}, tumbang: ..., mati: ... }
+  let currentPekurban = null;
+  let currentFotoData = {};
   let lightboxCurrentUrl = '';
 
   // ==================== NAVIGATION ====================
@@ -665,7 +665,6 @@
     const page = document.getElementById(`page-${id}`);
     page.classList.add('active');
     document.getElementById('backBtn').style.display = id === 'dashboard' ? 'none' : 'block';
-    // Kunci scroll body di desktop saat halaman profil aktif
     document.body.classList.toggle('profil-active', id === 'profil');
     if (pushState) history.pushState({ page: id }, '', window.location.pathname);
     window.scrollTo(0, 0);
@@ -699,7 +698,6 @@
         document.getElementById('statHewan').textContent = res.totalHewan;
         document.getElementById('statPekurban').textContent = res.totalPekurban;
         document.getElementById('statInstansi').textContent = res.totalInstansi;
-        // totalSelesai mungkin tidak selalu ada di response
         document.getElementById('statSelesai').textContent = res.totalSelesai ?? '—';
       }
     } catch(e) { /* ignore */ }
@@ -894,12 +892,10 @@
       </div>
     `;
 
-    // Load photos
     if (status?.url_hidup) loadFotoInline('hidup', status.url_hidup);
     if (status?.url_ditumbangkan) loadFotoInline('tumbang', status.url_ditumbangkan);
     if (status?.url_mati) loadFotoInline('mati', status.url_mati);
 
-    // Load dokumentasi wilayah
     loadDokumentasiWilayah(wilayah);
   }
 
@@ -958,7 +954,6 @@
   }
 
   // ==================== FOTO LOADING ====================
-  // fileId diekstrak di frontend — API tidak pernah menerima fileUrl
   function extractDriveFileId(url) {
     if (!url) return null;
     const patterns = [
@@ -1055,7 +1050,7 @@
 
   // ==================== DOKUMENTASI WILAYAH ====================
   let dokWilayahData = [];
-  let dokWilayahFotoCache = {}; // cache fileId → base64
+  let dokWilayahFotoCache = {};
   let activeDokJenis = '';
 
   async function loadDokumentasiWilayah(wilayah) {
@@ -1070,7 +1065,6 @@
       }
 
       dokWilayahData = res.data;
-      // Tampilkan jenis pertama secara default
       activeDokJenis = res.data[0].jenis;
       renderDokWilayah();
     } catch(e) {
@@ -1110,7 +1104,6 @@
       <div class="dok-wilayah-tabs">${tabsHtml}</div>
       <div class="dok-wilayah-grid">${gridHtml}</div>`;
 
-    // Load each foto
     allFiles.forEach(f => loadDokFoto(f.fileId, f.mimeType));
   }
 
@@ -1123,7 +1116,6 @@
     const wrap = document.getElementById(`dwrap-${fileId}`);
     if (!wrap) return;
 
-    // Gunakan cache jika sudah pernah dimuat
     if (dokWilayahFotoCache[fileId]) {
       const cached = dokWilayahFotoCache[fileId];
       wrap.innerHTML = cached.html;
@@ -1141,7 +1133,6 @@
       let html, fotoData;
 
       if (res.type === 'video') {
-        // Video: embed iframe player — tidak expose URL folder
         html = `
           <div style="position:relative;width:100%;padding-top:75%;background:#000;border-radius:10px;overflow:hidden;">
             <iframe
@@ -1154,9 +1145,8 @@
               <i class="icon icon-film" style="font-size:10px;"></i> VIDEO
             </div>
           </div>`;
-        fotoData = null; // video tidak bisa di-download via base64
+        fotoData = null;
       } else {
-        // Foto: base64
         const src = `data:${res.mimeType};base64,${res.base64}`;
         fotoData = { src, mime: res.mimeType, fileName: res.fileName };
         currentFotoData[`dw-${fileId}`] = fotoData;

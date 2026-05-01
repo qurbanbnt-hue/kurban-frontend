@@ -34,7 +34,7 @@ const USER_ACTIONS = new Set([
   'uploadFoto',
   'getDokumentasi',
   'uploadDokumentasi',
-  'getFileById',      // menggantikan getPhotoAsBase64 & getDokFotoById
+  'getFileById',
 ]);
 
 const ALLOWED_ACTIONS = new Set([
@@ -140,7 +140,6 @@ function validateUserData(u) {
   return null;
 }
 
-// ── Kirim ke GAS — TIDAK pernah kirim data mentah dari frontend ──
 async function callGas(action, data, user = null) {
   if (!APPS_SCRIPT_URL || !GAS_SECRET) throw new Error('Konfigurasi server tidak lengkap');
   const res  = await fetch(`${APPS_SCRIPT_URL}?action=${encodeURIComponent(action)}`, {
@@ -169,34 +168,28 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST')    return res.status(405).json({ success: false, error: 'Method tidak diizinkan' });
 
-  // Rate limit per IP
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
   if (!checkRate(`ip:${ip}`, RATE_LIMIT_IP)) {
     return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan' });
   }
 
-  // Validasi action — whitelist ketat
   const { action } = req.query;
   if (!action || !ALLOWED_ACTIONS.has(action)) {
     return res.status(400).json({ success: false, error: 'Action tidak valid' });
   }
 
-  // Body size limit
   if (parseInt(req.headers['content-length'] || '0', 10) > 25 * 1024 * 1024) {
     return res.status(413).json({ success: false, error: 'Payload terlalu besar' });
   }
 
   const body = req.body || {};
 
-  // ── LOGIN — proxy yang handle, bukan GAS ─────────────────────
   if (action === 'login') {
     const { email, password } = body;
     if (!str(email, 200) || !str(password, 200)) {
       return res.status(400).json({ success: false, error: 'Email dan password harus diisi' });
     }
     try {
-      // Proxy kirim ke GAS hanya untuk verifikasi kredensial
-      // GAS tidak generate token — itu tugas proxy
       const result = await callGas('verifyCredentials', {
         email: email.trim().toLowerCase(),
         password,
@@ -206,7 +199,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ success: false, error: 'Email atau password salah' });
       }
 
-      // JWT dibuat di proxy — email & role dari GAS, bukan dari body frontend
       const token = await signJwt({
         email:    result.email,
         role:     result.role,
@@ -225,9 +217,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ── PUBLIC ACTIONS ───────────────────────────────────────────
   if (PUBLIC_ACTIONS.has(action)) {
-    // Sanitasi: hanya ambil field yang dibutuhkan, buang sisanya
     const safeData = sanitizePublicData(action, body);
     try {
       const result = await callGas(action, safeData, null);
@@ -250,17 +240,14 @@ export default async function handler(req, res) {
     return res.status(401).json({ success: false, error: 'Token tidak valid atau expired' });
   }
 
-  // Rate limit per user
   if (!checkRate(`user:${user.email}`, RATE_LIMIT_USER)) {
     return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan' });
   }
 
-  // RBAC
   if (ADMIN_ONLY_ACTIONS.has(action) && user.role !== 'admin') {
     return res.status(403).json({ success: false, error: 'Akses ditolak' });
   }
 
-  // Input validation
   let err = null;
   if (action === 'uploadFoto')        err = validateUploadFoto(body);
   if (action === 'uploadDokumentasi') err = validateUploadDokumentasi(body);
@@ -285,7 +272,6 @@ export default async function handler(req, res) {
   }
 }
 
-// ── Sanitasi data public (hanya ambil field yang diperlukan) ──
 function sanitizePublicData(action, body) {
   if (action === 'searchPekurban')    return { query: String(body.query || '').slice(0, 100) };
   if (action === 'getPekurbanDetail') return {
@@ -297,13 +283,12 @@ function sanitizePublicData(action, body) {
   return {};
 }
 
-// ── Bangun data aman per action — tidak forward body mentah ──
 function buildSafeData(action, body) {
   switch (action) {
     case 'getHewan':
     case 'getDokumentasi':
     case 'getAdminData':
-      return {}; // user dari JWT sudah cukup
+      return {};
 
     case 'uploadFoto':
       return {

@@ -7,7 +7,6 @@ const NAMA_SHEET_AKUN        = "Akun";
 const NAMA_SHEET_DOKUMENTASI = "DokumentasiInstansi";
 const ROOT_FOLDER_ID         = "GANTI_DENGAN_ID_FOLDER_DRIVE_KAMU";
 
-// SCRIPT_SECRET diambil dari Script Properties (bukan hardcoded)
 const SCRIPT_SECRET = PropertiesService.getScriptProperties().getProperty('SCRIPT_SECRET') || '';
 
 // ============================================================
@@ -24,37 +23,31 @@ function handleApiRequest(e) {
       try { body = JSON.parse(e.postData.contents); } catch (err) {}
     }
 
-    // ── Validasi secret — tolak semua request tanpa secret yang benar ──
     if (!SCRIPT_SECRET || body.secret !== SCRIPT_SECRET) {
       return jsonResponse({ success: false, error: 'Akses ditolak' });
     }
 
-    // data = payload dari proxy, user = objek user terverifikasi dari JWT
     const data = body.data || {};
-    const user = body.user || null; // { email, role } — sudah diverifikasi proxy
+    const user = body.user || null;
 
-    // ── Rate limiting per user via CacheService ──
     if (user && !checkGasRateLimit(user.email)) {
       return jsonResponse({ success: false, error: 'Terlalu banyak permintaan' });
     }
 
     let result;
     switch (action) {
-      // Public — tidak butuh user
       case 'verifyCredentials':     result = verifyCredentials(data.email, data.password); break;
       case 'getPublicStats':        result = getPublicStats(); break;
       case 'searchPekurban':        result = searchPekurban(data.query); break;
       case 'getPekurbanDetail':     result = getPekurbanDetail(data.nama, data.nomor_hewan, data.instansi); break;
       case 'getDokumentasiWilayah': result = getDokumentasiWilayah(data.wilayah); break;
 
-      // User — butuh user terverifikasi
       case 'getHewan':          result = requireUser(user) || getDataForUi(user.email); break;
       case 'uploadFoto':        result = requireUser(user) || uploadFotoJenis(data, user); break;
       case 'getDokumentasi':    result = requireUser(user) || getDokumentasiInstansi(user.email); break;
       case 'uploadDokumentasi': result = requireUser(user) || uploadDokumentasiInstansi(data, user); break;
       case 'getFileById':       result = requireUser(user) || getFileById(data.fileId, user); break;
 
-      // Admin only — butuh role admin
       case 'getAdminData':  result = requireAdmin(user) || getAdminData(user.email); break;
       case 'addHewan':      result = requireAdmin(user) || addHewan(user.email, data.hewan); break;
       case 'updateHewan':   result = requireAdmin(user) || updateHewan(user.email, data.hewan); break;
@@ -86,7 +79,7 @@ function requireUser(user) {
   if (!user || !user.email || !user.role) {
     return { success: false, error: 'Autentikasi diperlukan' };
   }
-  return null; // null = lolos, lanjut eksekusi
+  return null;
 }
 
 // ── Helper: cek role admin ────────────────────────────────────
@@ -102,8 +95,8 @@ function checkGasRateLimit(email) {
   const cache = CacheService.getScriptCache();
   const key   = 'rl_' + email;
   const count = parseInt(cache.get(key) || '0', 10);
-  if (count >= 60) return false; // max 60 request per menit
-  cache.put(key, String(count + 1), 60); // TTL 60 detik
+  if (count >= 60) return false;
+  cache.put(key, String(count + 1), 60);
   return true;
 }
 
@@ -111,7 +104,6 @@ function checkGasRateLimit(email) {
 //  HELPER FUNCTIONS
 // ============================================================
 
-// Hash SHA-256 dengan salt, 500 iterasi
 function hashPass(plainText, salt) {
   if (!salt) salt = Utilities.base64Encode(Utilities.computeDigest(
     Utilities.DigestAlgorithm.SHA_256,
@@ -133,7 +125,6 @@ function hashPass(plainText, salt) {
 
 function verifyPassword(plainText, storedHash, storedSalt) {
   if (!storedSalt) {
-    // Kompatibilitas akun lama (plain SHA-256 tanpa salt)
     const bytes = Utilities.computeDigest(
       Utilities.DigestAlgorithm.SHA_256, plainText, Utilities.Charset.UTF_8
     );
@@ -144,10 +135,7 @@ function verifyPassword(plainText, storedHash, storedSalt) {
   return hash === storedHash;
 }
 
-// isValidUser dan isAdmin dihapus — autentikasi dilakukan di proxy via JWT.
-
 // ── Primary key: nomor_hewan + instansi + jenis_hewan ────────
-// Ketiga field ini bersama-sama menjamin keunikan data hewan
 function matchHewan(row, nomor_hewan, instansi, jenis_hewan) {
   const rowNomor  = row[0] ? String(row[0]).trim().toUpperCase() : '';
   const rowJenis  = row[1] ? String(row[1]).trim().toUpperCase() : '';
@@ -178,10 +166,6 @@ function getOrCreateFolder(parent, folderName) {
   return folders.hasNext() ? folders.next() : parent.createFolder(name);
 }
 
-/**
- * Memisahkan string nama pekurban yang dipisah koma.
- * "PAK JOKO, PAK ANWAR, BU KARTINI" → ["PAK JOKO", "PAK ANWAR", "BU KARTINI"]
- */
 function splitNamaPekurban(raw) {
   if (!raw) return [];
   return String(raw).split(',').map(n => n.trim()).filter(n => n.length > 0);
@@ -204,7 +188,6 @@ function getPublicStats() {
       const row = data[i];
       if (!row || !row[0]) continue;
       totalHewan++;
-      // Hitung pekurban: untuk sapi bisa lebih dari 1 (split koma)
       const names = splitNamaPekurban(row[2]);
       totalPekurban += names.length > 0 ? names.length : (Number(row[3]) || 1);
       if (row[5]) wilayahSet.add(String(row[5]));
@@ -229,7 +212,6 @@ function getPublicStats() {
 
 // ============================================================
 //  VERIFIKASI KREDENSIAL (dipanggil proxy untuk login)
-//  GAS hanya verifikasi — JWT dibuat di proxy, bukan di sini
 // ============================================================
 function verifyCredentials(email, password) {
   try {
@@ -243,7 +225,7 @@ function verifyCredentials(email, password) {
       if (!row || !row[0]) continue;
       const storedEmail = String(row[0]).trim();
       const storedHash  = row[1] ? String(row[1]).trim() : '';
-      const storedSalt  = row[4] ? String(row[4]).trim() : ''; // kolom E: salt
+      const storedSalt  = row[4] ? String(row[4]).trim() : '';
       const username    = row[2] ? String(row[2]).trim() : storedEmail.split('@')[0];
       const role        = row[3] ? String(row[3]).trim().toLowerCase() : 'user';
 
@@ -253,7 +235,6 @@ function verifyCredentials(email, password) {
       if (verifyPassword(password, storedHash, storedSalt)) {
         return { success: true, email: storedEmail, username, role };
       } else {
-        // Jangan bocorkan alasan gagal
         return { success: false, error: 'Kredensial tidak valid' };
       }
     }
@@ -275,7 +256,6 @@ function getDataForUi(email) {
     if (!dbSheet) return { success: false, error: 'Sheet Database tidak ditemukan' };
 
     const dbData    = dbSheet.getDataRange().getValues();
-    // Key: nomor|instansi|jenis — composite primary key
     const statusMap = {};
     if (laporanSheet) {
       const lapData = laporanSheet.getDataRange().getValues();
@@ -315,8 +295,6 @@ function getDataForUi(email) {
 
 // ============================================================
 //  PORTAL PEKURBAN — SEARCH
-//  Memisahkan nama pekurban sapi (koma) menjadi entri individual.
-//  Setiap pekurban hanya melihat namanya sendiri.
 // ============================================================
 function searchPekurban(query) {
   try {
@@ -342,11 +320,9 @@ function searchPekurban(query) {
       const wilayah  = row[5] ? String(row[5]) : '';
       const rawNama  = row[2] ? String(row[2]) : '';
 
-      // Pisahkan nama-nama pekurban
       const namaList = splitNamaPekurban(rawNama);
 
       namaList.forEach(nama => {
-        // Hanya tampilkan nama yang cocok dengan query — nama lain tidak terlihat
         if (nama.toLowerCase().includes(q)) {
           results.push({
             nama_pekurban: nama,
@@ -366,7 +342,6 @@ function searchPekurban(query) {
 
 // ============================================================
 //  PORTAL PEKURBAN — DETAIL PROFIL
-//  Mengembalikan info hewan + status foto untuk 1 pekurban.
 // ============================================================
 function getPekurbanDetail(nama, nomor_hewan, instansi) {
   try {
@@ -382,7 +357,6 @@ function getPekurbanDetail(nama, nomor_hewan, instansi) {
       const row = dbData[i];
       if (!row || !row[0]) continue;
       const nomorMatch = String(row[0]).trim().toUpperCase() === String(nomor_hewan).trim().toUpperCase();
-      // Jika instansi dikirim, cocokkan juga instansi
       const instansiMatch = !instansi || String(row[4]||'').trim().toUpperCase() === String(instansi).trim().toUpperCase();
       if (nomorMatch && instansiMatch) { hewanRow = row; break; }
     }
@@ -412,15 +386,13 @@ function getPekurbanDetail(nama, nomor_hewan, instansi) {
 
 // ============================================================
 // ============================================================
-//  AKSES FILE — hanya via fileId, TIDAK pernah via fileUrl
-//  Menggantikan getPhotoAsBase64 dan getDokFotoById
+//  AKSES FILE
 // ============================================================
 function getFileById(fileId, user) {
   try {
     if (!fileId || typeof fileId !== 'string' || fileId.length > 100) {
       return { success: false, error: 'fileId tidak valid' };
     }
-    // Validasi format fileId Drive (hanya alfanumerik, dash, underscore)
     if (!/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) {
       return { success: false, error: 'fileId tidak valid' };
     }
@@ -429,7 +401,6 @@ function getFileById(fileId, user) {
     const mimeType = file.getMimeType();
     const fileName = file.getName();
 
-    // Video: kembalikan preview URL (tidak expose folder)
     if (mimeType.startsWith('video/')) {
       return {
         success:  true,
@@ -440,7 +411,6 @@ function getFileById(fileId, user) {
       };
     }
 
-    // Gambar: kembalikan base64
     if (mimeType.startsWith('image/')) {
       const blob   = file.getBlob();
       const base64 = Utilities.base64Encode(blob.getBytes());
@@ -461,15 +431,13 @@ function uploadFotoJenis(data, user) {
   const { nomor_hewan, jenis_foto, base64Data, mimeType } = data;
   const username = data.username || user.email;
 
-  // Lock per nomor hewan — hewan berbeda bisa upload bersamaan
-  // Hewan yang sama harus antri agar tidak saling timpa
   const cache    = CacheService.getScriptCache();
   const lockKey  = `upload_lock_${String(nomor_hewan).trim().toUpperCase()}_${String(data.instansi||'').trim().toUpperCase()}_${String(data.jenis_hewan||'').trim().toUpperCase()}`;
-  const maxWait  = 10; // detik
+  const maxWait  = 10;
 
   for (let i = 0; i < maxWait; i++) {
     if (!cache.get(lockKey)) {
-      cache.put(lockKey, '1', 30); // lock 30 detik (timeout safety)
+      cache.put(lockKey, '1', 30);
       break;
     }
     if (i === maxWait - 1) {
@@ -498,7 +466,6 @@ function uploadFotoJenis(data, user) {
     }
     if (!hewanData) return { success: false, error: 'Nomor hewan tidak ditemukan' };
 
-    // Upload ke Drive
     const rootFolder     = DriveApp.getFolderById(ROOT_FOLDER_ID);
     const instansiFolder = getOrCreateFolder(rootFolder, hewanData.instansi);
     const wilayahFolder  = getOrCreateFolder(instansiFolder, hewanData.wilayah);
@@ -512,7 +479,6 @@ function uploadFotoJenis(data, user) {
     const newFile  = nomorFolder.createFile(blob);
     const fileUrl  = newFile.getUrl();
 
-    // Update sheet Laporan
     const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
     if (!laporanSheet) return { success: false, error: 'Sheet Laporan tidak ditemukan' };
 
@@ -545,7 +511,6 @@ function uploadFotoJenis(data, user) {
     Logger.log(err.toString());
     return { success: false, error: 'Internal server error' };
   } finally {
-    // Lepas lock setelah selesai
     cache.remove(lockKey);
   }
 }
@@ -627,7 +592,6 @@ function getDokumentasiInstansi(email) {
 function getAdminData(adminEmail) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Users
   const akunSheet = ss.getSheetByName(NAMA_SHEET_AKUN);
   const users = [];
   if (akunSheet) {
@@ -643,7 +607,6 @@ function getAdminData(adminEmail) {
     }
   }
 
-  // Hewan + status
   const dbSheet = ss.getSheetByName(NAMA_SHEET_DB);
   const hewan   = [];
   let totalSelesai = 0;
@@ -676,7 +639,6 @@ function getAdminData(adminEmail) {
   };
 }
 
-// Helper: ambil status foto satu hewan dari sheet Laporan
 function getHewanStatus(ss, nomorHewan, instansi, jenisHewan) {
   const empty = {
     url_hidup: '', tgl_hidup: '', uploader_hidup: '',
@@ -708,7 +670,6 @@ function addHewan(adminEmail, hewan) {
     const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
     const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
 
-    // Cek duplikat berdasarkan composite key
     const dbData = dbSheet.getDataRange().getValues();
     for (let i = 1; i < dbData.length; i++) {
       if (matchHewan(dbData[i], hewan.nomor_hewan, hewan.instansi, hewan.jenis_hewan)) {
@@ -733,7 +694,6 @@ function updateHewan(adminEmail, hewan) {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_DB);
     const data  = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
-      // Cari berdasarkan composite key (nomor + instansi + jenis lama)
       if (matchHewan(data[i], hewan.nomor_hewan, hewan.instansi, hewan.jenis_hewan)) {
         sheet.getRange(i+1, 2).setValue(hewan.jenis_hewan);
         sheet.getRange(i+1, 3).setValue(hewan.daftar_pekurban);
@@ -753,7 +713,6 @@ function deleteHewan(adminEmail, nomor_hewan, instansi) {
     const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
     const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
 
-    // Cari data hewan berdasarkan composite key
     let hewanData = null;
     const dbData  = dbSheet.getDataRange().getValues();
     for (let i = 1; i < dbData.length; i++) {
@@ -769,7 +728,6 @@ function deleteHewan(adminEmail, nomor_hewan, instansi) {
       }
     }
 
-    // Hapus folder Drive
     if (hewanData) {
       try {
         const rootFolder  = DriveApp.getFolderById(ROOT_FOLDER_ID);
@@ -787,14 +745,12 @@ function deleteHewan(adminEmail, nomor_hewan, instansi) {
       } catch (driveErr) { Logger.log('Drive folder tidak ditemukan: ' + driveErr); }
     }
 
-    // Hapus dari Database (composite key)
     for (let i = dbData.length - 1; i >= 1; i--) {
       if (matchHewan(dbData[i], nomor_hewan, instansi, hewanData?.jenis_hewan || '')) {
         dbSheet.deleteRow(i + 1); break;
       }
     }
 
-    // Hapus dari Laporan (composite key)
     if (laporanSheet) {
       const lapData = laporanSheet.getDataRange().getValues();
       for (let i = lapData.length - 1; i >= 1; i--) {
@@ -819,7 +775,6 @@ function addUser(adminEmail, newUser) {
         return { success: false, error: 'Email sudah terdaftar' };
       }
     }
-    // Hash dengan salt — kolom B: hash, kolom E: salt
     let hashVal = '', saltVal = '';
     if (newUser.password) {
       const result = hashPass(newUser.password, null);
@@ -842,7 +797,7 @@ function updateUser(adminEmail, user) {
         if (user.password) {
           const { hash, salt } = hashPass(user.password, null);
           sheet.getRange(i+1, 2).setValue(hash);
-          sheet.getRange(i+1, 5).setValue(salt); // kolom E: salt
+          sheet.getRange(i+1, 5).setValue(salt);
         }
         return { success: true };
       }
@@ -869,7 +824,6 @@ function deleteUser(adminEmail, targetEmail) {
 //  MIGRASI / UTILITAS — Jalankan SATU KALI dari editor
 // ============================================================
 
-/** Sinkronisasi baris Database → Laporan (untuk data lama) */
 function syncLaporanFromDatabase() {
   const ss           = SpreadsheetApp.getActiveSpreadsheet();
   const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
@@ -898,7 +852,6 @@ function syncLaporanFromDatabase() {
   Logger.log(`✅ Sinkronisasi Laporan selesai. ${addedCount} baris baru ditambahkan.`);
 }
 
-/** Sinkronisasi instansi unik dari Database → DokumentasiInstansi */
 function syncDokumentasiInstansi() {
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
   const dbSheet = ss.getSheetByName(NAMA_SHEET_DB);
@@ -933,9 +886,6 @@ function syncDokumentasiInstansi() {
   Logger.log(`✅ Sinkronisasi DokumentasiInstansi selesai. ${addedCount} baris baru ditambahkan.`);
 }
 
-/**
- * TEST: Jalankan dari editor untuk cek searchPekurban
- */
 function testSearchPekurban() {
   const result = searchPekurban("wahyu");
   Logger.log(JSON.stringify(result, null, 2));
@@ -943,10 +893,6 @@ function testSearchPekurban() {
 
 // ============================================================
 //  HASH PASSWORD LANGSUNG KE SHEET AKUN (dengan salt)
-//  Cara pakai:
-//    1. Buka sheet Akun, isi kolom A (email), kolom B (password PLAINTEXT)
-//    2. Klik Run → hashPasswordsKeSheet
-//    3. Kolom B = hash, kolom E = salt. Password plaintext hilang.
 // ============================================================
 function hashPasswordsKeSheet() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_AKUN);
@@ -963,7 +909,6 @@ function hashPasswordsKeSheet() {
 
     if (!email || !password) continue;
 
-    // Sudah di-hash (ada salt di kolom E) → lewati
     if (saltCol && /^[a-f0-9]{64}$/.test(password)) {
       Logger.log(`⏭️  [baris ${i+1}] ${email} — sudah di-hash dengan salt, dilewati`);
       dilewati++;
@@ -972,7 +917,7 @@ function hashPasswordsKeSheet() {
 
     const { hash, salt } = hashPass(password, null);
     sheet.getRange(i + 1, 2).setValue(hash);
-    sheet.getRange(i + 1, 5).setValue(salt); // kolom E: salt
+    sheet.getRange(i + 1, 5).setValue(salt);
     Logger.log(`✅ [baris ${i+1}] ${email} — password berhasil di-hash dengan salt`);
     diproses++;
   }
@@ -982,9 +927,6 @@ function hashPasswordsKeSheet() {
 
 // ============================================================
 //  PORTAL PEKURBAN — DOKUMENTASI WILAYAH
-//  Mengembalikan daftar file foto dari folder Pencacahan & Penyaluran
-//  berdasarkan wilayah pekurban, tanpa expose URL Drive langsung.
-//  File ID di-encode agar tidak mudah ditebak.
 // ============================================================
 function getDokumentasiWilayah(wilayah) {
   try {
@@ -1008,7 +950,6 @@ function getDokumentasiWilayah(wilayah) {
       const jenis    = String(row[2]);
       const instansi = String(row[0]);
 
-      // Ambil file dari folder Drive
       try {
         const fileId = extractFileIdFromUrl(folderUrl);
         if (!fileId) continue;
@@ -1016,13 +957,12 @@ function getDokumentasiWilayah(wilayah) {
         const folder = DriveApp.getFolderById(fileId);
         const files  = [];
 
-        // Cari subfolder Foto
         const fotoFolders = folder.getFoldersByName('Foto');
         const fotoFolder  = fotoFolders.hasNext() ? fotoFolders.next() : folder;
         const fileIter    = fotoFolder.getFiles();
 
         let count = 0;
-        while (fileIter.hasNext() && count < 10) { // max 10 foto per jenis
+        while (fileIter.hasNext() && count < 10) {
           const f = fileIter.next();
           if (f.getMimeType().startsWith('image/')) {
             files.push({
@@ -1035,7 +975,6 @@ function getDokumentasiWilayah(wilayah) {
           }
         }
 
-        // Juga ambil video (max 5)
         const videoFolders = folder.getFoldersByName('Video');
         const videoFolder  = videoFolders.hasNext() ? videoFolders.next() : null;
         if (videoFolder) {
@@ -1044,8 +983,6 @@ function getDokumentasiWilayah(wilayah) {
           while (videoIter.hasNext() && vCount < 5) {
             const f = videoIter.next();
             if (f.getMimeType().startsWith('video/')) {
-              // Buat file publik sementara untuk streaming (view only, tidak bisa download folder)
-              // Hanya expose fileId — tidak ada folder URL
               files.push({
                 fileId:   f.getId(),
                 fileName: f.getName(),
@@ -1085,5 +1022,3 @@ function extractFileIdFromUrl(url) {
   const m = url.match(/[-\w]{25,}/);
   return m ? m[0] : null;
 }
-
-// getDokFotoById digabung ke getFileById

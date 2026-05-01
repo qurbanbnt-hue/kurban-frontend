@@ -492,8 +492,6 @@
     const role = localStorage.getItem('userRole');
     const expiry = Number(localStorage.getItem('loginExpiry'));
 
-    // Validasi session — cek role DAN expiry di frontend
-    // Validasi sesungguhnya tetap dilakukan di backend (isAdmin) setiap API call
     if (!email || role !== 'admin' || isNaN(expiry) || Date.now() > expiry) {
       localStorage.clear();
       window.location.href = '/';
@@ -502,7 +500,7 @@
     document.getElementById('adminAvatar').textContent = (username||email).charAt(0).toUpperCase();
 
     let allHewan = [], allUsers = [], allDok = [];
-    let pendingDelete = null; // { type: 'hewan' | 'user', id: ... }
+    let pendingDelete = null;
 
     // ==================== TOAST ====================
     function showToast(message, type = 'success') {
@@ -523,7 +521,6 @@
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.getElementById(`tab-${tab}`)?.classList.add('active');
 
-      // Tampilkan/sembunyikan FAB sesuai tab aktif (mobile)
       document.getElementById('fabHewan').style.display = (tab === 'hewan')    ? 'flex' : 'none';
       document.getElementById('fabUser').style.display  = (tab === 'pengguna') ? 'flex' : 'none';
 
@@ -536,12 +533,10 @@
     document.querySelectorAll('.sb-item[data-tab]').forEach(item => item.addEventListener('click', () => switchTab(item.dataset.tab)));
     document.querySelectorAll('.admin-bottom-nav .nav-item[data-tab]').forEach(item => item.addEventListener('click', () => switchTab(item.dataset.tab)));
 
-    // Debounce search
     document.getElementById('searchHewan').addEventListener('input', debounce(filterHewan, 300));
 
     function logout() { localStorage.clear(); window.location.href = '/'; }
 
-    // Auto-logout saat session expired
     setInterval(() => {
       const exp = Number(localStorage.getItem('loginExpiry'));
       if (!exp || Date.now() > exp) logout();
@@ -598,20 +593,17 @@
     }
 
     // ==================== HEWAN CRUD ====================
-    // Custom filter state
     const filterState = { wilayah: '', instansi: '', status: '' };
 
     function toggleFilter(key) {
       const dd  = document.getElementById(`dd${key.charAt(0).toUpperCase()+key.slice(1)}`);
       const btn = document.getElementById(`btn${key.charAt(0).toUpperCase()+key.slice(1)}`);
       const isOpen = dd.classList.contains('open');
-      // Tutup semua dropdown dulu
       document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));
       document.querySelectorAll('.filter-select-btn').forEach(b => b.classList.remove('open'));
       if (!isOpen) { dd.classList.add('open'); btn.classList.add('open'); }
     }
 
-    // Tutup dropdown saat klik di luar
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.filter-select-wrap')) {
         document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));
@@ -695,7 +687,6 @@
     }
 
     window.editHewan = (nomor, instansi, jenis) => {
-      // Cari berdasarkan composite key
       const h = allHewan.find(h =>
         h.nomor_hewan === nomor &&
         h.instansi    === instansi &&
@@ -735,7 +726,7 @@
 
     document.getElementById('hewanForm').addEventListener('submit', async(e)=>{
       e.preventDefault();
-      const compositeId = document.getElementById('hewanId').value; // "nomor||instansi||jenis" saat edit
+      const compositeId = document.getElementById('hewanId').value;
       const isEdit = !!compositeId;
       const nomor    = document.getElementById('hewanNomor').value.toUpperCase();
       const jenis    = document.getElementById('hewanJenis').value.toUpperCase();
@@ -754,7 +745,6 @@
       const res = await callApi(action, { hewan });
       overlay.classList.remove('active');
 
-      // Reset disabled fields setelah submit
       document.getElementById('hewanNomor').disabled = false;
       document.getElementById('hewanJenis').disabled = false;
       document.getElementById('hewanInstansi').disabled = false;
@@ -876,7 +866,6 @@
       const res = await callApi('getDokumentasi',{email});
       if(res.success){
         allDok = res.data||[];
-        // Hanya tampilkan yang sudah ada link Drive-nya
         const withLink = allDok.filter(d => d.folderUrl && d.folderUrl.startsWith('http'));
         document.getElementById('dokTableBody').innerHTML = withLink.map(d => `<tr>
           <td data-label="Instansi">${d.instansi}</td>
@@ -889,7 +878,6 @@
       }
     }
 
-    // Initial load
     loadDashboard();
   </script>
 </body>
