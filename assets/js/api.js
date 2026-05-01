@@ -1,5 +1,16 @@
 const API_BASE_URL = '/api/proxy';
 
+// ── Sanitasi teks — escape karakter HTML berbahaya ────────────
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
 // Cache sederhana untuk GET-like actions (public stats, data hewan)
 const _cache = new Map();
 const CACHE_TTL = 60_000; // 1 menit

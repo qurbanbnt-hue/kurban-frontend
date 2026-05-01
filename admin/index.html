@@ -537,6 +537,52 @@
 
     function logout() { localStorage.clear(); window.location.href = '/'; }
 
+    // ── Validasi client-side ──────────────────────────────────
+    function showFormError(fieldId, msg) {
+      const field = document.getElementById(fieldId);
+      let err = field.parentElement.querySelector('.field-err');
+      if (!err) {
+        err = document.createElement('div');
+        err.className = 'field-err';
+        err.style.cssText = 'color:#E05050;font-size:11px;margin-top:4px;font-weight:600;';
+        field.parentElement.appendChild(err);
+      }
+      err.textContent = msg;
+      field.style.borderColor = '#E05050';
+    }
+    function clearFormErrors(formId) {
+      document.querySelectorAll(`#${formId} .field-err`).forEach(e => e.remove());
+      document.querySelectorAll(`#${formId} input, #${formId} select`).forEach(f => f.style.borderColor = '');
+    }
+    function validateHewanForm() {
+      clearFormErrors('hewanForm');
+      let ok = true;
+      const nomor    = document.getElementById('hewanNomor').value.trim();
+      const jenis    = document.getElementById('hewanJenis').value.trim();
+      const pekurban = document.getElementById('hewanPekurban').value.trim();
+      const instansi = document.getElementById('hewanInstansi').value.trim();
+      const wilayah  = document.getElementById('hewanWilayah').value.trim();
+      if (!nomor || nomor.length > 50)          { showFormError('hewanNomor', 'Nomor hewan wajib diisi (maks. 50 karakter)'); ok = false; }
+      if (!jenis || jenis.length > 50)          { showFormError('hewanJenis', 'Jenis hewan wajib diisi'); ok = false; }
+      if (!pekurban || pekurban.length > 500)   { showFormError('hewanPekurban', 'Daftar pekurban wajib diisi (maks. 500 karakter)'); ok = false; }
+      if (!instansi || instansi.length > 200)   { showFormError('hewanInstansi', 'Instansi wajib diisi (maks. 200 karakter)'); ok = false; }
+      if (!wilayah || wilayah.length > 200)     { showFormError('hewanWilayah', 'Wilayah wajib diisi (maks. 200 karakter)'); ok = false; }
+      return ok;
+    }
+    function validateUserForm() {
+      clearFormErrors('userForm');
+      let ok = true;
+      const emailVal = document.getElementById('userEmail').value.trim();
+      const uname    = document.getElementById('userUsername').value.trim();
+      const pass     = document.getElementById('userPassword').value;
+      const emailRe  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailVal || !emailRe.test(emailVal) || emailVal.length > 200) { showFormError('userEmail', 'Email tidak valid'); ok = false; }
+      if (!uname || uname.length > 100)  { showFormError('userUsername', 'Username wajib diisi (maks. 100 karakter)'); ok = false; }
+      if (pass && pass.length < 6)       { showFormError('userPassword', 'Password minimal 6 karakter'); ok = false; }
+      if (pass && pass.length > 200)     { showFormError('userPassword', 'Password terlalu panjang'); ok = false; }
+      return ok;
+    }
+
     setInterval(() => {
       const exp = Number(localStorage.getItem('loginExpiry'));
       if (!exp || Date.now() > exp) logout();
@@ -571,9 +617,9 @@
       document.getElementById('recentHewanTable').innerHTML = recent.map(h => {
         const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
         return `<tr>
-          <td data-label="Hewan">${h.nomor_hewan} (${h.jenis_hewan})</td>
-          <td data-label="Instansi">${h.instansi}</td>
-          <td data-label="Wilayah">${h.wilayah}</td>
+          <td data-label="Hewan">${esc(h.nomor_hewan)} (${esc(h.jenis_hewan)})</td>
+          <td data-label="Instansi">${esc(h.instansi)}</td>
+          <td data-label="Wilayah">${esc(h.wilayah)}</td>
           <td data-label="Progress">${p}/3</td>
         </tr>`;
       }).join('') || '<tr><td colspan="4">Belum ada data</td></tr>';
@@ -587,7 +633,7 @@
       let html = '';
       for (const [w, d] of Object.entries(wilayahMap)) {
         const pct = Math.round((d.selesai/d.total)*100);
-        html += `<div class="prog-row"><div class="prog-head"><span class="prog-name">${w}</span><span class="prog-pct">${pct}%</span></div><div class="prog-bar"><div class="prog-fill fill-blue" style="width:${pct}%"></div></div></div>`;
+        html += `<div class="prog-row"><div class="prog-head"><span class="prog-name">${esc(w)}</span><span class="prog-pct">${pct}%</span></div><div class="prog-bar"><div class="prog-fill fill-blue" style="width:${pct}%"></div></div></div>`;
       }
       document.getElementById('progressWilayahContainer').innerHTML = html || '<p>Belum ada data</p>';
     }
@@ -617,8 +663,11 @@
       const dd    = document.getElementById(ddId);
       const allLabel = key === 'wilayah' ? 'Semua Wilayah' : key === 'instansi' ? 'Semua Instansi' : 'Semua Status';
       dd.innerHTML = [{ value: '', label: allLabel }, ...options.map(o => ({ value: o, label: o }))]
-        .map(o => `<div class="filter-option${filterState[key]===o.value?' selected':''}" onclick="selectFilter('${key}','${o.value}','${o.label}')">${o.label}</div>`)
+        .map(o => `<div class="filter-option${filterState[key]===o.value?' selected':''}" data-key="${esc(key)}" data-value="${esc(o.value)}" data-label="${esc(o.label)}">${esc(o.label)}</div>`)
         .join('');
+      dd.querySelectorAll('.filter-option').forEach(el => {
+        el.addEventListener('click', () => selectFilter(el.dataset.key, el.dataset.value, el.dataset.label));
+      });
     }
 
     function selectFilter(key, value, label) {
@@ -651,16 +700,27 @@
         let cls = 'status-belum', txt = 'Belum';
         if (p===3) { cls='status-selesai'; txt='Selesai'; }
         else if (p>0) { cls='status-proses'; txt=`${p}/3`; }
+        const isKambing = h.jenis_hewan?.toLowerCase().includes('kambing') || h.jenis_hewan?.toLowerCase().includes('domba');
+        const iconFile  = isKambing ? 'icon_kambing.png' : 'icon_sapi.png';
         return `<tr>
-          <td data-label="Nomor">${h.nomor_hewan}</td>
-          <td data-label="Jenis"><img src="../assets/images/Icon/${h.jenis_hewan?.toLowerCase().includes('kambing')||h.jenis_hewan?.toLowerCase().includes('domba') ? 'icon_kambing.png' : 'icon_sapi.png'}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;"> ${h.jenis_hewan}</td>
-          <td data-label="Pekurban" style="word-break:break-word;max-width:160px;">${h.daftar_pekurban}</td>
-          <td data-label="Instansi">${h.instansi}</td>
-          <td data-label="Wilayah">${h.wilayah}</td>
+          <td data-label="Nomor">${esc(h.nomor_hewan)}</td>
+          <td data-label="Jenis"><img src="../assets/images/Icon/${iconFile}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;"> ${esc(h.jenis_hewan)}</td>
+          <td data-label="Pekurban" style="word-break:break-word;max-width:160px;">${esc(h.daftar_pekurban)}</td>
+          <td data-label="Instansi">${esc(h.instansi)}</td>
+          <td data-label="Wilayah">${esc(h.wilayah)}</td>
           <td data-label="Status"><span class="status-badge ${cls}">${txt}</span></td>
-          <td data-label="Aksi"><button class="act-btn" onclick="editHewan('${h.nomor_hewan}','${h.instansi}','${h.jenis_hewan}')" title="Edit"><i class="icon icon-pencil"></i></button><button class="act-btn" onclick="confirmDeleteHewan('${h.nomor_hewan}','${h.instansi}','${h.jenis_hewan}')" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button></td>
+          <td data-label="Aksi">
+            <button class="act-btn" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}" data-action="edit" title="Edit"><i class="icon icon-pencil"></i></button>
+            <button class="act-btn" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}" data-action="delete" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button>
+          </td>
         </tr>`;
       }).join('');
+      tbody.querySelectorAll('.act-btn[data-action="edit"]').forEach(btn => {
+        btn.addEventListener('click', () => editHewan(btn.dataset.nomor, btn.dataset.instansi, btn.dataset.jenis));
+      });
+      tbody.querySelectorAll('.act-btn[data-action="delete"]').forEach(btn => {
+        btn.addEventListener('click', () => confirmDeleteHewan(btn.dataset.nomor, btn.dataset.instansi, btn.dataset.jenis));
+      });
     }
 
     function filterHewan() {
@@ -726,6 +786,7 @@
 
     document.getElementById('hewanForm').addEventListener('submit', async(e)=>{
       e.preventDefault();
+      if (!validateHewanForm()) return;
       const compositeId = document.getElementById('hewanId').value;
       const isEdit = !!compositeId;
       const nomor    = document.getElementById('hewanNomor').value.toUpperCase();
@@ -765,12 +826,22 @@
     }
 
     function renderUserTable(data) {
-      document.getElementById('userTableBody').innerHTML = data.map(u => `<tr>
-        <td data-label="Email" style="word-break:break-all;">${u.email}</td>
-        <td data-label="Username">${u.username}</td>
-        <td data-label="Role">${u.role}</td>
-        <td data-label="Aksi"><button class="act-btn" onclick="editUser('${u.email}')" title="Edit"><i class="icon icon-pencil"></i></button><button class="act-btn" onclick="confirmDeleteUser('${u.email}')" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button></td>
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = data.map(u => `<tr>
+        <td data-label="Email" style="word-break:break-all;">${esc(u.email)}</td>
+        <td data-label="Username">${esc(u.username)}</td>
+        <td data-label="Role">${esc(u.role)}</td>
+        <td data-label="Aksi">
+          <button class="act-btn" data-email="${esc(u.email)}" data-action="edit" title="Edit"><i class="icon icon-pencil"></i></button>
+          <button class="act-btn" data-email="${esc(u.email)}" data-action="delete" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button>
+        </td>
       </tr>`).join('');
+      tbody.querySelectorAll('.act-btn[data-action="edit"]').forEach(btn => {
+        btn.addEventListener('click', () => editUser(btn.dataset.email));
+      });
+      tbody.querySelectorAll('.act-btn[data-action="delete"]').forEach(btn => {
+        btn.addEventListener('click', () => confirmDeleteUser(btn.dataset.email));
+      });
     }
 
     window.editUser = (email) => {
@@ -803,6 +874,7 @@
 
     document.getElementById('userForm').addEventListener('submit', async(e)=>{
       e.preventDefault();
+      if (!validateUserForm()) return;
       const id = document.getElementById('userId').value;
       const newUser = {
         email: document.getElementById('userEmail').value.trim(),
@@ -868,12 +940,12 @@
         allDok = res.data||[];
         const withLink = allDok.filter(d => d.folderUrl && d.folderUrl.startsWith('http'));
         document.getElementById('dokTableBody').innerHTML = withLink.map(d => `<tr>
-          <td data-label="Instansi">${d.instansi}</td>
-          <td data-label="Wilayah">${d.wilayah}</td>
-          <td data-label="Jenis">${d.jenis}</td>
-          <td data-label="Uploader">${d.uploader}</td>
+          <td data-label="Instansi">${esc(d.instansi)}</td>
+          <td data-label="Wilayah">${esc(d.wilayah)}</td>
+          <td data-label="Jenis">${esc(d.jenis)}</td>
+          <td data-label="Uploader">${esc(d.uploader)}</td>
           <td data-label="Tanggal">${d.tglUpload?new Date(d.tglUpload).toLocaleDateString('id-ID'):'-'}</td>
-          <td data-label="Folder"><a href="${d.folderUrl}" target="_blank"><i class="icon icon-folder-open" style="font-size:14px;"></i> Buka</a></td>
+          <td data-label="Folder"><a href="${esc(d.folderUrl)}" target="_blank" rel="noopener noreferrer"><i class="icon icon-folder-open" style="font-size:14px;"></i> Buka</a></td>
         </tr>`).join('') || '<tr><td colspan="6">Belum ada dokumentasi</td></tr>';
       }
     }

@@ -748,17 +748,19 @@
         return;
       }
 
-      const items = res.data.map(r => {
+      let _searchResults = res.data;
+
+      const items = res.data.map((r, idx) => {
         const initials = r.nama_pekurban.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
         const hewanIcon = r.jenis_hewan?.toLowerCase().includes('sapi')
           ? '<img src="../assets/images/Icon/icon_sapi.png" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;">'
           : '<img src="../assets/images/Icon/icon_kambing.png" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;">';
         return `
-          <div class="result-item" onclick='openProfil(${JSON.stringify(r)})'>
+          <div class="result-item" data-idx="${idx}">
             <div class="result-avatar">${initials}</div>
             <div>
-              <div class="result-name">${r.nama_pekurban}</div>
-              <div class="result-meta">${hewanIcon} ${r.nomor_hewan} · ${r.instansi} · ${r.wilayah}</div>
+              <div class="result-name">${esc(r.nama_pekurban)}</div>
+              <div class="result-meta">${hewanIcon} ${esc(r.nomor_hewan)} · ${esc(r.instansi)} · ${esc(r.wilayah)}</div>
             </div>
             <div class="result-arrow"><i class="icon icon-chevron-right" style="font-family:'lucide'!important;font-style:normal;"></i></div>
           </div>`;
@@ -769,6 +771,10 @@
           <div class="results-header">${res.data.length} nama ditemukan</div>
           ${items}
         </div>`;
+
+      resultsContainer.querySelectorAll('.result-item[data-idx]').forEach(el => {
+        el.addEventListener('click', () => openProfil(_searchResults[parseInt(el.dataset.idx)]));
+      });
     } catch(e) {
       resultsContainer.innerHTML = `
         <div class="results-section">
@@ -825,7 +831,7 @@
     if (statusDone === 3) { statusText = 'Semua tahap selesai'; statusColor = '#22c55e'; }
     else if (statusDone > 0) { statusText = `${statusDone}/3 tahap terdokumentasi`; statusColor = '#3b82f6'; }
 
-    const sertBtn = `showSertifikat(${JSON.stringify({nama: nama_pekurban, nomor: nomor_hewan, jenis: jenis_hewan, wilayah, instansi})})`;
+    const sertData = { nama: nama_pekurban, nomor: nomor_hewan, jenis: jenis_hewan, wilayah, instansi };
 
     const content = document.getElementById('profilContent');
     content.innerHTML = `
@@ -833,17 +839,17 @@
       <div class="profil-col-left">
         <div class="profil-hero fade-up">
           <div class="profil-avatar-large">${initials}</div>
-          <div class="profil-name">${nama_pekurban}</div>
-          <div class="profil-badge">${hewanIcon} Pekurban ${jenis_hewan}</div>
-          <div style="margin-top:10px;font-size:13px;font-weight:600;color:${statusColor};">${statusText}</div>
+          <div class="profil-name">${esc(nama_pekurban)}</div>
+          <div class="profil-badge">${hewanIcon} Pekurban ${esc(jenis_hewan)}</div>
+          <div style="margin-top:10px;font-size:13px;font-weight:600;color:${statusColor};">${esc(statusText)}</div>
         </div>
 
         <div class="info-card fade-up" style="animation-delay:0.05s">
           <div class="info-card-title"><i class="icon icon-clipboard-list"></i> Detail Hewan Kurban</div>
-          <div class="info-row"><span class="info-label">Nomor Hewan</span><span class="info-value">${nomor_hewan}</span></div>
-          <div class="info-row"><span class="info-label">Jenis</span><span class="info-value">${hewanIcon} ${jenis_hewan}</span></div>
-          <div class="info-row"><span class="info-label">Instansi</span><span class="info-value">${instansi}</span></div>
-          <div class="info-row"><span class="info-label">Wilayah</span><span class="info-value"><i class="icon icon-map-pin" style="font-size:12px;"></i> ${wilayah}</span></div>
+          <div class="info-row"><span class="info-label">Nomor Hewan</span><span class="info-value">${esc(nomor_hewan)}</span></div>
+          <div class="info-row"><span class="info-label">Jenis</span><span class="info-value">${hewanIcon} ${esc(jenis_hewan)}</span></div>
+          <div class="info-row"><span class="info-label">Instansi</span><span class="info-value">${esc(instansi)}</span></div>
+          <div class="info-row"><span class="info-label">Wilayah</span><span class="info-value"><i class="icon icon-map-pin" style="font-size:12px;"></i> ${esc(wilayah)}</span></div>
         </div>
 
         <div class="info-card fade-up" style="animation-delay:0.1s">
@@ -874,14 +880,14 @@
           <div class="sertifikat-icon"><i class="icon icon-award" style="font-family:'lucide'!important;font-style:normal;font-size:40px;color:white;"></i></div>
           <div class="sertifikat-title">Sertifikat Pekurban</div>
           <div class="sertifikat-sub">Unduh sertifikat terima kasih atas partisipasi Anda dalam ibadah kurban</div>
-          <button class="btn-sertifikat" onclick="${sertBtn}">
+          <button class="btn-sertifikat" id="btnSertifikat">
             <i class="icon icon-award"></i> Lihat &amp; Unduh Sertifikat
           </button>
         </div>
 
         <!-- Dokumentasi Wilayah -->
         <div class="dok-wilayah-card fade-up" style="animation-delay:0.25s">
-          <div class="info-card-title"><i class="icon icon-image"></i> Dokumentasi Wilayah ${wilayah}</div>
+          <div class="info-card-title"><i class="icon icon-image"></i> Dokumentasi Wilayah ${esc(wilayah)}</div>
           <div id="dokWilayahContent">
             <div class="dok-wilayah-loading">
               <div class="spinner" style="width:24px;height:24px;border-color:rgba(0,0,0,0.1);border-top-color:#2c70b7;"></div>
@@ -895,6 +901,9 @@
     if (status?.url_hidup) loadFotoInline('hidup', status.url_hidup);
     if (status?.url_ditumbangkan) loadFotoInline('tumbang', status.url_ditumbangkan);
     if (status?.url_mati) loadFotoInline('mati', status.url_mati);
+
+    const btnSert = document.getElementById('btnSertifikat');
+    if (btnSert) btnSert.addEventListener('click', () => showSertifikat(sertData));
 
     loadDokumentasiWilayah(wilayah);
   }
@@ -913,9 +922,9 @@
           <img src="${src}" style="width:20px;height:20px;object-fit:contain;${done ? 'filter:none;' : 'opacity:0.45;'}">
         </div>
         <div class="step-text">
-          <div class="step-label">${label}</div>
-          <div class="step-date">${date}</div>
-          ${uploader ? `<div class="step-uploader">oleh ${uploader}</div>` : ''}
+          <div class="step-label">${esc(label)}</div>
+          <div class="step-date">${esc(date)}</div>
+          ${uploader ? `<div class="step-uploader">oleh ${esc(uploader)}</div>` : ''}
         </div>
       </div>`;
   }
@@ -992,7 +1001,17 @@
       }
       const src = `data:${res.mimeType};base64,${res.base64}`;
       currentFotoData[key] = { src, mime: res.mimeType, fileName: res.fileName };
-      wrap.innerHTML = `<img src="${src}" alt="${key}" loading="lazy" onclick="openLightbox('${src}','${key}')">`;
+      const imgEl = document.createElement('img');
+      imgEl.src = src;
+      imgEl.alt = key;
+      imgEl.loading = 'lazy';
+      imgEl.style.width = '100%';
+      imgEl.style.display = 'block';
+      imgEl.style.borderRadius = '10px';
+      imgEl.style.cursor = 'zoom-in';
+      imgEl.addEventListener('click', () => openLightbox(src, key));
+      const wrap = document.getElementById(`foto-wrap-${key}`);
+      if (wrap) { wrap.innerHTML = ''; wrap.appendChild(imgEl); }
       if (dlBtn) dlBtn.disabled = false;
       if (document.getElementById(`foto-meta-${key}`)) {
         document.getElementById(`foto-meta-${key}`).textContent = res.fileName || '';
@@ -1082,14 +1101,16 @@
     const allFiles = activeData.flatMap(d => d.files);
 
     const tabsHtml = jenisList.map(j => `
-      <button class="dok-wilayah-tab ${j === activeDokJenis ? 'active' : ''}"
-        onclick="switchDokJenis('${j}')">${j}</button>
+      <button class="dok-wilayah-tab ${j === activeDokJenis ? 'active' : ''}" data-jenis="${esc(j)}">${esc(j)}</button>
     `).join('');
 
     if (allFiles.length === 0) {
       container.innerHTML = `
         <div class="dok-wilayah-tabs">${tabsHtml}</div>
         <div class="dok-wilayah-empty">Belum ada foto untuk kategori ini</div>`;
+      container.querySelectorAll('.dok-wilayah-tab').forEach(btn => {
+        btn.addEventListener('click', () => switchDokJenis(btn.dataset.jenis));
+      });
       return;
     }
 
@@ -1103,6 +1124,10 @@
     container.innerHTML = `
       <div class="dok-wilayah-tabs">${tabsHtml}</div>
       <div class="dok-wilayah-grid">${gridHtml}</div>`;
+
+    container.querySelectorAll('.dok-wilayah-tab').forEach(btn => {
+      btn.addEventListener('click', () => switchDokJenis(btn.dataset.jenis));
+    });
 
     allFiles.forEach(f => loadDokFoto(f.fileId, f.mimeType));
   }
@@ -1150,7 +1175,13 @@
         const src = `data:${res.mimeType};base64,${res.base64}`;
         fotoData = { src, mime: res.mimeType, fileName: res.fileName };
         currentFotoData[`dw-${fileId}`] = fotoData;
-        html = `<img src="${src}" alt="dokumentasi" loading="lazy" onclick="openLightbox('${src}','dw-${fileId}')">`;
+        const imgDw = document.createElement('img');
+        imgDw.src = src;
+        imgDw.alt = 'dokumentasi';
+        imgDw.loading = 'lazy';
+        imgDw.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        imgDw.addEventListener('click', () => openLightbox(src, `dw-${fileId}`));
+        html = imgDw.outerHTML;
       }
 
       dokWilayahFotoCache[fileId] = { html, fotoData };

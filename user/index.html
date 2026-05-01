@@ -794,15 +794,15 @@
 
     const recent = allHewan.slice(0, 5);
     document.getElementById('recentHewan').innerHTML = recent.map(h => `
-      <div class="a-row" data-nomor="${h.nomor_hewan}">
+      <div class="a-row" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}">
         <div class="a-ava">${getEmoji(h.jenis_hewan)}</div>
-        <div class="a-info"><div class="aname">${h.nomor_hewan}</div><div class="asub">${h.instansi}</div></div>
+        <div class="a-info"><div class="aname">${esc(h.nomor_hewan)}</div><div class="asub">${esc(h.instansi)}</div></div>
         <span class="abadge ${getPhaseCount(h.status)===3?'ab-done':'ab-prgs'}">${getPhaseCount(h.status)}/3</span>
       </div>
     `).join('');
     
     document.querySelectorAll('.a-row[data-nomor]').forEach(el => {
-      el.addEventListener('click', () => selectHewanFromList(el.dataset.nomor));
+      el.addEventListener('click', () => selectHewanFromList(el.dataset.nomor, el.dataset.instansi, el.dataset.jenis));
     });
   }
 
@@ -831,8 +831,11 @@
     const dd  = document.getElementById(`uDd${cap}`);
     const allLabel = key === 'wilayah' ? 'Semua Wilayah' : key === 'instansi' ? 'Semua Instansi' : 'Semua Status';
     dd.innerHTML = [{ value: '', label: allLabel }, ...options.map(o => ({ value: o, label: o }))]
-      .map(o => `<div class="filter-option${userFilterState[key]===o.value?' selected':''}" onclick="selectUserFilter('${key}','${o.value}','${o.label}')">${o.label}</div>`)
+      .map(o => `<div class="filter-option${userFilterState[key]===o.value?' selected':''}" data-key="${esc(key)}" data-value="${esc(o.value)}" data-label="${esc(o.label)}">${esc(o.label)}</div>`)
       .join('');
+    dd.querySelectorAll('.filter-option').forEach(el => {
+      el.addEventListener('click', () => selectUserFilter(el.dataset.key, el.dataset.value, el.dataset.label));
+    });
   }
 
   function selectUserFilter(key, value, label) {
@@ -889,22 +892,24 @@
     }
     if (allHewan.length > 0) populateHewanFilters();
     document.getElementById('allHewanList').innerHTML = data.map(h => `
-      <div class="a-row" data-nomor="${h.nomor_hewan}">
+      <div class="a-row" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}">
         <div class="a-ava">${getEmoji(h.jenis_hewan)}</div>
-        <div class="a-info"><div class="aname">${h.nomor_hewan}</div><div class="asub">${h.instansi} · ${h.wilayah}</div></div>
+        <div class="a-info"><div class="aname">${esc(h.nomor_hewan)}</div><div class="asub">${esc(h.instansi)} · ${esc(h.wilayah)}</div></div>
         <span class="abadge ${getPhaseCount(h.status)===3?'ab-done':'ab-prgs'}">${getPhaseCount(h.status)}/3</span>
       </div>
     `).join('') || '<div style="color:rgba(255,255,255,0.4);text-align:center;padding:24px;font-size:13px;">Tidak ada data</div>';
     document.querySelectorAll('#allHewanList .a-row').forEach(el => {
-      el.addEventListener('click', () => selectHewanFromList(el.dataset.nomor));
+      el.addEventListener('click', () => selectHewanFromList(el.dataset.nomor, el.dataset.instansi, el.dataset.jenis));
     });
   }
 
-  function selectHewanFromList(nomor) {
-    selectedHewan = allHewan.find(h => h.nomor_hewan === nomor);
-    if (selectedHewan) {
-      switchScreen('upload');
-    }
+  function selectHewanFromList(nomor, instansi, jenis) {
+    selectedHewan = allHewan.find(h =>
+      h.nomor_hewan === nomor &&
+      h.instansi    === instansi &&
+      h.jenis_hewan === jenis
+    );
+    if (selectedHewan) switchScreen('upload');
   }
 
   // ==================== UPLOAD ====================
@@ -916,11 +921,11 @@
     const s = selectedHewan.status || {};
 
     document.getElementById('selectedHewanDetail').innerHTML = `
-      <div class="detail-row"><span class="detail-label">Nomor</span><span class="detail-value">${selectedHewan.nomor_hewan}</span></div>
-      <div class="detail-row"><span class="detail-label">Jenis</span><span class="detail-value">${selectedHewan.jenis_hewan}</span></div>
-      <div class="detail-row"><span class="detail-label">Pekurban</span><span class="detail-value">${selectedHewan.daftar_pekurban||'-'}</span></div>
-      <div class="detail-row"><span class="detail-label">Instansi</span><span class="detail-value">${selectedHewan.instansi}</span></div>
-      <div class="detail-row"><span class="detail-label">Wilayah</span><span class="detail-value">${selectedHewan.wilayah}</span></div>
+      <div class="detail-row"><span class="detail-label">Nomor</span><span class="detail-value">${esc(selectedHewan.nomor_hewan)}</span></div>
+      <div class="detail-row"><span class="detail-label">Jenis</span><span class="detail-value">${esc(selectedHewan.jenis_hewan)}</span></div>
+      <div class="detail-row"><span class="detail-label">Pekurban</span><span class="detail-value">${esc(selectedHewan.daftar_pekurban||'-')}</span></div>
+      <div class="detail-row"><span class="detail-label">Instansi</span><span class="detail-value">${esc(selectedHewan.instansi)}</span></div>
+      <div class="detail-row"><span class="detail-label">Wilayah</span><span class="detail-value">${esc(selectedHewan.wilayah)}</span></div>
     `;
 
     const statusDiv = document.getElementById('uploadStatusDisplay');
@@ -997,6 +1002,10 @@
       if (!selectedHewan) return showToast('Pilih hewan terlebih dahulu', 'warning');
       const file = fotoInput.files[0];
       if (!file) return showToast('Pilih foto', 'warning');
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) return showToast('Tipe file tidak diizinkan. Gunakan JPG, PNG, atau WebP', 'warning');
+      if (file.size > 5 * 1024 * 1024) return showToast('Ukuran foto melebihi 5 MB', 'warning');
 
       const btn = document.getElementById('uploadBtn');
       const overlay = document.getElementById('uploadOverlay');
@@ -1233,9 +1242,9 @@
         }
         container.innerHTML = result.data.map(d => `
           <div class="instansi-item">
-            <div><strong>${d.instansi} (${d.wilayah})</strong> - ${d.jenis}</div>
-            <div style="font-size:12px; color:rgba(255,255,255,0.4);">${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'} oleh ${d.uploader}</div>
-            ${d.folderUrl && d.folderUrl.startsWith('http') ? `<a href="${d.folderUrl}" target="_blank" style="color:#00A2EA;font-size:12px;font-weight:600;"><i class="icon icon-folder" style="font-size:12px;"></i> Buka Folder</a>` : ''}
+            <div><strong>${esc(d.instansi)} (${esc(d.wilayah)})</strong> - ${esc(d.jenis)}</div>
+            <div style="font-size:12px; color:rgba(255,255,255,0.4);">${d.tglUpload ? new Date(d.tglUpload).toLocaleDateString('id-ID') : '-'} oleh ${esc(d.uploader)}</div>
+            ${d.folderUrl && d.folderUrl.startsWith('http') ? `<a href="${esc(d.folderUrl)}" target="_blank" rel="noopener noreferrer" style="color:#00A2EA;font-size:12px;font-weight:600;"><i class="icon icon-folder" style="font-size:12px;"></i> Buka Folder</a>` : ''}
           </div>
         `).join('');
       } else {
@@ -1266,7 +1275,7 @@
     if (instansiSet.size === 0) {
       listDiv.innerHTML = '<div class="instansi-item">Belum ada instansi</div>';
     } else {
-      listDiv.innerHTML = Array.from(instansiSet).sort().map(i => `<div class="instansi-item">${i}</div>`).join('');
+      listDiv.innerHTML = Array.from(instansiSet).sort().map(i => `<div class="instansi-item">${esc(i)}</div>`).join('');
     }
   }
 
