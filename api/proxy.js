@@ -96,6 +96,8 @@ function str(v, max = 500) {
 
 function validateUploadFoto(body) {
   if (!str(body.nomor_hewan, 50))  return 'nomor_hewan tidak valid';
+  if (!str(body.jenis_hewan, 50))  return 'jenis_hewan tidak valid';
+  if (!str(body.instansi, 200))    return 'instansi tidak valid';
   if (!['hidup','ditumbangkan','mati'].includes(body.jenis_foto)) return 'jenis_foto tidak valid';
   if (!str(body.mimeType, 50))     return 'mimeType tidak valid';
   if (!ALLOWED_IMAGE_MIMES.has(body.mimeType)) return 'Tipe file tidak diizinkan';
@@ -270,8 +272,6 @@ export default async function handler(req, res) {
 
   if (err) return res.status(400).json({ success: false, error: err });
 
-  // Bangun data yang aman — TIDAK pernah forward body mentah
-  // email/role dari JWT, bukan dari body frontend
   const safeData = buildSafeData(action, body);
 
   try {
@@ -291,6 +291,7 @@ function sanitizePublicData(action, body) {
   if (action === 'getPekurbanDetail') return {
     nama:        String(body.nama        || '').slice(0, 200),
     nomor_hewan: String(body.nomor_hewan || '').slice(0, 50),
+    instansi:    String(body.instansi    || '').slice(0, 200),
   };
   if (action === 'getDokumentasiWilayah') return { wilayah: String(body.wilayah || '').slice(0, 200) };
   return {};
@@ -307,6 +308,8 @@ function buildSafeData(action, body) {
     case 'uploadFoto':
       return {
         nomor_hewan: body.nomor_hewan,
+        jenis_hewan: body.jenis_hewan,
+        instansi:    body.instansi,
         jenis_foto:  body.jenis_foto,
         base64Data:  body.base64Data,
         mimeType:    body.mimeType,
@@ -327,7 +330,10 @@ function buildSafeData(action, body) {
       return { hewan: body.hewan };
 
     case 'deleteHewan':
-      return { nomor_hewan: String(body.nomor_hewan || '').slice(0, 50) };
+      return {
+        nomor_hewan: String(body.nomor_hewan || '').slice(0, 50),
+        instansi:    String(body.instansi    || '').slice(0, 200),
+      };
 
     case 'addUser':
       return { newUser: body.newUser };
@@ -339,7 +345,6 @@ function buildSafeData(action, body) {
       return { targetEmail: String(body.targetEmail || '').slice(0, 200) };
 
     case 'getFileById':
-      // TIDAK pernah terima fileUrl — hanya fileId
       return { fileId: String(body.fileId || '').slice(0, 100) };
 
     default:

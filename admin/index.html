@@ -366,7 +366,7 @@
           <div class="a-page-h"><h1>Data Hewan</h1></div>
         </div>
         <div class="action-bar">
-          <input type="text" id="searchHewan" class="field" placeholder="Cari nomor, pekurban..." oninput="filterHewan()">
+          <input type="text" id="searchHewan" class="field" placeholder="Cari nomor, pekurban...">
           <div class="filter-select-wrap">
             <button class="filter-select-btn" id="btnWilayah" onclick="toggleFilter('wilayah')">
               <span id="lblWilayah">Semua Wilayah</span><i class="icon icon-chevron-down"></i>
@@ -536,6 +536,9 @@
     document.querySelectorAll('.sb-item[data-tab]').forEach(item => item.addEventListener('click', () => switchTab(item.dataset.tab)));
     document.querySelectorAll('.admin-bottom-nav .nav-item[data-tab]').forEach(item => item.addEventListener('click', () => switchTab(item.dataset.tab)));
 
+    // Debounce search
+    document.getElementById('searchHewan').addEventListener('input', debounce(filterHewan, 300));
+
     function logout() { localStorage.clear(); window.location.href = '/'; }
 
     // Auto-logout saat session expired
@@ -663,7 +666,7 @@
           <td data-label="Instansi">${h.instansi}</td>
           <td data-label="Wilayah">${h.wilayah}</td>
           <td data-label="Status"><span class="status-badge ${cls}">${txt}</span></td>
-          <td data-label="Aksi"><button class="act-btn" onclick="editHewan('${h.nomor_hewan}')" title="Edit"><i class="icon icon-pencil"></i></button><button class="act-btn" onclick="confirmDeleteHewan('${h.nomor_hewan}')" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button></td>
+          <td data-label="Aksi"><button class="act-btn" onclick="editHewan('${h.nomor_hewan}','${h.instansi}','${h.jenis_hewan}')" title="Edit"><i class="icon icon-pencil"></i></button><button class="act-btn" onclick="confirmDeleteHewan('${h.nomor_hewan}','${h.instansi}','${h.jenis_hewan}')" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button></td>
         </tr>`;
       }).join('');
     }
@@ -691,25 +694,31 @@
       renderHewanTable(filtered);
     }
 
-    window.editHewan = (nomor) => {
-      const h = allHewan.find(h=>h.nomor_hewan===nomor);
+    window.editHewan = (nomor, instansi, jenis) => {
+      // Cari berdasarkan composite key
+      const h = allHewan.find(h =>
+        h.nomor_hewan === nomor &&
+        h.instansi    === instansi &&
+        h.jenis_hewan === jenis
+      );
       if(!h) return;
       document.getElementById('hewanModalTitle').textContent='Edit Hewan';
-      document.getElementById('hewanId').value=h.nomor_hewan;
+      document.getElementById('hewanId').value = `${h.nomor_hewan}||${h.instansi}||${h.jenis_hewan}`;
       document.getElementById('hewanNomor').value=h.nomor_hewan;
       document.getElementById('hewanNomor').disabled=true;
       document.getElementById('hewanJenis').value=h.jenis_hewan;
+      document.getElementById('hewanJenis').disabled=true;
       document.getElementById('hewanPekurban').value=h.daftar_pekurban;
       document.getElementById('hewanJumlah').value=h.jumlah_pekurban||1;
       document.getElementById('hewanInstansi').value=h.instansi;
+      document.getElementById('hewanInstansi').disabled=true;
       document.getElementById('hewanWilayah').value=h.wilayah;
       document.getElementById('hewanModal').classList.add('active');
     };
 
-    // Konfirmasi hapus hewan
-    window.confirmDeleteHewan = (nomor) => {
-      pendingDelete = { type: 'hewan', id: nomor };
-      document.getElementById('confirmDeleteMessage').textContent = `Hapus hewan "${nomor}"?`;
+    window.confirmDeleteHewan = (nomor, instansi, jenis) => {
+      pendingDelete = { type: 'hewan', id: nomor, instansi, jenis };
+      document.getElementById('confirmDeleteMessage').textContent = `Hapus hewan "${nomor}" (${jenis} - ${instansi})?`;
       document.getElementById('confirmDeleteModal').classList.add('active');
     };
 
@@ -718,32 +727,41 @@
       document.getElementById('hewanId').value='';
       document.getElementById('hewanForm').reset();
       document.getElementById('hewanNomor').disabled=false;
+      document.getElementById('hewanJenis').disabled=false;
+      document.getElementById('hewanInstansi').disabled=false;
       document.getElementById('hewanModal').classList.add('active');
     }
     function closeHewanModal(){ document.getElementById('hewanModal').classList.remove('active'); }
 
     document.getElementById('hewanForm').addEventListener('submit', async(e)=>{
       e.preventDefault();
-      const id = document.getElementById('hewanId').value;
-      const nomor = document.getElementById('hewanNomor').value.toUpperCase();
-      const jenis = document.getElementById('hewanJenis').value.toUpperCase();
+      const compositeId = document.getElementById('hewanId').value; // "nomor||instansi||jenis" saat edit
+      const isEdit = !!compositeId;
+      const nomor    = document.getElementById('hewanNomor').value.toUpperCase();
+      const jenis    = document.getElementById('hewanJenis').value.toUpperCase();
       const pekurban = document.getElementById('hewanPekurban').value.toUpperCase();
       const instansi = document.getElementById('hewanInstansi').value.toUpperCase();
-      const wilayah = document.getElementById('hewanWilayah').value.toUpperCase();
-      const jumlah = parseInt(document.getElementById('hewanJumlah').value)||1;
+      const wilayah  = document.getElementById('hewanWilayah').value.toUpperCase();
+      const jumlah   = parseInt(document.getElementById('hewanJumlah').value)||1;
 
       const hewan = { nomor_hewan: nomor, jenis_hewan: jenis, daftar_pekurban: pekurban, jumlah_pekurban: jumlah, instansi, wilayah };
-      const action = id ? 'updateHewan' : 'addHewan';
+      const action = isEdit ? 'updateHewan' : 'addHewan';
 
       const overlay = document.getElementById('adminOverlay');
-      document.getElementById('adminOverlayText').textContent = id ? 'Memperbarui data hewan...' : 'Menambah hewan baru...';
+      document.getElementById('adminOverlayText').textContent = isEdit ? 'Memperbarui data hewan...' : 'Menambah hewan baru...';
       overlay.classList.add('active');
 
-      const res = await callApi(action, { email, hewan });
+      const res = await callApi(action, { hewan });
       overlay.classList.remove('active');
-      if(res.success){ 
-        closeHewanModal(); 
-        await loadAllData(); 
+
+      // Reset disabled fields setelah submit
+      document.getElementById('hewanNomor').disabled = false;
+      document.getElementById('hewanJenis').disabled = false;
+      document.getElementById('hewanInstansi').disabled = false;
+
+      if(res.success){
+        closeHewanModal();
+        await loadAllData();
         renderHewanTable(allHewan);
         loadDashboard();
         showToast('Data hewan berhasil disimpan', 'success');
@@ -835,7 +853,7 @@
 
       let res;
       if (type === 'hewan') {
-        res = await callApi('deleteHewan', { email, nomor_hewan: id });
+        res = await callApi('deleteHewan', { nomor_hewan: id, instansi: pendingDelete.instansi });
         if (res.success) {
           showToast('Hewan berhasil dihapus', 'success');
           await loadAllData();

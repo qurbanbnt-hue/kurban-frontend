@@ -7,9 +7,7 @@ const NAMA_SHEET_AKUN        = "Akun";
 const NAMA_SHEET_DOKUMENTASI = "DokumentasiInstansi";
 const ROOT_FOLDER_ID         = "GANTI_DENGAN_ID_FOLDER_DRIVE_KAMU";
 
-// Secret key — harus sama persis dengan GAS_SECRET di .env Vercel
-// Simpan di Script Properties: File → Project Properties → Script Properties
-// Key: SCRIPT_SECRET  Value: (sama dengan GAS_SECRET di Vercel)
+// SCRIPT_SECRET diambil dari Script Properties (bukan hardcoded)
 const SCRIPT_SECRET = PropertiesService.getScriptProperties().getProperty('SCRIPT_SECRET') || '';
 
 // ============================================================
@@ -46,7 +44,7 @@ function handleApiRequest(e) {
       case 'verifyCredentials':     result = verifyCredentials(data.email, data.password); break;
       case 'getPublicStats':        result = getPublicStats(); break;
       case 'searchPekurban':        result = searchPekurban(data.query); break;
-      case 'getPekurbanDetail':     result = getPekurbanDetail(data.nama, data.nomor_hewan); break;
+      case 'getPekurbanDetail':     result = getPekurbanDetail(data.nama, data.nomor_hewan, data.instansi); break;
       case 'getDokumentasiWilayah': result = getDokumentasiWilayah(data.wilayah); break;
 
       // User — butuh user terverifikasi
@@ -60,7 +58,7 @@ function handleApiRequest(e) {
       case 'getAdminData':  result = requireAdmin(user) || getAdminData(user.email); break;
       case 'addHewan':      result = requireAdmin(user) || addHewan(user.email, data.hewan); break;
       case 'updateHewan':   result = requireAdmin(user) || updateHewan(user.email, data.hewan); break;
-      case 'deleteHewan':   result = requireAdmin(user) || deleteHewan(user.email, data.nomor_hewan); break;
+      case 'deleteHewan':   result = requireAdmin(user) || deleteHewan(user.email, data.nomor_hewan, data.instansi); break;
       case 'addUser':       result = requireAdmin(user) || addUser(user.email, data.newUser); break;
       case 'updateUser':    result = requireAdmin(user) || updateUser(user.email, data.user); break;
       case 'deleteUser':    result = requireAdmin(user) || deleteUser(user.email, data.targetEmail); break;
@@ -113,8 +111,7 @@ function checkGasRateLimit(email) {
 //  HELPER FUNCTIONS
 // ============================================================
 
-// Hash dengan salt — format simpan: hash|salt
-// Iterasi 500x untuk memperlambat brute force
+// Hash SHA-256 dengan salt, 500 iterasi
 function hashPass(plainText, salt) {
   if (!salt) salt = Utilities.base64Encode(Utilities.computeDigest(
     Utilities.DigestAlgorithm.SHA_256,
@@ -136,7 +133,7 @@ function hashPass(plainText, salt) {
 
 function verifyPassword(plainText, storedHash, storedSalt) {
   if (!storedSalt) {
-    // Legacy: plain SHA-256 tanpa salt (untuk akun lama)
+    // Kompatibilitas akun lama (plain SHA-256 tanpa salt)
     const bytes = Utilities.computeDigest(
       Utilities.DigestAlgorithm.SHA_256, plainText, Utilities.Charset.UTF_8
     );
@@ -147,8 +144,27 @@ function verifyPassword(plainText, storedHash, storedSalt) {
   return hash === storedHash;
 }
 
-// isValidUser dan isAdmin dihapus — autentikasi kini dilakukan di proxy via JWT.
-// GAS hanya menerima user object yang sudah diverifikasi proxy.
+// isValidUser dan isAdmin dihapus — autentikasi dilakukan di proxy via JWT.
+
+// ── Primary key: nomor_hewan + instansi + jenis_hewan ────────
+// Ketiga field ini bersama-sama menjamin keunikan data hewan
+function matchHewan(row, nomor_hewan, instansi, jenis_hewan) {
+  const rowNomor  = row[0] ? String(row[0]).trim().toUpperCase() : '';
+  const rowJenis  = row[1] ? String(row[1]).trim().toUpperCase() : '';
+  const rowInst   = row[4] ? String(row[4]).trim().toUpperCase() : '';
+  return rowNomor === String(nomor_hewan  || '').trim().toUpperCase() &&
+         rowInst  === String(instansi     || '').trim().toUpperCase() &&
+         rowJenis === String(jenis_hewan  || '').trim().toUpperCase();
+}
+
+function matchLaporan(row, nomor_hewan, instansi, jenis_hewan) {
+  const rowNomor = row[0] ? String(row[0]).trim().toUpperCase() : '';
+  const rowJenis = row[1] ? String(row[1]).trim().toUpperCase() : '';
+  const rowInst  = row[4] ? String(row[4]).trim().toUpperCase() : '';
+  return rowNomor === String(nomor_hewan  || '').trim().toUpperCase() &&
+         rowInst  === String(instansi     || '').trim().toUpperCase() &&
+         rowJenis === String(jenis_hewan  || '').trim().toUpperCase();
+}
 
 function safeVal(v) {
   if (!v && v !== 0) return '';
@@ -256,19 +272,21 @@ function getDataForUi(email) {
     const ss           = SpreadsheetApp.getActiveSpreadsheet();
     const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
     const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
-    if (!dbSheet) return { success: false, error: "Sheet Database tidak ditemukan" };
+    if (!dbSheet) return { success: false, error: 'Sheet Database tidak ditemukan' };
 
-    const dbData   = dbSheet.getDataRange().getValues();
+    const dbData    = dbSheet.getDataRange().getValues();
+    // Key: nomor|instansi|jenis — composite primary key
     const statusMap = {};
     if (laporanSheet) {
       const lapData = laporanSheet.getDataRange().getValues();
       for (let i = 1; i < lapData.length; i++) {
         const row = lapData[i];
         if (!row || !row[0]) continue;
-        statusMap[String(row[0])] = {
-          url_hidup:            safeVal(row[6]),  tgl_hidup:            safeVal(row[7]),  uploader_hidup:            safeVal(row[12]),
-          url_ditumbangkan:     safeVal(row[8]),  tgl_ditumbangkan:     safeVal(row[9]),  uploader_ditumbangkan:     safeVal(row[13]),
-          url_mati:             safeVal(row[10]), tgl_mati:             safeVal(row[11]), uploader_mati:             safeVal(row[14])
+        const key = `${String(row[0]).trim().toUpperCase()}|${String(row[4]||'').trim().toUpperCase()}|${String(row[1]||'').trim().toUpperCase()}`;
+        statusMap[key] = {
+          url_hidup:        safeVal(row[6]),  tgl_hidup:        safeVal(row[7]),  uploader_hidup:        safeVal(row[12]),
+          url_ditumbangkan: safeVal(row[8]),  tgl_ditumbangkan: safeVal(row[9]),  uploader_ditumbangkan: safeVal(row[13]),
+          url_mati:         safeVal(row[10]), tgl_mati:         safeVal(row[11]), uploader_mati:         safeVal(row[14])
         };
       }
     }
@@ -277,19 +295,22 @@ function getDataForUi(email) {
     for (let i = 1; i < dbData.length; i++) {
       const row = dbData[i];
       if (!row || !row[0]) continue;
-      const nomor = String(row[0]);
+      const nomor   = String(row[0]).trim();
+      const jenis   = row[1] ? String(row[1]).trim() : 'Sapi';
+      const instansi = row[4] ? String(row[4]).trim() : '';
+      const key     = `${nomor.toUpperCase()}|${instansi.toUpperCase()}|${jenis.toUpperCase()}`;
       result.push({
         nomor_hewan:     nomor,
-        jenis_hewan:     row[1] ? String(row[1]) : 'Sapi',
+        jenis_hewan:     jenis,
         daftar_pekurban: row[2] ? String(row[2]) : '',
         jumlah_pekurban: row[3] ? Number(row[3]) : 1,
-        instansi:        row[4] ? String(row[4]) : '',
+        instansi:        instansi,
         wilayah:         row[5] ? String(row[5]) : '',
-        status:          statusMap[nomor] || { url_hidup: '', url_ditumbangkan: '', url_mati: '' }
+        status:          statusMap[key] || { url_hidup: '', url_ditumbangkan: '', url_mati: '' }
       });
     }
     return { success: true, data: result };
-  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: 'Internal server error' }; }
 }
 
 // ============================================================
@@ -347,46 +368,46 @@ function searchPekurban(query) {
 //  PORTAL PEKURBAN — DETAIL PROFIL
 //  Mengembalikan info hewan + status foto untuk 1 pekurban.
 // ============================================================
-function getPekurbanDetail(nama, nomor_hewan) {
+function getPekurbanDetail(nama, nomor_hewan, instansi) {
   try {
-    if (!nama || !nomor_hewan) return { success: false, error: "Parameter tidak lengkap" };
+    if (!nama || !nomor_hewan) return { success: false, error: 'Parameter tidak lengkap' };
 
     const ss      = SpreadsheetApp.getActiveSpreadsheet();
     const dbSheet = ss.getSheetByName(NAMA_SHEET_DB);
-    if (!dbSheet) return { success: false, error: "Sheet Database tidak ditemukan" };
+    if (!dbSheet) return { success: false, error: 'Sheet Database tidak ditemukan' };
 
-    // Cari data hewan di Database
     const dbData = dbSheet.getDataRange().getValues();
-    let hewanRow  = null;
+    let hewanRow = null;
     for (let i = 1; i < dbData.length; i++) {
       const row = dbData[i];
-      if (row && row[0] && String(row[0]) === nomor_hewan) {
-        hewanRow = row;
-        break;
-      }
+      if (!row || !row[0]) continue;
+      const nomorMatch = String(row[0]).trim().toUpperCase() === String(nomor_hewan).trim().toUpperCase();
+      // Jika instansi dikirim, cocokkan juga instansi
+      const instansiMatch = !instansi || String(row[4]||'').trim().toUpperCase() === String(instansi).trim().toUpperCase();
+      if (nomorMatch && instansiMatch) { hewanRow = row; break; }
     }
-    if (!hewanRow) return { success: false, error: "Hewan tidak ditemukan" };
+    if (!hewanRow) return { success: false, error: 'Hewan tidak ditemukan' };
 
-    // Validasi: nama pekurban harus ada di daftar hewan ini
     const namaList = splitNamaPekurban(hewanRow[2]);
     const namaValid = namaList.some(n => n.toLowerCase() === nama.trim().toLowerCase());
-    if (!namaValid) return { success: false, error: "Nama pekurban tidak terdaftar pada hewan ini" };
+    if (!namaValid) return { success: false, error: 'Nama pekurban tidak terdaftar pada hewan ini' };
 
-    // Ambil status foto dari Laporan
-    const status = getHewanStatus(ss, nomor_hewan);
+    const jenis    = hewanRow[1] ? String(hewanRow[1]).trim() : 'Sapi';
+    const inst     = hewanRow[4] ? String(hewanRow[4]).trim() : '';
+    const status   = getHewanStatus(ss, String(hewanRow[0]).trim(), inst, jenis);
 
     return {
       success: true,
       data: {
         nama_pekurban: nama.trim(),
-        nomor_hewan:   String(hewanRow[0]),
-        jenis_hewan:   hewanRow[1] ? String(hewanRow[1]) : 'Sapi',
-        instansi:      hewanRow[4] ? String(hewanRow[4]) : '',
-        wilayah:       hewanRow[5] ? String(hewanRow[5]) : '',
-        status:        status
+        nomor_hewan:   String(hewanRow[0]).trim(),
+        jenis_hewan:   jenis,
+        instansi:      inst,
+        wilayah:       hewanRow[5] ? String(hewanRow[5]).trim() : '',
+        status
       }
     };
-  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: 'Internal server error' }; }
 }
 
 // ============================================================
@@ -437,10 +458,27 @@ function getFileById(fileId, user) {
 //  UPLOAD FOTO HEWAN (Panitia)
 // ============================================================
 function uploadFotoJenis(data, user) {
-  try {
-    const { nomor_hewan, jenis_foto, base64Data, mimeType } = data;
-    const username = data.username || user.email;
+  const { nomor_hewan, jenis_foto, base64Data, mimeType } = data;
+  const username = data.username || user.email;
 
+  // Lock per nomor hewan — hewan berbeda bisa upload bersamaan
+  // Hewan yang sama harus antri agar tidak saling timpa
+  const cache    = CacheService.getScriptCache();
+  const lockKey  = `upload_lock_${String(nomor_hewan).trim().toUpperCase()}_${String(data.instansi||'').trim().toUpperCase()}_${String(data.jenis_hewan||'').trim().toUpperCase()}`;
+  const maxWait  = 10; // detik
+
+  for (let i = 0; i < maxWait; i++) {
+    if (!cache.get(lockKey)) {
+      cache.put(lockKey, '1', 30); // lock 30 detik (timeout safety)
+      break;
+    }
+    if (i === maxWait - 1) {
+      return { success: false, error: 'Server sedang sibuk untuk hewan ini, coba lagi sebentar' };
+    }
+    Utilities.sleep(1000);
+  }
+
+  try {
     const ss      = SpreadsheetApp.getActiveSpreadsheet();
     const dbSheet = ss.getSheetByName(NAMA_SHEET_DB);
     const dbData  = dbSheet.getDataRange().getValues();
@@ -458,10 +496,10 @@ function uploadFotoJenis(data, user) {
         break;
       }
     }
-    if (!hewanData) return { success: false, error: "Nomor hewan tidak ditemukan" };
+    if (!hewanData) return { success: false, error: 'Nomor hewan tidak ditemukan' };
 
     // Upload ke Drive
-    const rootFolder   = DriveApp.getFolderById(ROOT_FOLDER_ID);
+    const rootFolder     = DriveApp.getFolderById(ROOT_FOLDER_ID);
     const instansiFolder = getOrCreateFolder(rootFolder, hewanData.instansi);
     const wilayahFolder  = getOrCreateFolder(instansiFolder, hewanData.wilayah);
     const jenisFolder    = getOrCreateFolder(wilayahFolder, hewanData.jenis_hewan);
@@ -476,12 +514,14 @@ function uploadFotoJenis(data, user) {
 
     // Update sheet Laporan
     const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
-    if (!laporanSheet) return { success: false, error: "Sheet Laporan tidak ditemukan" };
+    if (!laporanSheet) return { success: false, error: 'Sheet Laporan tidak ditemukan' };
 
     const laporanData = laporanSheet.getDataRange().getValues();
     let rowIndex = -1;
     for (let i = 1; i < laporanData.length; i++) {
-      if (laporanData[i][0] && String(laporanData[i][0]) === nomor_hewan) { rowIndex = i + 1; break; }
+      if (matchLaporan(laporanData[i], nomor_hewan, hewanData.instansi, hewanData.jenis_hewan)) {
+        rowIndex = i + 1; break;
+      }
     }
     if (rowIndex === -1) {
       laporanSheet.appendRow([nomor_hewan, hewanData.jenis_hewan, hewanData.daftar_pekurban,
@@ -501,7 +541,13 @@ function uploadFotoJenis(data, user) {
     laporanSheet.getRange(rowIndex, cols.uploaderCol).setValue(username);
 
     return { success: true, fileUrl };
-  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
+  } catch (err) {
+    Logger.log(err.toString());
+    return { success: false, error: 'Internal server error' };
+  } finally {
+    // Lepas lock setelah selesai
+    cache.remove(lockKey);
+  }
 }
 
 // ============================================================
@@ -606,16 +652,18 @@ function getAdminData(adminEmail) {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       if (!row || !row[0]) continue;
-      const nomor    = String(row[0]);
-      const status   = getHewanStatus(ss, nomor);
+      const nomor   = String(row[0]).trim();
+      const jenis   = row[1] ? String(row[1]).trim() : 'Sapi';
+      const instansi = row[4] ? String(row[4]).trim() : '';
+      const status   = getHewanStatus(ss, nomor, instansi, jenis);
       const progress = (status.url_hidup ? 1 : 0) + (status.url_ditumbangkan ? 1 : 0) + (status.url_mati ? 1 : 0);
       if (progress === 3) totalSelesai++;
       hewan.push({
         nomor_hewan:     nomor,
-        jenis_hewan:     row[1] ? String(row[1]) : 'Sapi',
+        jenis_hewan:     jenis,
         daftar_pekurban: row[2] ? String(row[2]) : '',
         jumlah_pekurban: row[3] ? Number(row[3]) : 1,
-        instansi:        row[4] ? String(row[4]) : '',
+        instansi:        instansi,
         wilayah:         row[5] ? String(row[5]) : '',
         status, progress
       });
@@ -629,7 +677,7 @@ function getAdminData(adminEmail) {
 }
 
 // Helper: ambil status foto satu hewan dari sheet Laporan
-function getHewanStatus(ss, nomorHewan) {
+function getHewanStatus(ss, nomorHewan, instansi, jenisHewan) {
   const empty = {
     url_hidup: '', tgl_hidup: '', uploader_hidup: '',
     url_ditumbangkan: '', tgl_ditumbangkan: '', uploader_ditumbangkan: '',
@@ -640,11 +688,11 @@ function getHewanStatus(ss, nomorHewan) {
   const data = laporanSheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row[0] && String(row[0]) === nomorHewan) {
+    if (matchLaporan(row, nomorHewan, instansi, jenisHewan)) {
       return {
-        url_hidup:            safeVal(row[6]),  tgl_hidup:            safeVal(row[7]),  uploader_hidup:            safeVal(row[12]),
-        url_ditumbangkan:     safeVal(row[8]),  tgl_ditumbangkan:     safeVal(row[9]),  uploader_ditumbangkan:     safeVal(row[13]),
-        url_mati:             safeVal(row[10]), tgl_mati:             safeVal(row[11]), uploader_mati:             safeVal(row[14])
+        url_hidup:        safeVal(row[6]),  tgl_hidup:        safeVal(row[7]),  uploader_hidup:        safeVal(row[12]),
+        url_ditumbangkan: safeVal(row[8]),  tgl_ditumbangkan: safeVal(row[9]),  uploader_ditumbangkan: safeVal(row[13]),
+        url_mati:         safeVal(row[10]), tgl_mati:         safeVal(row[11]), uploader_mati:         safeVal(row[14])
       };
     }
   }
@@ -660,6 +708,14 @@ function addHewan(adminEmail, hewan) {
     const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
     const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
 
+    // Cek duplikat berdasarkan composite key
+    const dbData = dbSheet.getDataRange().getValues();
+    for (let i = 1; i < dbData.length; i++) {
+      if (matchHewan(dbData[i], hewan.nomor_hewan, hewan.instansi, hewan.jenis_hewan)) {
+        return { success: false, error: 'Hewan dengan nomor, instansi, dan jenis yang sama sudah ada' };
+      }
+    }
+
     dbSheet.appendRow([hewan.nomor_hewan, hewan.jenis_hewan, hewan.daftar_pekurban,
       hewan.jumlah_pekurban, hewan.instansi, hewan.wilayah]);
 
@@ -669,7 +725,7 @@ function addHewan(adminEmail, hewan) {
         '', '', '', '', '', '', '', '']);
     }
     return { success: true };
-  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: 'Internal server error' }; }
 }
 
 function updateHewan(adminEmail, hewan) {
@@ -677,7 +733,8 @@ function updateHewan(adminEmail, hewan) {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_DB);
     const data  = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0] && String(data[i][0]) === hewan.nomor_hewan) {
+      // Cari berdasarkan composite key (nomor + instansi + jenis lama)
+      if (matchHewan(data[i], hewan.nomor_hewan, hewan.instansi, hewan.jenis_hewan)) {
         sheet.getRange(i+1, 2).setValue(hewan.jenis_hewan);
         sheet.getRange(i+1, 3).setValue(hewan.daftar_pekurban);
         sheet.getRange(i+1, 4).setValue(hewan.jumlah_pekurban);
@@ -686,22 +743,28 @@ function updateHewan(adminEmail, hewan) {
         return { success: true };
       }
     }
-    return { success: false, error: "Hewan tidak ditemukan" };
-  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
+    return { success: false, error: 'Hewan tidak ditemukan' };
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: 'Internal server error' }; }
 }
 
-function deleteHewan(adminEmail, nomor_hewan) {
+function deleteHewan(adminEmail, nomor_hewan, instansi) {
   try {
     const ss           = SpreadsheetApp.getActiveSpreadsheet();
     const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
     const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
 
-    // Cari data hewan untuk path folder Drive
+    // Cari data hewan berdasarkan composite key
     let hewanData = null;
     const dbData  = dbSheet.getDataRange().getValues();
     for (let i = 1; i < dbData.length; i++) {
-      if (dbData[i][0] && String(dbData[i][0]) === nomor_hewan) {
-        hewanData = { jenis_hewan: String(dbData[i][1] || 'Sapi'), instansi: String(dbData[i][4] || ''), wilayah: String(dbData[i][5] || '') };
+      const row = dbData[i];
+      if (row[0] && String(row[0]).trim().toUpperCase() === String(nomor_hewan).trim().toUpperCase() &&
+          row[4] && String(row[4]).trim().toUpperCase() === String(instansi || '').trim().toUpperCase()) {
+        hewanData = {
+          jenis_hewan: String(row[1] || 'Sapi'),
+          instansi:    String(row[4] || ''),
+          wilayah:     String(row[5] || '')
+        };
         break;
       }
     }
@@ -709,8 +772,8 @@ function deleteHewan(adminEmail, nomor_hewan) {
     // Hapus folder Drive
     if (hewanData) {
       try {
-        const rootFolder   = DriveApp.getFolderById(ROOT_FOLDER_ID);
-        const jenisFolder  = getOrCreateFolder(
+        const rootFolder  = DriveApp.getFolderById(ROOT_FOLDER_ID);
+        const jenisFolder = getOrCreateFolder(
           getOrCreateFolder(getOrCreateFolder(rootFolder, hewanData.instansi), hewanData.wilayah),
           hewanData.jenis_hewan
         );
@@ -724,20 +787,24 @@ function deleteHewan(adminEmail, nomor_hewan) {
       } catch (driveErr) { Logger.log('Drive folder tidak ditemukan: ' + driveErr); }
     }
 
-    // Hapus dari Database
+    // Hapus dari Database (composite key)
     for (let i = dbData.length - 1; i >= 1; i--) {
-      if (dbData[i][0] && String(dbData[i][0]) === nomor_hewan) { dbSheet.deleteRow(i + 1); break; }
+      if (matchHewan(dbData[i], nomor_hewan, instansi, hewanData?.jenis_hewan || '')) {
+        dbSheet.deleteRow(i + 1); break;
+      }
     }
 
-    // Hapus dari Laporan
+    // Hapus dari Laporan (composite key)
     if (laporanSheet) {
       const lapData = laporanSheet.getDataRange().getValues();
       for (let i = lapData.length - 1; i >= 1; i--) {
-        if (lapData[i][0] && String(lapData[i][0]) === nomor_hewan) { laporanSheet.deleteRow(i + 1); break; }
+        if (matchLaporan(lapData[i], nomor_hewan, instansi, hewanData?.jenis_hewan || '')) {
+          laporanSheet.deleteRow(i + 1); break;
+        }
       }
     }
     return { success: true };
-  } catch (err) { Logger.log(err.toString()); return { success: false, error: "Internal server error" }; }
+  } catch (err) { Logger.log(err.toString()); return { success: false, error: 'Internal server error' }; }
 }
 
 // ============================================================
@@ -752,7 +819,7 @@ function addUser(adminEmail, newUser) {
         return { success: false, error: 'Email sudah terdaftar' };
       }
     }
-    // Hash dengan salt — simpan di kolom B (hash) dan kolom E (salt)
+    // Hash dengan salt — kolom B: hash, kolom E: salt
     let hashVal = '', saltVal = '';
     if (newUser.password) {
       const result = hashPass(newUser.password, null);
@@ -1019,4 +1086,4 @@ function extractFileIdFromUrl(url) {
   return m ? m[0] : null;
 }
 
-// getDokFotoById digabung ke getFileById — lihat fungsi di atas
+// getDokFotoById digabung ke getFileById

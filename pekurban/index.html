@@ -597,7 +597,8 @@
         <input type="text" class="search-input" id="searchInput" 
           placeholder="Ketik nama Anda..." 
           autocomplete="off"
-          onkeydown="if(event.key==='Enter') doSearch()">
+          onkeydown="if(event.key==='Enter') doSearch()"
+        oninput="debounce(doSearch, 400)()">
         <button class="search-btn" onclick="doSearch()">Cari</button>
       </div>
       <div id="searchError" style="margin-top:10px;font-size:13px;color:#E05050;display:none;"></div>
@@ -797,8 +798,9 @@
 
     try {
       const res = await callApi('getPekurbanDetail', {
-        nama: pekurban.nama_pekurban,
-        nomor_hewan: pekurban.nomor_hewan
+        nama:        pekurban.nama_pekurban,
+        nomor_hewan: pekurban.nomor_hewan,
+        instansi:    pekurban.instansi,
       });
 
       if (!res.success || !res.data) {
@@ -995,7 +997,7 @@
       }
       const src = `data:${res.mimeType};base64,${res.base64}`;
       currentFotoData[key] = { src, mime: res.mimeType, fileName: res.fileName };
-      wrap.innerHTML = `<img src="${src}" alt="${key}" onclick="openLightbox('${src}','${key}')">`;
+      wrap.innerHTML = `<img src="${src}" alt="${key}" loading="lazy" onclick="openLightbox('${src}','${key}')">`;
       if (dlBtn) dlBtn.disabled = false;
       if (document.getElementById(`foto-meta-${key}`)) {
         document.getElementById(`foto-meta-${key}`).textContent = res.fileName || '';
@@ -1158,7 +1160,7 @@
         const src = `data:${res.mimeType};base64,${res.base64}`;
         fotoData = { src, mime: res.mimeType, fileName: res.fileName };
         currentFotoData[`dw-${fileId}`] = fotoData;
-        html = `<img src="${src}" alt="dokumentasi" onclick="openLightbox('${src}','dw-${fileId}')">`;
+        html = `<img src="${src}" alt="dokumentasi" loading="lazy" onclick="openLightbox('${src}','dw-${fileId}')">`;
       }
 
       dokWilayahFotoCache[fileId] = { html, fotoData };

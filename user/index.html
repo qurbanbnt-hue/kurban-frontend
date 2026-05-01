@@ -687,14 +687,12 @@
       <button class="btn-logout" id="logoutBtn">Keluar</button>
     </div>
 
-    <!-- Desktop right placeholder -->
     <div class="desktop-right-placeholder" id="desktopPlaceholder">
       <i class="icon icon-list"></i>
       <span>Pilih hewan untuk upload foto</span>
     </div>
   </div>
 
-  <!-- Bottom nav removed -->
 </div>
 
 <script src="../assets/js/api.js"></script>
@@ -1022,16 +1020,24 @@
         const base64 = e.target.result.split(',')[1];
         try {
           const result = await callApi('uploadFoto', {
-            email, username: username || email,
+            username:    username || email,
             nomor_hewan: selectedHewan.nomor_hewan,
-            jenis_foto: currentUploadTab,
-            base64Data: base64,
-            mimeType: file.type
+            jenis_hewan: selectedHewan.jenis_hewan,
+            instansi:    selectedHewan.instansi,
+            jenis_foto:  currentUploadTab,
+            base64Data:  base64,
+            mimeType:    file.type
           });
           if (result.success) {
             showToast('Foto berhasil diupload!', 'success');
+            invalidateCache('getHewan');
             await loadAllData();
-            selectedHewan = allHewan.find(h => h.nomor_hewan === selectedHewan.nomor_hewan);
+            // Refresh selectedHewan dengan composite key
+            selectedHewan = allHewan.find(h =>
+              h.nomor_hewan === selectedHewan.nomor_hewan &&
+              h.instansi    === selectedHewan.instansi &&
+              h.jenis_hewan === selectedHewan.jenis_hewan
+            );
             renderUploadDetail();
             previewContainer.style.display = 'none';
             uploadArea.style.display = 'block';
@@ -1213,6 +1219,7 @@
         });
         if (result.success) {
           showToast(`Berhasil upload ${result.fotoCount || 0} foto, ${result.videoCount || 0} video`, 'success');
+          invalidateCache('getDokumentasi');
           selectedFiles = [];
           renderFileList();
           updateFileSizeUI();
@@ -1357,7 +1364,7 @@
     el.addEventListener('click', () => switchScreen(el.dataset.screen));
   });
 
-  document.getElementById('searchInput').addEventListener('input', applyHewanFilter);
+  document.getElementById('searchInput').addEventListener('input', debounce(applyHewanFilter, 300));
   document.getElementById('logoutBtn').addEventListener('click', () => {
     localStorage.clear();
     window.location.href = '/';
