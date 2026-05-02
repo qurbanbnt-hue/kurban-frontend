@@ -2,6 +2,7 @@
   "name": "kurban-frontend",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "npx http-server . -p 8080"
   },
@@ -9,6 +10,6 @@
     "jose": "^5.9.6"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   }
 }
