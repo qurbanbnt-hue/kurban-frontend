@@ -487,6 +487,14 @@
 
   <script src="../assets/js/api.js"></script>
   <script>
+    if (typeof esc === 'undefined') {
+      function esc(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+      }
+    }
+  </script>
+  <script>
     const email = localStorage.getItem('userEmail');
     const username = localStorage.getItem('username');
     const role = localStorage.getItem('userRole');
