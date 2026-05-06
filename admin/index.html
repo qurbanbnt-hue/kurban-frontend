@@ -852,6 +852,19 @@
       const wilayah  = document.getElementById('hewanWilayah').value.trim().toUpperCase();
       const jumlah   = countPekurban(pekurban);
 
+      // ── Cek duplikat lokal sebelum kirim ke server ───────────
+      if (!isEdit) {
+        const duplikat = allHewan.find(h =>
+          h.nomor_hewan.toUpperCase() === nomor &&
+          h.instansi.toUpperCase()    === instansi &&
+          h.jenis_hewan.toUpperCase() === jenis
+        );
+        if (duplikat) {
+          showFormError('hewanNomor', `Hewan "${nomor}" (${jenis}) di instansi "${instansi}" sudah terdaftar`);
+          return;
+        }
+      }
+
       const hewan = { nomor_hewan: nomor, jenis_hewan: jenis, daftar_pekurban: pekurban, jumlah_pekurban: jumlah, instansi, wilayah };
       const action = isEdit ? 'updateHewan' : 'addHewan';
 
