@@ -428,8 +428,15 @@
         <input type="hidden" id="hewanId">
         <div class="form-group"><label>Nomor Hewan</label><input type="text" id="hewanNomor" required></div>
         <div class="form-group"><label>Jenis Hewan</label><input type="text" id="hewanJenis" value="SAPI" required></div>
-        <div class="form-group"><label>Daftar Pekurban</label><input type="text" id="hewanPekurban" required></div>
-        <div class="form-group"><label>Jumlah Pekurban</label><input type="number" id="hewanJumlah" value="1" required></div>
+        <div class="form-group">
+          <label>Daftar Pekurban <span style="font-weight:400;color:#94a3b8;text-transform:none;">(pisahkan dengan koma, boleh kosong)</span></label>
+          <input type="text" id="hewanPekurban" placeholder="Contoh: AHMAD, BUDI, SITI">
+          <div style="margin-top:6px;font-size:12px;color:#64748b;" id="pekurbanHint">Jumlah pekurban akan dihitung otomatis</div>
+        </div>
+        <div class="form-group">
+          <label>Jumlah Pekurban <span style="font-weight:400;color:#94a3b8;text-transform:none;">(otomatis)</span></label>
+          <input type="number" id="hewanJumlah" value="0" readonly style="background:#f1f5f9;cursor:not-allowed;">
+        </div>
         <div class="form-group"><label>Instansi</label><input type="text" id="hewanInstansi" required></div>
         <div class="form-group"><label>Wilayah</label><input type="text" id="hewanWilayah" required></div>
         <div class="modal-actions">
@@ -543,6 +550,23 @@
 
     document.getElementById('searchHewan').addEventListener('input', debounce(filterHewan, 300));
 
+    // ── Auto-kapital semua field teks di modal hewan ──────────
+    ['hewanNomor','hewanJenis','hewanInstansi','hewanWilayah'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function() {
+        const pos = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(pos, pos);
+      });
+    });
+
+    // ── Auto-kapital + hitung jumlah pekurban otomatis ────────
+    document.getElementById('hewanPekurban').addEventListener('input', function() {
+      const pos = this.selectionStart;
+      this.value = this.value.toUpperCase();
+      this.setSelectionRange(pos, pos);
+      updateJumlahPekurban();
+    });
+
     function logout() { localStorage.clear(); window.location.href = '/'; }
 
     // ── Validasi client-side ──────────────────────────────────
@@ -570,12 +594,32 @@
       const pekurban = document.getElementById('hewanPekurban').value.trim();
       const instansi = document.getElementById('hewanInstansi').value.trim();
       const wilayah  = document.getElementById('hewanWilayah').value.trim();
-      if (!nomor || nomor.length > 50)          { showFormError('hewanNomor', 'Nomor hewan wajib diisi (maks. 50 karakter)'); ok = false; }
-      if (!jenis || jenis.length > 50)          { showFormError('hewanJenis', 'Jenis hewan wajib diisi'); ok = false; }
-      if (!pekurban || pekurban.length > 500)   { showFormError('hewanPekurban', 'Daftar pekurban wajib diisi (maks. 500 karakter)'); ok = false; }
-      if (!instansi || instansi.length > 200)   { showFormError('hewanInstansi', 'Instansi wajib diisi (maks. 200 karakter)'); ok = false; }
-      if (!wilayah || wilayah.length > 200)     { showFormError('hewanWilayah', 'Wilayah wajib diisi (maks. 200 karakter)'); ok = false; }
+      if (!nomor || nomor.length > 50)        { showFormError('hewanNomor', 'Nomor hewan wajib diisi (maks. 50 karakter)'); ok = false; }
+      if (!jenis || jenis.length > 50)        { showFormError('hewanJenis', 'Jenis hewan wajib diisi'); ok = false; }
+      if (pekurban.length > 500)              { showFormError('hewanPekurban', 'Daftar pekurban terlalu panjang (maks. 500 karakter)'); ok = false; }
+      if (!instansi || instansi.length > 200) { showFormError('hewanInstansi', 'Instansi wajib diisi (maks. 200 karakter)'); ok = false; }
+      if (!wilayah || wilayah.length > 200)   { showFormError('hewanWilayah', 'Wilayah wajib diisi (maks. 200 karakter)'); ok = false; }
       return ok;
+    }
+
+    // ── Hitung jumlah pekurban otomatis dari input ────────────
+    function countPekurban(raw) {
+      if (!raw || !raw.trim()) return 0;
+      return raw.split(',').map(n => n.trim()).filter(n => n.length > 0).length;
+    }
+
+    function updateJumlahPekurban() {
+      const raw    = document.getElementById('hewanPekurban').value;
+      const jumlah = countPekurban(raw);
+      document.getElementById('hewanJumlah').value = jumlah;
+      const hint = document.getElementById('pekurbanHint');
+      if (!raw.trim()) {
+        hint.textContent = 'Belum ada nama pekurban';
+        hint.style.color = '#f59e0b';
+      } else {
+        hint.textContent = `${jumlah} pekurban terdeteksi`;
+        hint.style.color = '#16a34a';
+      }
     }
     function validateUserForm() {
       clearFormErrors('userForm');
@@ -713,7 +757,7 @@
         return `<tr>
           <td data-label="Nomor">${esc(h.nomor_hewan)}</td>
           <td data-label="Jenis"><img src="../assets/images/Icon/${iconFile}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;"> ${esc(h.jenis_hewan)}</td>
-          <td data-label="Pekurban" style="word-break:break-word;max-width:160px;">${esc(h.daftar_pekurban)}</td>
+          <td data-label="Pekurban" style="word-break:break-word;max-width:160px;">${h.daftar_pekurban ? esc(h.daftar_pekurban) : '<span style="color:#f59e0b;font-size:11px;font-weight:700;">⚠ Belum ada nama pekurban</span>'}</td>
           <td data-label="Instansi">${esc(h.instansi)}</td>
           <td data-label="Wilayah">${esc(h.wilayah)}</td>
           <td data-label="Status"><span class="status-badge ${cls}">${txt}</span></td>
@@ -768,10 +812,10 @@
       document.getElementById('hewanJenis').value=h.jenis_hewan;
       document.getElementById('hewanJenis').disabled=true;
       document.getElementById('hewanPekurban').value=h.daftar_pekurban;
-      document.getElementById('hewanJumlah').value=h.jumlah_pekurban||1;
       document.getElementById('hewanInstansi').value=h.instansi;
       document.getElementById('hewanInstansi').disabled=true;
       document.getElementById('hewanWilayah').value=h.wilayah;
+      updateJumlahPekurban();
       document.getElementById('hewanModal').classList.add('active');
     };
 
@@ -788,6 +832,10 @@
       document.getElementById('hewanNomor').disabled=false;
       document.getElementById('hewanJenis').disabled=false;
       document.getElementById('hewanInstansi').disabled=false;
+      document.getElementById('hewanJumlah').value=0;
+      const hint = document.getElementById('pekurbanHint');
+      hint.textContent = 'Belum ada nama pekurban';
+      hint.style.color = '#f59e0b';
       document.getElementById('hewanModal').classList.add('active');
     }
     function closeHewanModal(){ document.getElementById('hewanModal').classList.remove('active'); }
@@ -797,12 +845,12 @@
       if (!validateHewanForm()) return;
       const compositeId = document.getElementById('hewanId').value;
       const isEdit = !!compositeId;
-      const nomor    = document.getElementById('hewanNomor').value.toUpperCase();
-      const jenis    = document.getElementById('hewanJenis').value.toUpperCase();
-      const pekurban = document.getElementById('hewanPekurban').value.toUpperCase();
-      const instansi = document.getElementById('hewanInstansi').value.toUpperCase();
-      const wilayah  = document.getElementById('hewanWilayah').value.toUpperCase();
-      const jumlah   = parseInt(document.getElementById('hewanJumlah').value)||1;
+      const nomor    = document.getElementById('hewanNomor').value.trim().toUpperCase();
+      const jenis    = document.getElementById('hewanJenis').value.trim().toUpperCase();
+      const pekurban = document.getElementById('hewanPekurban').value.trim().toUpperCase();
+      const instansi = document.getElementById('hewanInstansi').value.trim().toUpperCase();
+      const wilayah  = document.getElementById('hewanWilayah').value.trim().toUpperCase();
+      const jumlah   = countPekurban(pekurban);
 
       const hewan = { nomor_hewan: nomor, jenis_hewan: jenis, daftar_pekurban: pekurban, jumlah_pekurban: jumlah, instansi, wilayah };
       const action = isEdit ? 'updateHewan' : 'addHewan';
