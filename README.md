@@ -46,7 +46,7 @@ Google Apps Script  ──  Google Sheets (database)
 │       ├── bg_desktop/
 │       ├── bg_mobile/
 │       └── Icon/               # icon_sapi, icon_kambing, dll
-├── kebutuhan backend/
+├── backend/
 │   └── Code.gs                 # Google Apps Script (backend)
 ├── vercel.json
 ├── package.json
@@ -132,7 +132,7 @@ Buat spreadsheet dengan 4 sheet:
 ### 2. Google Apps Script
 
 1. Buka spreadsheet → **Extensions → Apps Script**
-2. Hapus kode default, paste isi `kebutuhan backend/Code.gs`
+2. Hapus kode default, paste isi `backend/Code.gs`
 3. Isi `ROOT_FOLDER_ID` dengan ID folder Google Drive tujuan penyimpanan foto
 4. Tambahkan Script Property:
    - **Project Settings → Script Properties → Add property**

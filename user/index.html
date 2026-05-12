@@ -705,6 +705,7 @@
 </div>
 
 <script src="../assets/js/api.js"></script>
+<script src="../assets/js/auth.js"></script>
 <script>
   // Pastikan esc tersedia meski api.js belum dimuat
   if (typeof esc === 'undefined') {
@@ -716,15 +717,11 @@
 </script>
 <script>
   // ==================== AUTH CHECK ====================
-  const email = localStorage.getItem('userEmail');
-  const username = localStorage.getItem('username');
-  const role = localStorage.getItem('userRole');
-  const expiry = Number(localStorage.getItem('loginExpiry'));
-
-  if (!email || !role || isNaN(expiry) || Date.now() > expiry) {
-    localStorage.clear();
-    window.location.href = '/';
-  }
+  const _auth = initAuth(null);   // user atau admin boleh, yang penting sesi valid
+  if (!_auth) throw new Error('redirect');
+  const email    = _auth.email;
+  const username = _auth.username;
+  const role     = _auth.role;
 
   // ==================== GLOBAL STATE ====================
   let allHewan = [];
@@ -1408,18 +1405,9 @@
   });
 
   document.getElementById('searchInput').addEventListener('input', debounce(applyHewanFilter, 300));
-  document.getElementById('logoutBtn').addEventListener('click', () => {
-    localStorage.clear();
-    window.location.href = '/';
-  });
+  document.getElementById('logoutBtn').addEventListener('click', () => logout());
 
-  setInterval(() => {
-    const exp = Number(localStorage.getItem('loginExpiry'));
-    if (!exp || Date.now() > exp) {
-      localStorage.clear();
-      window.location.href = '/';
-    }
-  }, 60_000);
+  startSessionWatcher(_auth.expiry);
 
   (async () => {
     await loadAllData();

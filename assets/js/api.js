@@ -46,6 +46,11 @@ async function callApi(action, data = {}, { skipCache = false } = {}) {
         return { success: false, error: 'Sesi berakhir' };
       }
 
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After') || '60';
+        throw new Error('Terlalu banyak permintaan. Coba lagi dalam ' + retryAfter + ' detik.');
+      }
+
       const result = await response.json();
 
       // Simpan ke cache jika berhasil

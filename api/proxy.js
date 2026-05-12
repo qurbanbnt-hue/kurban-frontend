@@ -170,6 +170,7 @@ export default async function handler(req, res) {
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
   if (!checkRate(`ip:${ip}`, RATE_LIMIT_IP)) {
+    res.setHeader('Retry-After', '60');
     return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan' });
   }
 
@@ -178,11 +179,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'Action tidak valid' });
   }
 
-  if (parseInt(req.headers['content-length'] || '0', 10) > 25 * 1024 * 1024) {
+  const body = req.body || {};
+
+  // ── Validasi ukuran body dari konten aktual (bukan header Content-Length yang bisa dipalsukan) ──
+  const bodySize = Buffer.byteLength(JSON.stringify(body), 'utf8');
+  if (bodySize > 25 * 1024 * 1024) {
     return res.status(413).json({ success: false, error: 'Payload terlalu besar' });
   }
-
-  const body = req.body || {};
 
   if (action === 'login') {
     const { email, password } = body;
@@ -241,6 +244,7 @@ export default async function handler(req, res) {
   }
 
   if (!checkRate(`user:${user.email}`, RATE_LIMIT_USER)) {
+    res.setHeader('Retry-After', '60');
     return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan' });
   }
 

@@ -526,6 +526,7 @@
   </div>
 
   <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/auth.js"></script>
   <script>
     if (typeof esc === 'undefined') {
       function esc(str) {
@@ -535,15 +536,12 @@
     }
   </script>
   <script>
-    const email = localStorage.getItem('userEmail');
-    const username = localStorage.getItem('username');
-    const role = localStorage.getItem('userRole');
-    const expiry = Number(localStorage.getItem('loginExpiry'));
+    const _auth = initAuth('admin');
+    if (!_auth) throw new Error('redirect');   // initAuth sudah redirect, hentikan eksekusi
+    const email    = _auth.email;
+    const username = _auth.username;
+    const role     = _auth.role;
 
-    if (!email || role !== 'admin' || isNaN(expiry) || Date.now() > expiry) {
-      localStorage.clear();
-      window.location.href = '/';
-    }
     document.getElementById('adminName').textContent = username || email;
     document.getElementById('adminAvatar').textContent = (username||email).charAt(0).toUpperCase();
 
@@ -677,8 +675,6 @@
       updateJumlahPekurban();
     });
 
-    function logout() { localStorage.clear(); window.location.href = '/'; }
-
     // ── Validasi client-side ──────────────────────────────────
     function showFormError(fieldId, msg) {
       const field = document.getElementById(fieldId);
@@ -745,10 +741,7 @@
       return ok;
     }
 
-    setInterval(() => {
-      const exp = Number(localStorage.getItem('loginExpiry'));
-      if (!exp || Date.now() > exp) logout();
-    }, 60_000);
+    startSessionWatcher(_auth.expiry);
 
     // ==================== DATA FETCH ====================
     async function loadAllData() {
