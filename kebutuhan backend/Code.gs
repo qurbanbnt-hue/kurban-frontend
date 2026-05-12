@@ -189,7 +189,12 @@ function getPublicStats() {
       if (!row || !row[0]) continue;
       totalHewan++;
       const names = splitNamaPekurban(row[2]);
-      totalPekurban += names.length > 0 ? names.length : (Number(row[3]) || 1);
+      if (names.length > 0) {
+        totalPekurban += names.length;
+      } else {
+        const jumlah = Number(row[3]) || 0;
+        totalPekurban += jumlah;
+      }
       if (row[5]) wilayahSet.add(String(row[5]));
     }
   }
@@ -691,7 +696,9 @@ function addHewan(adminEmail, hewan) {
 
 function updateHewan(adminEmail, hewan) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_DB);
+    const ss           = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet        = ss.getSheetByName(NAMA_SHEET_DB);
+    const laporanSheet = ss.getSheetByName(NAMA_SHEET_LAPORAN);
     const data  = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
       if (matchHewan(data[i], hewan.nomor_hewan, hewan.instansi, hewan.jenis_hewan)) {
@@ -700,6 +707,21 @@ function updateHewan(adminEmail, hewan) {
         sheet.getRange(i+1, 4).setValue(hewan.jumlah_pekurban);
         sheet.getRange(i+1, 5).setValue(hewan.instansi);
         sheet.getRange(i+1, 6).setValue(hewan.wilayah);
+
+        // Sinkronkan juga ke sheet Laporan (kolom 3=pekurban, 4=jumlah, 5=instansi, 6=wilayah)
+        if (laporanSheet) {
+          const lapData = laporanSheet.getDataRange().getValues();
+          for (let j = 1; j < lapData.length; j++) {
+            if (matchLaporan(lapData[j], hewan.nomor_hewan, hewan.instansi, hewan.jenis_hewan)) {
+              laporanSheet.getRange(j+1, 3).setValue(hewan.daftar_pekurban);
+              laporanSheet.getRange(j+1, 4).setValue(hewan.jumlah_pekurban);
+              laporanSheet.getRange(j+1, 5).setValue(hewan.instansi);
+              laporanSheet.getRange(j+1, 6).setValue(hewan.wilayah);
+              break;
+            }
+          }
+        }
+
         return { success: true };
       }
     }

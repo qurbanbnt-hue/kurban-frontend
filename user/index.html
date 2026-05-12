@@ -321,6 +321,15 @@
     /* ── RIWAYAT DOK ── */
     .instansi-item a { color: #00A2EA !important; }
 
+    /* ── STICKY HEADER (user tabel) ── */
+    .tabel-hewan thead th {
+      position: sticky;
+      top: 0;
+      background: rgba(15,44,86,0.98) !important;
+      z-index: 10;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.1);
+    }
+
     /* ── SCREEN TRANSITION ── */
     .screen.active {
       display: flex;
@@ -740,6 +749,39 @@
       toast.classList.remove('show');
     }, 3000);
   }
+
+  // ==================== SKELETON ====================
+  function showSkeleton(container, rows = 5) {
+    container.innerHTML = Array(rows).fill(
+      '<div class="a-row" style="pointer-events:none;">' +
+        '<div class="a-ava" style="background:rgba(255,255,255,0.08);"></div>' +
+        '<div class="a-info" style="flex:1;">' +
+          '<div class="skeleton" style="width:60%;margin-bottom:6px;"></div>' +
+          '<div class="skeleton" style="width:40%;height:10px;"></div>' +
+        '</div>' +
+        '<div class="skeleton" style="width:32px;height:20px;border-radius:10px;"></div>' +
+      '</div>'
+    ).join('');
+  }
+
+  // ==================== STATUS BADGE ====================
+  function getStatusBadge(status) {
+    const map = {
+      'Hidup':        { bg: '#EAF3DE', color: '#27500A' },
+      'Ditumbangkan': { bg: '#FAEEDA', color: '#633806' },
+      'Disembelih':   { bg: '#FCEBEB', color: '#791F1F' },
+      'Belum upload': { bg: '#E6F1FB', color: '#0C447C' },
+    };
+    const s = map[status] || { bg: '#F1EFE8', color: '#444441' };
+    return '<span style="display:inline-block;font-size:11px;font-weight:500;padding:2px 10px;border-radius:10px;background:' + s.bg + ';color:' + s.color + ';">' + esc(status) + '</span>';
+  }
+
+  function getUserStatusText(h) {
+    if (h.status?.url_mati)          return 'Disembelih';
+    if (h.status?.url_ditumbangkan)  return 'Ditumbangkan';
+    if (h.status?.url_hidup)         return 'Hidup';
+    return 'Belum upload';
+  }
  
     // ==================== UTILITIES ====================
   function getEmoji(jenis) {
@@ -755,6 +797,8 @@
   // ==================== DATA FETCH ====================
   async function loadAllData() {
     try {
+      const listEl = document.getElementById('allHewanList');
+      if (listEl) showSkeleton(listEl, 6);
       const [hewanRes, dokRes] = await Promise.all([
         callApi('getHewan', { email }),
         callApi('getDokumentasi', { email })
@@ -904,7 +948,7 @@
       <div class="a-row" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}">
         <div class="a-ava">${getEmoji(h.jenis_hewan)}</div>
         <div class="a-info"><div class="aname">${esc(h.nomor_hewan)}</div><div class="asub">${esc(h.instansi)} · ${esc(h.wilayah)}</div></div>
-        <span class="abadge ${getPhaseCount(h.status)===3?'ab-done':'ab-prgs'}">${getPhaseCount(h.status)}/3</span>
+        ${getStatusBadge(getUserStatusText(h))}
       </div>
     `).join('') || '<div style="color:rgba(255,255,255,0.4);text-align:center;padding:24px;font-size:13px;">Tidak ada data</div>';
     document.querySelectorAll('#allHewanList .a-row').forEach(el => {
@@ -940,17 +984,17 @@
     const statusDiv = document.getElementById('uploadStatusDisplay');
     statusDiv.innerHTML = `
       <div class="status-item ${s.url_hidup ? 'done' : ''}">
-        <img src="../assets/images/Icon/icon_sapi.png" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;">
+        <img src="../assets/images/Icon/icon_sapi.png" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" loading="lazy" decoding="async" width="20" height="20">
         <span>Hidup</span>
         <span class="status-date">${s.tgl_hidup ? new Date(s.tgl_hidup).toLocaleDateString('id-ID') : 'Belum'}</span>
       </div>
       <div class="status-item ${s.url_ditumbangkan ? 'done' : ''}">
-        <img src="../assets/images/Icon/ditumbangkan.webp" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;">
+        <img src="../assets/images/Icon/ditumbangkan.webp" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" loading="lazy" decoding="async" width="20" height="20">
         <span>Ditumbangkan</span>
         <span class="status-date">${s.tgl_ditumbangkan ? new Date(s.tgl_ditumbangkan).toLocaleDateString('id-ID') : 'Belum'}</span>
       </div>
       <div class="status-item ${s.url_mati ? 'done' : ''}">
-        <img src="../assets/images/Icon/disembelih.webp" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;">
+        <img src="../assets/images/Icon/disembelih.webp" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" loading="lazy" decoding="async" width="20" height="20">
         <span>Mati / Disembelih</span>
         <span class="status-date">${s.tgl_mati ? new Date(s.tgl_mati).toLocaleDateString('id-ID') : 'Belum'}</span>
       </div>

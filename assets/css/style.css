@@ -1260,3 +1260,59 @@ tr:hover td { background: var(--bg); }
   background: var(--amber);
   color: var(--ink);
 }
+
+
+/* ═══════════════════════════════════════════════
+   PERF ENHANCEMENTS — Skeleton, Sticky Header, Pagination
+═══════════════════════════════════════════════ */
+
+/* ── Skeleton Loading ── */
+.skeleton {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Sticky Table Header ── */
+.tabel-hewan thead th {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 10;
+  box-shadow: 0 1px 0 #e0e0e0;
+}
+
+/* ── Pagination Bar ── */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pagination-bar .pg-info { flex: 1; }
+.pagination-bar .pg-btns { display: flex; gap: 8px; }
+.pg-btn {
+  padding: 7px 16px;
+  border-radius: var(--pill);
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  color: var(--slate);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pg-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+.pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }

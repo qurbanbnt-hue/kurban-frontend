@@ -83,6 +83,32 @@
     tr:hover td { background: rgba(255,255,255,0.05) !important; }
     thead tr { border-bottom-color: rgba(255,255,255,0.12) !important; }
 
+    /* ── STICKY HEADER (admin dark theme override) ── */
+    .tabel-hewan thead th {
+      background: rgba(15,44,86,0.98) !important;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.1) !important;
+    }
+
+    /* ── PAGINATION BAR (admin dark theme) ── */
+    .pagination-bar { color: rgba(255,255,255,0.45) !important; }
+    .pg-btn {
+      background: rgba(255,255,255,0.08) !important;
+      border-color: rgba(255,255,255,0.15) !important;
+      color: rgba(255,255,255,0.7) !important;
+    }
+    .pg-btn:hover:not(:disabled) {
+      border-color: #00A2EA !important;
+      color: #00A2EA !important;
+      background: rgba(0,162,234,0.1) !important;
+    }
+    .pg-btn:disabled { opacity: 0.25 !important; }
+
+    /* ── SKELETON (admin dark theme) ── */
+    .acard .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.08) 75%);
+      background-size: 200% 100%;
+    }
+
     /* ── SEARCH INPUT & FILTER SELECTS ── */
     #searchHewan {
       background: rgba(255,255,255,0.1) !important;
@@ -387,7 +413,14 @@
           </div>
         </div>
         <div class="acard">
-          <table><thead><tr><th>No</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="hewanTableBody"></tbody></table>
+          <table class="tabel-hewan"><thead><tr><th>No</th><th>Jenis</th><th>Pekurban</th><th>Instansi</th><th>Wilayah</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="hewanTableBody"></tbody></table>
+          <div class="pagination-bar" id="hewanPaginationBar">
+            <span class="pg-info" id="hewanPgInfo"></span>
+            <div class="pg-btns">
+              <button class="pg-btn" id="hewanPgPrev" onclick="hewanChangePage(-1)">← Prev</button>
+              <button class="pg-btn" id="hewanPgNext" onclick="hewanChangePage(1)">Next →</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -516,6 +549,83 @@
 
     let allHewan = [], allUsers = [], allDok = [];
     let pendingDelete = null;
+
+    // ==================== PAGINATION ====================
+    const PAGE_SIZE = 30;
+    let hewanCurrentPage = 0;
+    let hewanFilteredData = [];
+
+    function renderPage(data, page) {
+      const start = page * PAGE_SIZE;
+      const end   = start + PAGE_SIZE;
+      const slice = data.slice(start, end);
+      const tbody = document.getElementById('hewanTableBody');
+      tbody.innerHTML = slice.map(h => {
+        const isKambing = h.jenis_hewan?.toLowerCase().includes('kambing') || h.jenis_hewan?.toLowerCase().includes('domba');
+        const iconFile  = isKambing ? 'icon_kambing.png' : 'icon_sapi.png';
+        return `<tr>
+          <td data-label="Nomor">${esc(h.nomor_hewan)}</td>
+          <td data-label="Jenis"><img src="../assets/images/Icon/${iconFile}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;"> ${esc(h.jenis_hewan)}</td>
+          <td data-label="Pekurban" style="word-break:break-word;max-width:160px;">${h.daftar_pekurban ? esc(h.daftar_pekurban) : '<span style="color:#f59e0b;font-size:11px;font-weight:700;">⚠ Belum ada nama pekurban</span>'}</td>
+          <td data-label="Instansi">${esc(h.instansi)}</td>
+          <td data-label="Wilayah">${esc(h.wilayah)}</td>
+          <td data-label="Status">${getStatusBadge(getStatusText(h))}</td>
+          <td data-label="Aksi">
+            <button class="act-btn" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}" data-action="edit" title="Edit"><i class="icon icon-pencil"></i></button>
+            <button class="act-btn" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}" data-action="delete" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button>
+          </td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Tidak ada data</td></tr>';
+
+      tbody.querySelectorAll('.act-btn[data-action="edit"]').forEach(btn => {
+        btn.addEventListener('click', () => editHewan(btn.dataset.nomor, btn.dataset.instansi, btn.dataset.jenis));
+      });
+      tbody.querySelectorAll('.act-btn[data-action="delete"]').forEach(btn => {
+        btn.addEventListener('click', () => confirmDeleteHewan(btn.dataset.nomor, btn.dataset.instansi, btn.dataset.jenis));
+      });
+
+      // Update pagination bar
+      const total = data.length;
+      const from  = total === 0 ? 0 : start + 1;
+      const to    = Math.min(end, total);
+      document.getElementById('hewanPgInfo').textContent = `${from}–${to} dari ${total} hewan`;
+      document.getElementById('hewanPgPrev').disabled = (page === 0);
+      document.getElementById('hewanPgNext').disabled = (end >= total);
+      document.getElementById('hewanPaginationBar').style.display = total > 0 ? 'flex' : 'none';
+    }
+
+    function hewanChangePage(delta) {
+      const maxPage = Math.ceil(hewanFilteredData.length / PAGE_SIZE) - 1;
+      hewanCurrentPage = Math.max(0, Math.min(hewanCurrentPage + delta, maxPage));
+      renderPage(hewanFilteredData, hewanCurrentPage);
+    }
+
+    // ==================== STATUS HELPERS ====================
+    function getStatusText(h) {
+      const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
+      if (p === 3) return 'Disembelih';
+      if (p === 2) return 'Ditumbangkan';
+      if (p === 1) return 'Hidup';
+      return 'Belum upload';
+    }
+
+    function getStatusBadge(status) {
+      const map = {
+        'Hidup':        { bg: '#EAF3DE', color: '#27500A' },
+        'Ditumbangkan': { bg: '#FAEEDA', color: '#633806' },
+        'Disembelih':   { bg: '#FCEBEB', color: '#791F1F' },
+        'Belum upload': { bg: '#E6F1FB', color: '#0C447C' },
+      };
+      const s = map[status] || { bg: '#F1EFE8', color: '#444441' };
+      return '<span style="display:inline-block;font-size:11px;font-weight:500;padding:2px 10px;border-radius:10px;background:' + s.bg + ';color:' + s.color + ';">' + esc(status) + '</span>';
+    }
+
+    // ==================== SKELETON ====================
+    function showSkeleton(tbody, cols, rows = 5) {
+      tbody.innerHTML = Array(rows).fill(
+        '<tr>' + Array(cols).fill('<td><div class="skeleton"></div></td>').join('') + '</tr>'
+      ).join('');
+    }
 
     // ==================== TOAST ====================
     function showToast(message, type = 'success') {
@@ -654,6 +764,8 @@
     }
 
     async function loadDashboard() {
+      const tbody = document.getElementById('recentHewanTable');
+      showSkeleton(tbody, 4, 5);
       const data = await loadAllData();
       if (!data) return;
       const total = allHewan.length;
@@ -732,9 +844,14 @@
     }
 
     async function loadHewan() {
+      const tbody = document.getElementById('hewanTableBody');
+      showSkeleton(tbody, 7, 6);
+      document.getElementById('hewanPaginationBar').style.display = 'none';
       await loadAllData();
       populateFilterDropdowns();
-      renderHewanTable(allHewan);
+      hewanFilteredData = allHewan;
+      hewanCurrentPage  = 0;
+      renderPage(hewanFilteredData, hewanCurrentPage);
     }
 
     function populateFilterDropdowns() {
@@ -742,37 +859,13 @@
       const instansiList = [...new Set(allHewan.map(h => h.instansi).filter(Boolean))].sort();
       buildDropdown('wilayah',  wilayahList);
       buildDropdown('instansi', instansiList);
-      buildDropdown('status',   ['hidup', 'tumbang', 'sembelih']);
+      buildDropdown('status',   ['Hidup', 'Ditumbangkan', 'Disembelih', 'Belum upload']);
     }
 
     function renderHewanTable(data) {
-      const tbody = document.getElementById('hewanTableBody');
-      tbody.innerHTML = data.map(h => {
-        const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
-        let cls = 'status-belum', txt = 'Belum';
-        if (p===3) { cls='status-selesai'; txt='Selesai'; }
-        else if (p>0) { cls='status-proses'; txt=`${p}/3`; }
-        const isKambing = h.jenis_hewan?.toLowerCase().includes('kambing') || h.jenis_hewan?.toLowerCase().includes('domba');
-        const iconFile  = isKambing ? 'icon_kambing.png' : 'icon_sapi.png';
-        return `<tr>
-          <td data-label="Nomor">${esc(h.nomor_hewan)}</td>
-          <td data-label="Jenis"><img src="../assets/images/Icon/${iconFile}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;"> ${esc(h.jenis_hewan)}</td>
-          <td data-label="Pekurban" style="word-break:break-word;max-width:160px;">${h.daftar_pekurban ? esc(h.daftar_pekurban) : '<span style="color:#f59e0b;font-size:11px;font-weight:700;">⚠ Belum ada nama pekurban</span>'}</td>
-          <td data-label="Instansi">${esc(h.instansi)}</td>
-          <td data-label="Wilayah">${esc(h.wilayah)}</td>
-          <td data-label="Status"><span class="status-badge ${cls}">${txt}</span></td>
-          <td data-label="Aksi">
-            <button class="act-btn" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}" data-action="edit" title="Edit"><i class="icon icon-pencil"></i></button>
-            <button class="act-btn" data-nomor="${esc(h.nomor_hewan)}" data-instansi="${esc(h.instansi)}" data-jenis="${esc(h.jenis_hewan)}" data-action="delete" title="Hapus" style="color:#E05050;"><i class="icon icon-trash-2"></i></button>
-          </td>
-        </tr>`;
-      }).join('');
-      tbody.querySelectorAll('.act-btn[data-action="edit"]').forEach(btn => {
-        btn.addEventListener('click', () => editHewan(btn.dataset.nomor, btn.dataset.instansi, btn.dataset.jenis));
-      });
-      tbody.querySelectorAll('.act-btn[data-action="delete"]').forEach(btn => {
-        btn.addEventListener('click', () => confirmDeleteHewan(btn.dataset.nomor, btn.dataset.instansi, btn.dataset.jenis));
-      });
+      hewanFilteredData = data;
+      hewanCurrentPage  = 0;
+      renderPage(hewanFilteredData, hewanCurrentPage);
     }
 
     function filterHewan() {
@@ -782,20 +875,19 @@
       const status   = filterState.status;
 
       const filtered = allHewan.filter(h => {
-        const p = [h.status?.url_hidup, h.status?.url_ditumbangkan, h.status?.url_mati].filter(Boolean).length;
-        const statusMatch = !status ||
-          (status === 'hidup'    && !!h.status?.url_hidup && !h.status?.url_ditumbangkan) ||
-          (status === 'tumbang'  && !!h.status?.url_ditumbangkan && !h.status?.url_mati) ||
-          (status === 'sembelih' && !!h.status?.url_mati);
+        const statusTxt = getStatusText(h);
+        const statusMatch = !status || statusTxt === status;
         return statusMatch &&
           (!wilayah  || h.wilayah  === wilayah) &&
           (!instansi || h.instansi === instansi) &&
           (!q || h.nomor_hewan.toLowerCase().includes(q) ||
-                 h.daftar_pekurban.toLowerCase().includes(q) ||
+                 (h.daftar_pekurban||'').toLowerCase().includes(q) ||
                  h.instansi.toLowerCase().includes(q) ||
                  h.wilayah.toLowerCase().includes(q));
       });
-      renderHewanTable(filtered);
+      hewanFilteredData = filtered;
+      hewanCurrentPage  = 0;
+      renderPage(hewanFilteredData, hewanCurrentPage);
     }
 
     window.editHewan = (nomor, instansi, jenis) => {
@@ -882,7 +974,7 @@
       if(res.success){
         closeHewanModal();
         await loadAllData();
-        renderHewanTable(allHewan);
+        filterHewan();
         loadDashboard();
         showToast('Data hewan berhasil disimpan', 'success');
       } else showToast('Gagal: '+res.error, 'error');
@@ -988,7 +1080,7 @@
         if (res.success) {
           showToast('Hewan berhasil dihapus', 'success');
           await loadAllData();
-          renderHewanTable(allHewan);
+          filterHewan();
           loadDashboard();
         } else showToast('Gagal: ' + res.error, 'error');
       } else if (type === 'user') {
