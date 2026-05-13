@@ -320,13 +320,29 @@ function getMasjidByTelepon(telepon) {
   if (!sheet) return null;
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const teleponNorm = String(telepon || '').trim();
+  const teleponNorm = normalizeTelepon(telepon);
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][7]).trim() === teleponNorm) {
+    if (normalizeTelepon(String(data[i][7])) === teleponNorm) {
       return rowToMasjidObj(headers, data[i]);
     }
   }
   return null;
+}
+
+// normalizeTelepon — standarisasi format nomor WA ke 08xx
+// Menangani: 081234, +6281234, 6281234, 81234 → 081234
+function normalizeTelepon(telepon) {
+  if (!telepon) return '';
+  let t = String(telepon).trim().replace(/\s+/g, '');
+  // Hapus karakter non-digit kecuali +
+  t = t.replace(/[^\d+]/g, '');
+  // +628xx → 08xx
+  if (t.startsWith('+628')) return '0' + t.slice(3);
+  // 628xx → 08xx
+  if (t.startsWith('628')) return '0' + t.slice(2);
+  // 8xx (tanpa 0 di depan, seperti yang tersimpan di sheet sebagai angka) → 08xx
+  if (t.startsWith('8') && !t.startsWith('08')) return '0' + t;
+  return t;
 }
 
 function getAllMasjid() {
@@ -1551,6 +1567,25 @@ function testSearchPekurban() {
   Logger.log(JSON.stringify(result, null, 2));
 }
 
+// ── DEBUG: Test OCR pada file KK tertentu ─────────────────────
+// Cara pakai: isi FILE_ID dengan ID file di Google Drive, lalu Run
+function debugOCRKK() {
+  const FILE_ID = 'GANTI_DENGAN_FILE_ID_KK'; // Ganti dengan ID file KK di Drive
+  Logger.log('=== DEBUG OCR KK ===');
+  Logger.log('File ID: ' + FILE_ID);
+
+  const result = extractNomorKK(FILE_ID);
+  Logger.log('OCR Result: ' + JSON.stringify(result));
+
+  if (result.raw_text) {
+    Logger.log('=== RAW TEXT (500 karakter pertama) ===');
+    Logger.log(result.raw_text.substring(0, 500));
+    Logger.log('=== SEMUA ANGKA 16 DIGIT DITEMUKAN ===');
+    const allSixteen = result.raw_text.match(/\d{16}/g);
+    Logger.log(JSON.stringify(allSixteen));
+  }
+}
+
 // ============================================================
 //  HASH PASSWORD LANGSUNG KE SHEET AKUN (dengan salt)
 // ============================================================
@@ -1692,7 +1727,7 @@ function checkNomorWA(teleponPic) {
     if (!teleponPic || !/^(\+62|08)\d{8,12}$/.test(String(teleponPic).trim())) {
       return { success: false, error: 'Format nomor WhatsApp tidak valid' };
     }
-    const telepon = String(teleponPic).trim();
+    const telepon = normalizeTelepon(String(teleponPic).trim());
 
     // Cek NomorDiblokir
     const config = _getKonfigSistemRaw();
@@ -1904,7 +1939,7 @@ function verifyOTP(masjidId, otpCode) {
 function requestOTP(teleponPic) {
   try {
     if (!teleponPic) return { success: false, error: 'Nomor WhatsApp diperlukan' };
-    const telepon = String(teleponPic).trim();
+    const telepon = normalizeTelepon(String(teleponPic).trim());
 
     const config = _getKonfigSistemRaw();
     if (config.nomor_diblokir && config.nomor_diblokir.includes(telepon)) {
@@ -2009,7 +2044,7 @@ function registerMasjid(data) {
       return { success: false, error: 'Kabupaten tidak boleh kosong' };
     }
 
-    const telepon = String(telepon_pic).trim();
+    const telepon = normalizeTelepon(String(telepon_pic).trim());
 
     // 4.3 Cek NomorDiblokir
     const config = _getKonfigSistemRaw();
@@ -2100,17 +2135,45 @@ function isValidNomorKK(nomor) {
 // 5.2 parseNomorKK — regex parsing nomor KK dari teks OCR
 function parseNomorKK(rawText) {
   if (!rawText) return null;
+
   const patterns = [
-    /(?:No\.?\s*KK|Nomor\s*KK|NIK\s*KK)[:\s]*(\d{16})(?!\d)/i,
+    // Format header KK: "No. 5371051505240008" atau "No.5371051505240008"
+    /No\.?\s*(\d{16})(?!\d)/i,
+    // Format dengan label: "No. KK : 5371051505240008"
+    /No\.?\s*KK\s*[:\s]*(\d{16})(?!\d)/i,
+    // Format "Nomor KK" atau "Nomor Kartu Keluarga"
+    /Nomor\s*(?:Kartu\s*Keluarga|KK)\s*[:\s]*(\d{16})(?!\d)/i,
+    // Format NIK KK
+    /NIK\s*KK\s*[:\s]*(\d{16})(?!\d)/i,
+    // Nomor 16 digit yang berdiri sendiri (tidak diawali/diakhiri digit lain)
     /(?<!\d)(\d{16})(?!\d)/
   ];
+
   for (const pattern of patterns) {
+    // Cari semua match, ambil yang valid
+    const matches = rawText.matchAll ? [...rawText.matchAll(new RegExp(pattern.source, pattern.flags + 'g'))] : [];
+    if (matches.length > 0) {
+      for (const m of matches) {
+        const candidate = m[1];
+        if (isValidNomorKK(candidate)) return candidate;
+      }
+    }
+    // Fallback ke match pertama
     const match = rawText.match(pattern);
     if (match) {
       const candidate = match[1];
       if (isValidNomorKK(candidate)) return candidate;
     }
   }
+
+  // Last resort: cari semua sequence 16 digit di seluruh teks
+  const allSixteen = rawText.match(/\d{16}/g);
+  if (allSixteen) {
+    for (const candidate of allSixteen) {
+      if (isValidNomorKK(candidate)) return candidate;
+    }
+  }
+
   return null;
 }
 
@@ -2227,10 +2290,10 @@ function validateAnggotaCount(jumlahTertera, jumlahParsed) {
 function extractNomorKK(fileId) {
   let ocrDocId = null;
   try {
+    // Salin file ke Google Docs dengan OCR — tanpa parent folder agar tidak ada masalah JSON
     const resource = {
       title:    'ocr_temp_' + fileId,
-      mimeType: 'application/vnd.google-apps.document',
-      parents:  [{ id: DriveApp.getFolderById(ROOT_FOLDER_ID).getId() }]
+      mimeType: 'application/vnd.google-apps.document'
     };
 
     const ocrDoc = Drive.Files.copy(fileId, resource, { ocr: true, ocrLanguage: 'id' });
@@ -2238,6 +2301,7 @@ function extractNomorKK(fileId) {
     ocrDocId = ocrDoc.id;
 
     const rawText = DocumentApp.openById(ocrDoc.id).getBody().getText();
+    Logger.log('OCR raw text (200 chars): ' + rawText.substring(0, 200));
 
     const nomorKK = parseNomorKK(rawText);
     if (!nomorKK) return { success: false, raw_text: rawText, error: 'Nomor KK tidak ditemukan' };
@@ -2254,7 +2318,6 @@ function extractNomorKK(fileId) {
     Logger.log('extractNomorKK error: ' + err.toString());
     return { success: false, error: 'OCR gagal: ' + err.toString() };
   } finally {
-    // Selalu hapus file temp
     if (ocrDocId) {
       try { Drive.Files.remove(ocrDocId); } catch (e) { Logger.log('Gagal hapus OCR temp: ' + e); }
     }
