@@ -505,14 +505,21 @@ function rowToKKObj(headers, row) {
   return obj;
 }
 
-function saveKKRecord(masjidId, fileId, nomorKK, statusOcr, anggotaData, jumlahTertera, jumlahParsed, discrepancyNote, anggotaDikonfirmasiManual, alamatKK) {
+function namaKepalaDariAnggota_(anggotaData, namaOverride) {
+  if (namaOverride != null && String(namaOverride).trim()) return String(namaOverride).trim().slice(0, 200);
+  if (anggotaData && anggotaData[0] && anggotaData[0].nama) return String(anggotaData[0].nama).trim().slice(0, 200);
+  return '';
+}
+
+function saveKKRecord(masjidId, fileId, nomorKK, statusOcr, anggotaData, jumlahTertera, jumlahParsed, discrepancyNote, anggotaDikonfirmasiManual, alamatKK, namaKepalaOpt) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_DATA_KK);
   const year  = new Date().getFullYear();
   const kkId = 'KK-' + year + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
   const anggotaJson = anggotaData ? JSON.stringify(anggotaData) : '[]';
+  const namaKepala = namaKepalaDariAnggota_(anggotaData, namaKepalaOpt);
   sheet.appendRow([
     kkId, masjidId, nomorKK || '', fileId || '',
-    statusOcr, '', alamatKK || '', anggotaJson,
+    statusOcr, namaKepala, alamatKK || '', anggotaJson,
     jumlahTertera !== null && jumlahTertera !== undefined ? jumlahTertera : '',
     jumlahParsed || 0,
     discrepancyNote || '',
@@ -2136,6 +2143,7 @@ function isValidNomorKK(nomor) {
 // 5.2 parseNomorKK — regex parsing nomor KK dari teks OCR
 function parseNomorKK(rawText) {
   if (!rawText) return null;
+  const normalized = String(rawText).replace(/\u00a0/g, ' ').replace(/\u2007/g, ' ');
 
   const patterns = [
     // Format header KK: "No. 5371051505240008" atau "No.5371051505240008"
@@ -2152,7 +2160,7 @@ function parseNomorKK(rawText) {
 
   for (const pattern of patterns) {
     // Cari semua match, ambil yang valid
-    const matches = rawText.matchAll ? [...rawText.matchAll(new RegExp(pattern.source, pattern.flags + 'g'))] : [];
+    const matches = normalized.matchAll ? [...normalized.matchAll(new RegExp(pattern.source, pattern.flags + 'g'))] : [];
     if (matches.length > 0) {
       for (const m of matches) {
         const candidate = m[1];
@@ -2160,17 +2168,24 @@ function parseNomorKK(rawText) {
       }
     }
     // Fallback ke match pertama
-    const match = rawText.match(pattern);
+    const match = normalized.match(pattern);
     if (match) {
       const candidate = match[1];
       if (isValidNomorKK(candidate)) return candidate;
     }
   }
 
-  // Last resort: cari semua sequence 16 digit di seluruh teks
-  const allSixteen = rawText.match(/\d{16}/g);
+  // Last resort: 16 digit berurutan di teks (termasuk versi tanpa spasi)
+  const allSixteen = normalized.match(/\d{16}/g);
   if (allSixteen) {
     for (const candidate of allSixteen) {
+      if (isValidNomorKK(candidate)) return candidate;
+    }
+  }
+  const compact = normalized.replace(/[\s\u00a0\u2000-\u200b]+/g, '');
+  const allSixteenCompact = compact.match(/\d{16}/g);
+  if (allSixteenCompact) {
+    for (const candidate of allSixteenCompact) {
       if (isValidNomorKK(candidate)) return candidate;
     }
   }
@@ -2287,21 +2302,38 @@ function validateAnggotaCount(jumlahTertera, jumlahParsed) {
   return { has_discrepancy: true, note: note };
 }
 
-// Plain text dari Google Doc via Drive v3 export (hindari DocumentApp / scope documents).
+// Plain text dari Google Doc: REST export + retry + fallback DriveApp (OCR baru sering kosong sesaat).
 function getGoogleDocPlainTextViaDriveExport_(docId) {
   const url = 'https://www.googleapis.com/drive/v3/files/' +
     encodeURIComponent(docId) +
     '/export?mimeType=' + encodeURIComponent('text/plain');
-  const resp = UrlFetchApp.fetch(url, {
-    method: 'get',
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
-  });
-  const code = resp.getResponseCode();
-  if (code !== 200) {
-    throw new Error('Drive export gagal (' + code + '): ' + resp.getContentText());
+  const token = ScriptApp.getOAuthToken();
+  let lastErr = '';
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt > 0) Utilities.sleep(700 + attempt * 450);
+    const resp = UrlFetchApp.fetch(url, {
+      method: 'get',
+      headers: { Authorization: 'Bearer ' + token },
+      muteHttpExceptions: true
+    });
+    const code = resp.getResponseCode();
+    const body = resp.getContentText() || '';
+    if (code === 200 && String(body).replace(/\s+/g, '').length > 15) {
+      return body;
+    }
+    lastErr = 'HTTP ' + code + ' len=' + body.length;
+    Logger.log('Drive export retry ' + (attempt + 1) + ': ' + lastErr);
   }
-  return resp.getContentText();
+  try {
+    const f = DriveApp.getFileById(docId);
+    const blob = f.getAs(MimeType.PLAIN_TEXT);
+    const s = blob.getDataAsString();
+    if (s && String(s).replace(/\s+/g, '').length > 15) return s;
+    lastErr += '; DriveApp.getAs kosong';
+  } catch (e) {
+    lastErr += '; DriveApp: ' + e.toString();
+  }
+  throw new Error('Drive export gagal: ' + lastErr);
 }
 
 // 5.1 extractNomorKK — OCR via Google Drive API
@@ -2342,6 +2374,7 @@ function extractNomorKK(fileId) {
     }
 
     ocrDocId = ocrDoc.id;
+    Utilities.sleep(600);
     const rawText = getGoogleDocPlainTextViaDriveExport_(ocrDocId);
     Logger.log('OCR raw text (300 chars): ' + rawText.substring(0, 300));
 
@@ -2434,12 +2467,16 @@ function processUploadKK(masjidId, fileData, sessionToken) {
       const kkIdGagal = saveKKRecord(masjidId, fileId, null, 'gagal_ocr', anggotaData, jumlahTertera, jumlahParsed, discNote, false, alamatKK || null);
       const fotoUrlGagal = 'https://drive.google.com/file/d/' + fileId + '/view';
       const prefillAnggota = anggotaData && anggotaData.length ? anggotaData : [];
+      const namaKepalaGagal = namaKepalaDariAnggota_(anggotaData, '');
       return {
         success:     true,
         status_ocr:  'gagal_ocr',
         kk_id:       kkIdGagal,
         file_id:     fileId,
         foto_url:    fotoUrlGagal,
+        nama_kepala: namaKepalaGagal,
+        jumlah_anggota_parsed: jumlahParsed,
+        jumlah_anggota_tertera: jumlahTertera,
         ocr_prefill: {
           nomor_kk:                 '',
           alamat_kk:                alamatKK || '',
@@ -2463,7 +2500,8 @@ function processUploadKK(masjidId, fileData, sessionToken) {
           nomor_kk:   nomorKK,
           kk_id:      kkIdDup,
           file_id:    fileId,
-          foto_url:   'https://drive.google.com/file/d/' + fileId + '/view'
+          foto_url:   'https://drive.google.com/file/d/' + fileId + '/view',
+          nama_kepala: ''
         };
       }
 
@@ -2479,16 +2517,20 @@ function processUploadKK(masjidId, fileData, sessionToken) {
         const fotoUrl = 'https://drive.google.com/file/d/' + fileId + '/view';
         const kkIdKonf = saveKKRecord(masjidId, fileId, nomorKK, 'perlu_konfirmasi_anggota',
                      anggotaData, jumlahTertera, jumlahParsed, validasiResult.note, false, alamatKK);
+        const namaKepalaKonf = namaKepalaDariAnggota_(anggotaData, '');
         return {
           success:          true,
           status_ocr:       'perlu_konfirmasi_anggota',
           kk_id:            kkIdKonf,
           file_id:          fileId,
           nomor_kk:         nomorKK,
+          nama_kepala:      namaKepalaKonf,
           anggota_parsial:  anggotaData,
           foto_url:         fotoUrl,
           discrepancy_note: validasiResult.note,
-          alamat_kk:        alamatKK
+          alamat_kk:        alamatKK,
+          jumlah_anggota_parsed:  jumlahParsed,
+          jumlah_anggota_tertera: jumlahTertera
         };
       }
 
@@ -2496,13 +2538,17 @@ function processUploadKK(masjidId, fileData, sessionToken) {
       const kkIdValid = saveKKRecord(masjidId, fileId, nomorKK, 'valid',
                    anggotaData, jumlahTertera, jumlahParsed, null, false, alamatKK);
       incrementJumlahKKValid(masjidId, 1);
+      const namaKepalaValid = namaKepalaDariAnggota_(anggotaData, '');
       return {
-        success:     true,
-        status_ocr:  'valid',
-        kk_id:       kkIdValid,
-        file_id:     fileId,
-        nomor_kk:    nomorKK,
-        alamat_kk:   alamatKK
+        success:                 true,
+        status_ocr:              'valid',
+        kk_id:                   kkIdValid,
+        file_id:                 fileId,
+        nomor_kk:                nomorKK,
+        nama_kepala:             namaKepalaValid,
+        alamat_kk:               alamatKK,
+        jumlah_anggota_parsed:  jumlahParsed,
+        jumlah_anggota_tertera: jumlahTertera
       };
     });
 
@@ -2570,7 +2616,8 @@ function konfirmasiAnggota(masjidId, kkId, anggotaData, sessionToken, alamatKK) 
       status_ocr:                  'valid',
       anggota_json:                JSON.stringify(anggotaNorm),
       jumlah_anggota_parsed:       anggotaNorm.length,
-      anggota_dikonfirmasi_manual: true
+      anggota_dikonfirmasi_manual: true,
+      nama_kepala:                 namaKepalaDariAnggota_(anggotaNorm, '')
     };
     const alamatStr = String(alamatKK || '').trim();
     if (alamatStr.length >= 5) {
@@ -2658,6 +2705,7 @@ function konfirmasiAnggotaManual(masjidId, kkId, nomorKK, anggotaData, sessionTo
     updateKKRecord(kkId, {
       nomor_kk:                   nomorKKStr,
       alamat_kk:                  alamatStr,
+      nama_kepala:                namaKepalaDariAnggota_(anggotaNorm, ''),
       status_ocr:                 'valid',
       anggota_json:               JSON.stringify(anggotaNorm),
       jumlah_anggota_parsed:      anggotaNorm.length,

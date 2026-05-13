@@ -30,6 +30,12 @@
       }
     }
     .phone-shell { position: relative; z-index: 1; }
+    #mRight {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      gap: 12px;
+    }
 
     /* ── PHONE SHELL ── */
     .phone-shell {
@@ -64,6 +70,10 @@
         grid-column: 2; grid-row: 2;
         overflow-y: auto; height: calc(100vh - 140px);
         padding: 24px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-height: 0;
       }
     }
     @media (min-width: 1200px) {
@@ -370,6 +380,38 @@
     }
     .btn-logout-m:hover { background: #E05050; color: white; border-color: #E05050; }
 
+    /* Right panel: ringkasan KK (draft) */
+    .kk-summary-wrap { flex: 1; min-height: 120px; overflow: auto; }
+    .kk-summary-empty {
+      font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.55;
+      padding: 12px 14px; background: rgba(255,255,255,0.06); border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .kk-summary-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+      background: rgba(255,255,255,0.06); border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .kk-summary-table th {
+      text-align: left; padding: 10px 12px; color: rgba(255,255,255,0.45);
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+      font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.15);
+    }
+    .kk-summary-table td {
+      padding: 10px 12px; color: rgba(255,255,255,0.88);
+      border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: middle;
+    }
+    .kk-summary-table tr:last-child td { border-bottom: none; }
+    .kk-summary-table td:nth-child(3) { font-family: ui-monospace, monospace; font-size: 11px; color: rgba(255,255,255,0.65); }
+    .kk-summary-table td:nth-child(4) { text-align: center; width: 64px; }
+    @media (max-width: 719px) {
+      .kk-summary-table thead { display: none; }
+      .kk-summary-table tr { display: block; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 10px 0; }
+      .kk-summary-table td { display: block; border: none; padding: 4px 12px; }
+      .kk-summary-table td::before { content: attr(data-lbl) ': '; color: rgba(255,255,255,0.4); font-size: 10px; text-transform: uppercase; }
+    }
+
     /* Right panel placeholder */
     .m-right-placeholder {
       display: flex; align-items: center; justify-content: center;
@@ -602,7 +644,16 @@
       </div>
     </div>
 
-    <!-- Right placeholder (when no kupon) -->
+    <div id="draftKkSummarySection" style="display:none;flex-direction:column;flex:1;min-height:0;gap:4px;">
+      <div class="m-section-title" style="margin-bottom:4px;">
+        <i class="icon icon-list" style="font-size:18px;color:var(--sky);"></i>
+        Ringkasan KK
+      </div>
+      <p style="font-size:12px;color:rgba(255,255,255,0.4);margin:0 0 10px 0;line-height:1.45;">Daftar upload pada sesi ini. Nama KK diambil dari anggota ke-1 (kepala keluarga).</p>
+      <div id="kkSummaryTableWrap" class="kk-summary-wrap"></div>
+    </div>
+
+    <!-- Right placeholder (menunggu / ditolak / mobile fallback) -->
     <div class="m-right-placeholder" id="rightPlaceholder">
       <i class="icon icon-mosque"></i>
       <span>Dashboard Masjid</span>
@@ -1124,6 +1175,7 @@ function updateStatusUI(status, kkValid) {
   const diblokirSection = document.getElementById('diblokirSection');
   const kuponSection = document.getElementById('kuponSection');
   const rightPlaceholder = document.getElementById('rightPlaceholder');
+  const draftKkSummarySection = document.getElementById('draftKkSummarySection');
 
   uploadSection.style.display = 'none';
   menungguSection.style.display = 'none';
@@ -1131,9 +1183,15 @@ function updateStatusUI(status, kkValid) {
   diblokirSection.style.display = 'none';
   kuponSection.style.display = 'none';
   rightPlaceholder.style.display = 'flex';
+  if (draftKkSummarySection) draftKkSummarySection.style.display = 'none';
 
   if (status === 'draft') {
     uploadSection.style.display = 'block';
+    if (draftKkSummarySection) {
+      draftKkSummarySection.style.display = 'flex';
+      rightPlaceholder.style.display = 'none';
+      refreshMasjidKkSummary();
+    }
     // Jika periode tutup, nonaktifkan upload KK
     if (_periodeTutup) {
       const uploadArea = document.getElementById('uploadArea');
@@ -1184,6 +1242,7 @@ function handleLogout() {
   kkUploadCount = 0;
   kkValidCount = 0;
   document.getElementById('kkResultsList').innerHTML = '';
+  refreshMasjidKkSummary();
   document.getElementById('btnLogout').style.display = 'none';
   document.getElementById('headerName').textContent = 'Selamat Datang';
   document.getElementById('headerSub').textContent = 'Portal Pendaftaran Masjid Kurban';
@@ -1278,6 +1337,40 @@ function fileToBase64(file) {
   });
 }
 
+function refreshMasjidKkSummary() {
+  const wrap = document.getElementById('kkSummaryTableWrap');
+  if (!wrap) return;
+  const items = document.querySelectorAll('#kkResultsList .kk-result-item');
+  if (!items.length) {
+    wrap.innerHTML = '<p class="kk-summary-empty">Belum ada KK diunggah pada sesi ini. Gunakan panel kiri untuk mengunggah foto KK.</p>';
+    return;
+  }
+  const statusLbl = {
+    valid: 'Valid',
+    duplikat: 'Duplikat',
+    gagal_ocr: 'Perlu manual / OCR',
+    perlu_konfirmasi: 'Perlu konfirmasi'
+  };
+  let rows = '';
+  items.forEach(function(el) {
+    const nama = el.getAttribute('data-nama-kepala') || '—';
+    let st = '';
+    if (el.classList.contains('valid')) st = 'valid';
+    else if (el.classList.contains('duplikat')) st = 'duplikat';
+    else if (el.classList.contains('gagal_ocr')) st = 'gagal_ocr';
+    else if (el.classList.contains('perlu_konfirmasi')) st = 'perlu_konfirmasi';
+    const nk = el.getAttribute('data-nomor-kk') || '—';
+    const jp = el.getAttribute('data-jumlah-anggota') || '—';
+    rows += '<tr>' +
+      '<td data-lbl="Nama KK">' + esc(nama) + '</td>' +
+      '<td data-lbl="Status">' + esc(statusLbl[st] || st || '—') + '</td>' +
+      '<td data-lbl="No. KK">' + esc(nk) + '</td>' +
+      '<td data-lbl="Anggota">' + esc(jp) + '</td>' +
+      '</tr>';
+  });
+  wrap.innerHTML = '<table class="kk-summary-table"><thead><tr><th>Nama KK</th><th>Status</th><th>No. KK</th><th>Anggota</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
 function renderKKResult(res, fileName) {
   const list = document.getElementById('kkResultsList');
   const status = res.status_ocr;
@@ -1309,6 +1402,20 @@ function renderKKResult(res, fileName) {
   const kkId = res.kk_id || '';
   const fotoUrl = res.foto_url || '';
   const anggotaParsial = res.anggota_parsial || [];
+  const prefill = res.ocr_prefill || {};
+  const namaFromApi = (res.nama_kepala && String(res.nama_kepala).trim()) || '';
+  const namaFromPrefill = (prefill.anggota_parsial && prefill.anggota_parsial[0] && prefill.anggota_parsial[0].nama) ? String(prefill.anggota_parsial[0].nama).trim() : '';
+  const namaFromParsial = (anggotaParsial[0] && anggotaParsial[0].nama) ? String(anggotaParsial[0].nama).trim() : '';
+  const namaK = namaFromApi || namaFromPrefill || namaFromParsial;
+  const displayName = (namaK && String(namaK).trim()) ? String(namaK).trim() : fileName;
+
+  let nomorDisp = (res.nomor_kk && String(res.nomor_kk).trim()) || (prefill.nomor_kk && String(prefill.nomor_kk).trim()) || '';
+  if (!nomorDisp) nomorDisp = '—';
+
+  let jumlahAngg = '—';
+  if (res.jumlah_anggota_parsed != null && res.jumlah_anggota_parsed !== '') jumlahAngg = String(res.jumlah_anggota_parsed);
+  else if (anggotaParsial.length) jumlahAngg = String(anggotaParsial.length);
+  else if (prefill.anggota_parsial && prefill.anggota_parsial.length) jumlahAngg = String(prefill.anggota_parsial.length);
 
   let extraHtml = '';
   if (status === 'perlu_konfirmasi_anggota') {
@@ -1317,10 +1424,13 @@ function renderKKResult(res, fileName) {
     extraHtml = buildManualKKForm(itemId, kkId, res.file_id || '', fotoUrl, res.ocr_prefill || {});
   }
 
-  const html = '<div class="kk-result-item ' + cfg.cls + '" id="' + itemId + '">' +
+  const html = '<div class="kk-result-item ' + cfg.cls + '" id="' + itemId + '"' +
+    ' data-nama-kepala="' + esc(displayName) + '"' +
+    ' data-nomor-kk="' + esc(nomorDisp) + '"' +
+    ' data-jumlah-anggota="' + esc(jumlahAngg) + '">' +
     '<div class="kk-result-header">' +
     '<i class="icon ' + cfg.icon + ' kk-result-icon" style="color:' + cfg.color + ';"></i>' +
-    '<span class="kk-result-name">' + esc(fileName) + '</span>' +
+    '<span class="kk-result-name">' + esc(displayName) + '</span>' +
     '<span class="kk-result-badge ' + cfg.badge + '">' + cfg.label + '</span>' +
     '</div>' +
     '<div class="kk-result-sub">' + esc(subText) + '</div>' +
@@ -1329,6 +1439,7 @@ function renderKKResult(res, fileName) {
 
   list.insertAdjacentHTML('beforeend', html);
   updateKKUploadBlockingState();
+  refreshMasjidKkSummary();
 }
 
 // Pratinjau foto KK (file_id Drive) di atas form — tidak perlu unggah ulang.
@@ -1475,6 +1586,11 @@ async function handleManualKKSubmit(itemId, kkId) {
       if (icon) { icon.className = 'icon icon-check-circle kk-result-icon'; icon.style.color = '#5dd87a'; }
       const sub = item.querySelector('.kk-result-sub');
       if (sub) sub.textContent = 'KK diisi manual. ' + anggotaData.length + ' anggota. KK: ' + nomorKK;
+      const nameEl = item.querySelector('.kk-result-name');
+      if (nameEl && anggotaData[0]) nameEl.textContent = anggotaData[0].nama;
+      item.setAttribute('data-nama-kepala', anggotaData[0].nama);
+      item.setAttribute('data-nomor-kk', nomorKK);
+      item.setAttribute('data-jumlah-anggota', String(anggotaData.length));
       const manualBox = document.getElementById('manual-' + itemId);
       if (manualBox) manualBox.remove();
     }
@@ -1483,6 +1599,7 @@ async function handleManualKKSubmit(itemId, kkId) {
     document.getElementById('kkValidCount').textContent = kkValidCount;
     updateSelesaiButton();
     updateKKUploadBlockingState();
+    refreshMasjidKkSummary();
     showToast('Data KK berhasil disimpan!', 'success');
     refreshToken(session);
   } catch (e) {
@@ -1616,6 +1733,10 @@ async function handleKonfirmasiAnggota(itemId, kkId) {
       if (icon) { icon.className = 'icon icon-check-circle kk-result-icon'; icon.style.color = '#5dd87a'; }
       const sub = item.querySelector('.kk-result-sub');
       if (sub) sub.textContent = 'KK dikonfirmasi manual. ' + anggotaData.length + ' anggota.';
+      const nameEl = item.querySelector('.kk-result-name');
+      if (nameEl && anggotaData[0]) nameEl.textContent = anggotaData[0].nama;
+      item.setAttribute('data-nama-kepala', anggotaData[0].nama);
+      item.setAttribute('data-jumlah-anggota', String(anggotaData.length));
       const konfBox = document.getElementById('konfirmasi-' + itemId);
       if (konfBox) konfBox.remove();
     }
@@ -1624,6 +1745,7 @@ async function handleKonfirmasiAnggota(itemId, kkId) {
     document.getElementById('kkValidCount').textContent = kkValidCount;
     updateSelesaiButton();
     updateKKUploadBlockingState();
+    refreshMasjidKkSummary();
     showToast('Data anggota berhasil dikonfirmasi!', 'success');
     refreshToken(session);
   } catch (e) {
@@ -1673,6 +1795,10 @@ async function handleSelesaiUpload() {
     // Disable upload, show menunggu
     document.getElementById('uploadSection').style.display = 'none';
     document.getElementById('menungguSection').style.display = 'block';
+    const draftSum = document.getElementById('draftKkSummarySection');
+    const rightPh = document.getElementById('rightPlaceholder');
+    if (draftSum) draftSum.style.display = 'none';
+    if (rightPh) rightPh.style.display = 'flex';
     const pillEl = document.getElementById('dashStatusPill');
     pillEl.className = 'm-pill m-pill-menunggu';
     pillEl.textContent = 'Menunggu Review';
