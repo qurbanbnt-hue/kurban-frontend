@@ -175,7 +175,7 @@ function setupKuponSheets() {
     sheet = ss.insertSheet(NAMA_SHEET_DATA_KK);
     sheet.appendRow([
       'kk_id', 'masjid_id', 'nomor_kk', 'file_id', 'status_ocr',
-      'nama_kepala', 'anggota_json', 'jumlah_anggota_tertera',
+      'nama_kepala', 'alamat_kk', 'anggota_json', 'jumlah_anggota_tertera',
       'jumlah_anggota_parsed', 'discrepancy_note',
       'anggota_dikonfirmasi_manual', 'tgl_upload', 'uploader'
     ]);
@@ -488,14 +488,14 @@ function rowToKKObj(headers, row) {
   return obj;
 }
 
-function saveKKRecord(masjidId, fileId, nomorKK, statusOcr, anggotaData, jumlahTertera, jumlahParsed, discrepancyNote, anggotaDikonfirmasiManual) {
+function saveKKRecord(masjidId, fileId, nomorKK, statusOcr, anggotaData, jumlahTertera, jumlahParsed, discrepancyNote, anggotaDikonfirmasiManual, alamatKK) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_DATA_KK);
   const year  = new Date().getFullYear();
   const kkId = 'KK-' + year + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
   const anggotaJson = anggotaData ? JSON.stringify(anggotaData) : '[]';
   sheet.appendRow([
     kkId, masjidId, nomorKK || '', fileId || '',
-    statusOcr, '', anggotaJson,
+    statusOcr, '', alamatKK || '', anggotaJson,
     jumlahTertera !== null && jumlahTertera !== undefined ? jumlahTertera : '',
     jumlahParsed || 0,
     discrepancyNote || '',
@@ -2101,8 +2101,8 @@ function isValidNomorKK(nomor) {
 function parseNomorKK(rawText) {
   if (!rawText) return null;
   const patterns = [
-    /(?:No\.?\s*KK|Nomor\s*KK|NIK\s*KK)[:\s]*(\d{16})/i,
-    /\b(\d{16})\b/
+    /(?:No\.?\s*KK|Nomor\s*KK|NIK\s*KK)[:\s]*(\d{16})(?!\d)/i,
+    /(?<!\d)(\d{16})(?!\d)/
   ];
   for (const pattern of patterns) {
     const match = rawText.match(pattern);
@@ -2152,6 +2152,55 @@ function parseAnggotaKeluarga(rawText) {
     }
   }
   return anggota;
+}
+
+// 5.4b parseAlamatKK — ekstrak alamat dari teks OCR KK
+function parseAlamatKK(rawText) {
+  if (!rawText) return null;
+
+  // Format KK Indonesia: "Alamat" atau "Alamat :" diikuti nilai alamat
+  // Bisa multi-baris (RT/RW, Desa/Kelurahan, Kecamatan, dst)
+  const patterns = [
+    // Format: "Alamat : Jl. Merdeka No. 1"
+    /(?:Alamat|ALAMAT)\s*[:\s]+([^\n]{5,200})/i,
+    // Format: "Jalan / Nomor : Jl. Merdeka"
+    /(?:Jalan\s*\/?\s*Nomor|JALAN)\s*[:\s]+([^\n]{3,200})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = rawText.match(pattern);
+    if (match) {
+      let alamat = match[1].trim();
+
+      // Coba ambil baris lanjutan (RT/RW, Desa, Kecamatan)
+      // Cari posisi match dalam teks dan ambil beberapa baris berikutnya
+      const matchIndex = rawText.indexOf(match[0]);
+      if (matchIndex !== -1) {
+        const afterMatch = rawText.substring(matchIndex + match[0].length);
+        const nextLines  = afterMatch.split('\n').slice(0, 3);
+
+        for (const nextLine of nextLines) {
+          const trimmed = nextLine.trim();
+          // Tambahkan baris jika mengandung info alamat (RT/RW, Desa, Kel, Kec)
+          if (trimmed && /^(RT|RW|Desa|Kel|Kec|Kecamatan|Kelurahan|Dusun|Blok|\d{3}\/\d{3})/i.test(trimmed)) {
+            alamat += ', ' + trimmed;
+          } else {
+            break; // berhenti jika bukan lanjutan alamat
+          }
+        }
+      }
+
+      // Bersihkan hasil
+      alamat = alamat
+        .replace(/\s+/g, ' ')
+        .replace(/,\s*,/g, ',')
+        .trim();
+
+      if (alamat.length >= 5) return alamat;
+    }
+  }
+
+  return null;
 }
 
 // 5.5 validateAnggotaCount — deteksi discrepancy
@@ -2261,7 +2310,7 @@ function processUploadKK(masjidId, fileData, sessionToken) {
     const ocrResult = extractNomorKK(fileId);
     if (!ocrResult.success) {
       // Kasus C: OCR gagal total
-      saveKKRecord(masjidId, fileId, null, 'gagal_ocr', null, null, 0, null, false);
+      saveKKRecord(masjidId, fileId, null, 'gagal_ocr', null, null, 0, null, false, null);
       return { success: true, status_ocr: 'gagal_ocr' };
     }
 
@@ -2271,12 +2320,13 @@ function processUploadKK(masjidId, fileData, sessionToken) {
     const result = processWithLock(function() {
       // Double-check duplikat di dalam lock
       if (checkDuplicateNomorKK(nomorKK)) {
-        const kkId = saveKKRecord(masjidId, fileId, nomorKK, 'duplikat', null, null, 0, null, false);
+        const kkId = saveKKRecord(masjidId, fileId, nomorKK, 'duplikat', null, null, 0, null, false, null);
         return { success: true, status_ocr: 'duplikat', nomor_kk: nomorKK };
       }
 
-      // Parse anggota
+      // Parse anggota dan alamat
       const anggotaData    = parseAnggotaKeluarga(ocrResult.raw_text);
+      const alamatKK       = parseAlamatKK(ocrResult.raw_text);
       const jumlahTertera  = ocrResult.jumlah_anggota_tertera;
       const jumlahParsed   = anggotaData.length;
       const validasiResult = validateAnggotaCount(jumlahTertera, jumlahParsed);
@@ -2285,22 +2335,23 @@ function processUploadKK(masjidId, fileData, sessionToken) {
         // Kasus B: perlu konfirmasi anggota
         const fotoUrl = 'https://drive.google.com/file/d/' + fileId + '/view';
         saveKKRecord(masjidId, fileId, nomorKK, 'perlu_konfirmasi_anggota',
-                     anggotaData, jumlahTertera, jumlahParsed, validasiResult.note, false);
+                     anggotaData, jumlahTertera, jumlahParsed, validasiResult.note, false, alamatKK);
         return {
           success:          true,
           status_ocr:       'perlu_konfirmasi_anggota',
           nomor_kk:         nomorKK,
           anggota_parsial:  anggotaData,
           foto_url:         fotoUrl,
-          discrepancy_note: validasiResult.note
+          discrepancy_note: validasiResult.note,
+          alamat_kk:        alamatKK
         };
       }
 
       // Kasus A: valid
       saveKKRecord(masjidId, fileId, nomorKK, 'valid',
-                   anggotaData, jumlahTertera, jumlahParsed, null, false);
+                   anggotaData, jumlahTertera, jumlahParsed, null, false, alamatKK);
       incrementJumlahKKValid(masjidId, 1);
-      return { success: true, status_ocr: 'valid', nomor_kk: nomorKK };
+      return { success: true, status_ocr: 'valid', nomor_kk: nomorKK, alamat_kk: alamatKK };
     });
 
     return result;
@@ -4194,7 +4245,7 @@ function testPropertyValidateNamaMasjid() {
     var masjidId  = 'TEST-PROP-10-010';
     var kecamatan = 'Mataram';
     var existingName = 'Masjid Al-Ikhlas';
-    var newName      = 'Masjid Baitul Makmur';  // Nama yang berbeda jauh
+    var newName      = 'Musholla Taqwa Sejahtera';  // Nama yang benar-benar berbeda
 
     try {
       setupTestMasjid(masjidId, existingName, kecamatan);
@@ -5135,10 +5186,14 @@ function testPropertyKonfirmasiAnggota() {
       status:           'draft',
       tgl_daftar:       new Date().toISOString(),
       jumlah_kk_valid:  0,
-      token_issued_at:  '',
-      token_revoked_at: ''
+      token_issued_at:  new Date().toISOString(),
+      token_revoked_at: '',
+      session_token:    'TEST-SESSION-TOKEN-09'
     });
   }
+
+  // Token test yang digunakan di semua test P9
+  var TEST_SESSION_TOKEN = 'TEST-SESSION-TOKEN-09';
 
   Logger.log('=== testPropertyKonfirmasiAnggota START ===');
 
@@ -5160,7 +5215,7 @@ function testPropertyKonfirmasiAnggota() {
         { nama: 'Budi Santoso', jk: 'L', umur: 18 }
       ];
 
-      var result = konfirmasiAnggota(masjidId, kkId, anggotaData);
+      var result = konfirmasiAnggota(masjidId, kkId, anggotaData, TEST_SESSION_TOKEN);
 
       var kkAfter     = getKKById(kkId);
       var masjidAfter = getMasjidById(masjidId);
@@ -5199,7 +5254,7 @@ function testPropertyKonfirmasiAnggota() {
       kkId = saveKKRecord(masjidId, 'fake-file-id-002', '5271012345678902',
         'perlu_konfirmasi_anggota', [], 3, 2, 'Tertera 3, parsed 2', false);
 
-      var result = konfirmasiAnggota(masjidId, kkId, []);
+      var result = konfirmasiAnggota(masjidId, kkId, [], TEST_SESSION_TOKEN);
       var ok = result.success === false;
 
       recordResult('P9b: array anggota kosong → success:false', ok, {
@@ -5224,7 +5279,7 @@ function testPropertyKonfirmasiAnggota() {
       kkId = saveKKRecord(masjidId, 'fake-file-id-003', '5271012345678903',
         'perlu_konfirmasi_anggota', [], 3, 2, 'Tertera 3, parsed 2', false);
 
-      var result = konfirmasiAnggota(masjidId, kkId, null);
+      var result = konfirmasiAnggota(masjidId, kkId, null, TEST_SESSION_TOKEN);
       var ok = result.success === false;
 
       recordResult('P9b: anggota null → success:false', ok, {
@@ -5250,7 +5305,7 @@ function testPropertyKonfirmasiAnggota() {
         'valid', [{ nama: 'Ahmad', jk: 'L', umur: 40 }], 1, 1, null, false);
 
       var anggotaData = [{ nama: 'Ahmad Baru', jk: 'L', umur: 41 }];
-      var result = konfirmasiAnggota(masjidId, kkId, anggotaData);
+      var result = konfirmasiAnggota(masjidId, kkId, anggotaData, TEST_SESSION_TOKEN);
       var ok = result.success === false;
 
       recordResult('P9c: KK status=valid → success:false', ok, {
@@ -5276,7 +5331,7 @@ function testPropertyKonfirmasiAnggota() {
         'duplikat', [], null, 0, null, false);
 
       var anggotaData = [{ nama: 'Siti', jk: 'P', umur: 35 }];
-      var result = konfirmasiAnggota(masjidId, kkId, anggotaData);
+      var result = konfirmasiAnggota(masjidId, kkId, anggotaData, TEST_SESSION_TOKEN);
       var ok = result.success === false;
 
       recordResult('P9c: KK status=duplikat → success:false', ok, {
@@ -5302,7 +5357,7 @@ function testPropertyKonfirmasiAnggota() {
         'gagal_ocr', [], null, 0, null, false);
 
       var anggotaData = [{ nama: 'Budi', jk: 'L', umur: 30 }];
-      var result = konfirmasiAnggota(masjidId, kkId, anggotaData);
+      var result = konfirmasiAnggota(masjidId, kkId, anggotaData, TEST_SESSION_TOKEN);
       var ok = result.success === false;
 
       recordResult('P9c: KK status=gagal_ocr → success:false', ok, {
@@ -6759,6 +6814,7 @@ function testIntegrationAlurLengkap() {
   var KK_ID_2   = 'KK-INT-14-001-002';
   var KUPON_ID  = 'KPN-INT-14-001';
   var KODE_KUPON = 'BNT-TEST-INT14001-2S';
+  var TEST_SESSION = 'TEST-INT-SESSION-14-001'; // session token untuk test
 
   Logger.log('=== testIntegrationAlurLengkap START ===');
 
@@ -6778,7 +6834,8 @@ function testIntegrationAlurLengkap() {
       tgl_daftar:       new Date().toISOString(),
       jumlah_kk_valid:  0,
       token_issued_at:  new Date().toISOString(),
-      token_revoked_at: ''
+      token_revoked_at: '',
+      session_token:    TEST_SESSION
     });
 
     var masjid = getMasjidById(MASJID_ID);
@@ -6842,7 +6899,7 @@ function testIntegrationAlurLengkap() {
       { nama: 'Anggota Tiga',   jk: 'L', umur: 40 },
       { nama: 'Anggota Empat',  jk: 'P', umur: 35 },
       { nama: 'Anggota Lima',   jk: 'L', umur: 10 }
-    ]);
+    ], TEST_SESSION);
 
     _t14_recordResult(results, passed, failed,
       'Langkah 3: konfirmasiAnggota berhasil',
@@ -6872,7 +6929,7 @@ function testIntegrationAlurLengkap() {
 
     // ── Langkah 4: Konfirmasi selesai upload ─────────────────────
     Logger.log('--- Langkah 4: Konfirmasi Selesai Upload ---');
-    var selesaiResult = konfirmasiSelesaiUpload(MASJID_ID);
+    var selesaiResult = konfirmasiSelesaiUpload(MASJID_ID, TEST_SESSION);
 
     _t14_recordResult(results, passed, failed,
       'Langkah 4: konfirmasiSelesaiUpload berhasil',
@@ -6888,7 +6945,7 @@ function testIntegrationAlurLengkap() {
     );
 
     // Verifikasi upload KK ditolak setelah menunggu_review
-    var uploadSetelahSelesai = processUploadKK(MASJID_ID, { base64Data: 'dGVzdA==', mimeType: 'image/jpeg', fileName: 'test.jpg' });
+    var uploadSetelahSelesai = processUploadKK(MASJID_ID, { base64Data: 'dGVzdA==', mimeType: 'image/jpeg', fileName: 'test.jpg' }, TEST_SESSION);
     _t14_recordResult(results, passed, failed,
       'Langkah 4: upload KK ditolak setelah status menunggu_review',
       uploadSetelahSelesai.success === false,
@@ -7451,6 +7508,7 @@ function testTogglePeriodePendaftaran() {
   var results = [];
 
   var MASJID_ID = 'TEST-INT-14-004';
+  var TEST_SESSION_14 = 'TEST-INT-SESSION-14-004';
 
   Logger.log('=== testTogglePeriodePendaftaran START ===');
 
@@ -7466,7 +7524,8 @@ function testTogglePeriodePendaftaran() {
       kecamatan: 'Kecamatan Toggle', kabupaten: 'Kabupaten Test',
       nama_pic: 'PIC Toggle', telepon_pic: '081200001405', status: 'draft',
       tgl_daftar: new Date().toISOString(), jumlah_kk_valid: 0,
-      token_issued_at: '', token_revoked_at: ''
+      token_issued_at: new Date().toISOString(), token_revoked_at: '',
+      session_token: TEST_SESSION_14
     });
 
     // â”€â”€ Test 1: periode_pendaftaran_buka = true â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -7487,7 +7546,7 @@ function testTogglePeriodePendaftaran() {
       base64Data: 'dGVzdA==',
       mimeType: 'image/jpeg',
       fileName: 'test_kk.jpg'
-    });
+    }, TEST_SESSION_14);
 
     // Upload akan gagal karena OCR/Drive tidak tersedia di test environment,
     // tapi error-nya BUKAN tentang periode tutup
@@ -7518,7 +7577,7 @@ function testTogglePeriodePendaftaran() {
       base64Data: 'dGVzdA==',
       mimeType: 'image/jpeg',
       fileName: 'test_kk.jpg'
-    });
+    }, TEST_SESSION_14);
 
     _t14_recordResult(results, passed, failed,
       'Periode tutup: processUploadKK ditolak',
@@ -7573,7 +7632,7 @@ function testTogglePeriodePendaftaran() {
       base64Data: 'dGVzdA==',
       mimeType: 'image/jpeg',
       fileName: 'test_kk2.jpg'
-    });
+    }, TEST_SESSION_14);
 
     var errorBukanPeriodeLagi = !uploadBukaLagi.error || uploadBukaLagi.error.indexOf('Periode pendaftaran') === -1;
     _t14_recordResult(results, passed, failed,
