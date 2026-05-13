@@ -1,6 +1,6 @@
 # Kurban Digital — Yayasan Bhakti Nusa Tenggara
 
-Platform terpadu untuk mengelola dan memantau dokumentasi penyembelihan hewan qurban secara real-time. Idul Adha 1447 H / 2026 M.
+Platform terpadu untuk mengelola dokumentasi penyembelihan hewan qurban dan sistem distribusi kupon kurban untuk masjid penerima manfaat. Idul Adha 1447 H / 2026 M.
 
 ---
 
@@ -16,14 +16,14 @@ api/proxy.js  ──  Vercel Serverless
         │  GAS_SECRET + user object
         ▼
 Google Apps Script  ──  Google Sheets (database)
-                    └─  Google Drive (penyimpanan foto)
+                    └─  Google Drive (foto & file KK)
 ```
 
 - **Frontend** — HTML/CSS/JS statis, di-deploy di Vercel CDN
 - **Proxy** — `api/proxy.js` sebagai security layer: JWT auth, RBAC, validasi input, rate limiting
 - **Backend** — Google Apps Script: logika bisnis, baca/tulis Sheets, upload ke Drive
-- **Database** — Google Sheets (4 sheet)
-- **Storage** — Google Drive (foto hewan, dokumentasi instansi)
+- **Database** — Google Sheets (9 sheet)
+- **Storage** — Google Drive (foto hewan, KK, foto bukti pengambilan)
 
 ---
 
@@ -32,20 +32,22 @@ Google Apps Script  ──  Google Sheets (database)
 ```
 ├── index.html                  # Landing page — pilih portal
 ├── admin/index.html            # Portal Administrator
-├── user/index.html             # Portal Panitia
+├── user/index.html             # Portal Panitia + Scan Kupon
 ├── pekurban/index.html         # Portal Pekurban (publik)
+├── masjid/index.html           # Portal Masjid — daftar & kupon
 ├── api/
 │   └── proxy.js                # Vercel serverless — security layer
 ├── assets/
 │   ├── css/style.css
 │   ├── js/
-│   │   └── api.js              # callApi(), esc(), debounce(), cache
+│   │   ├── api.js              # callApi(), esc(), debounce(), cache
+│   │   └── auth.js             # initAuth(), startSessionWatcher()
 │   ├── fonts/                  # Lucide icon font
 │   └── images/
 │       ├── logo/
 │       ├── bg_desktop/
 │       ├── bg_mobile/
-│       └── Icon/               # icon_sapi, icon_kambing, dll
+│       └── Icon/
 ├── backend/
 │   └── Code.gs                 # Google Apps Script (backend)
 ├── vercel.json
@@ -60,9 +62,31 @@ Google Apps Script  ──  Google Sheets (database)
 | Portal | URL | Akses |
 |---|---|---|
 | Landing | `/` | Publik |
+| Masjid | `/masjid` | OTP WhatsApp — session token |
 | Panitia | `/user` | JWT — role: user |
 | Administrator | `/admin` | JWT — role: admin |
 | Pekurban | `/pekurban` | Publik — cari nama sendiri |
+
+---
+
+## Fitur Utama
+
+### Sistem Kupon Masjid (Fitur Baru)
+
+Alur lengkap distribusi sapi kurban ke masjid penerima manfaat:
+
+1. **Pendaftaran masjid** via WhatsApp OTP — tanpa username/password
+2. **Upload KK** dengan OCR otomatis — deteksi nomor KK 16 digit, cegah duplikasi lintas masjid
+3. **Konfirmasi anggota** manual jika OCR tidak sempurna
+4. **Review admin** — verifikasi KK, tetapkan jatah sapi
+5. **Kupon digital** dengan QR code unik per masjid
+6. **Scan & konfirmasi** di lokasi pemotongan — wajib foto bukti
+
+### Dokumentasi Hewan Qurban
+
+- Upload foto 3 fase: hidup → ditumbangkan → disembelih
+- Tracking per hewan, instansi, dan wilayah
+- Portal pekurban untuk cek status hewan sendiri
 
 ---
 
@@ -72,28 +96,35 @@ Google Apps Script  ──  Google Sheets (database)
 
 | Lapisan | Implementasi |
 |---|---|
-| Autentikasi | JWT HS256, expire 8 jam, dibuat di proxy |
+| Autentikasi panitia/admin | JWT HS256, expire 8 jam |
+| Autentikasi masjid | OTP WhatsApp + session token UUID (bukan JWT) |
+| Session token masjid | UUID acak di-generate saat OTP berhasil, disimpan di Sheets |
+| OTP storage | SHA-256 hash sebelum disimpan ke sheet — tidak plain text |
+| OTP rate limit | Max 3 kirim per 15 menit per masjid |
+| OTP comparison | Timing-safe comparison (cegah timing attack) |
 | Zero trust | Proxy tidak percaya `email`/`role` dari frontend — hanya dari JWT |
 | RBAC | Admin-only actions diblokir di proxy sebelum sampai ke GAS |
 | GAS secret | Setiap request ke GAS wajib menyertakan `SCRIPT_SECRET` |
 | Action whitelist | Proxy menolak semua action di luar daftar izin |
 | Input validation | Proxy validasi tipe, panjang, format sebelum teruskan ke GAS |
-| File validation | MIME whitelist (jpg/png/webp/mp4), size limit (foto 5MB, video 20MB) |
+| File validation | MIME whitelist (jpg/png/webp), size limit 5MB per file |
 | XSS protection | Semua data server di-escape via `esc()` sebelum masuk innerHTML |
 | Rate limiting | 60 req/menit per IP + 40 req/menit per user (in-memory) |
 | GAS rate limiting | CacheService — 60 req/menit per user di sisi GAS |
-| Concurrent upload | Lock per hewan via CacheService — cegah race condition |
+| Race condition KK | LockService — cegah duplikasi nomor KK saat upload bersamaan |
+| Race condition kupon | LockService + double-check status di dalam lock |
 | CORS | Hanya domain di `ALLOWED_ORIGINS` yang diizinkan |
-| Security headers | CSP, X-Frame-Options, X-Content-Type-Options, dll via `vercel.json` |
+| Security headers | CSP, X-Frame-Options, Permissions-Policy, dll via `vercel.json` |
+| Kamera | `Permissions-Policy: camera=(self)` hanya di `/user` (scan QR) |
 | CDN cache | Static assets cache 1 tahun, API no-store |
 | Error masking | Error internal hanya di log server, client hanya dapat pesan generik |
-| Password | SHA-256 + salt + 500 iterasi, backward-compatible dengan hash lama |
+| Password | SHA-256 + salt + 500 iterasi |
 
 ### Keterbatasan
 
-- Rate limiting in-memory — tidak persistent lintas Vercel instance. Untuk skala besar gunakan [Upstash Redis](https://upstash.com).
+- Rate limiting in-memory — tidak persistent lintas Vercel instance.
 - JWT disimpan di `localStorage` — cukup untuk use case internal.
-- GAS URL bisa muncul di Vercel logs. Rotasi deployment secara berkala jika diperlukan.
+- Session masjid disimpan di `localStorage` dengan expiry 7 hari.
 
 ---
 
@@ -101,46 +132,39 @@ Google Apps Script  ──  Google Sheets (database)
 
 ### 1. Google Sheets
 
-Buat spreadsheet dengan 4 sheet:
+Buat spreadsheet baru. Sheet untuk fitur hewan qurban dibuat manual, sheet untuk kupon masjid dibuat otomatis via `setupKuponSheets()`.
 
-**`Database`**
-| A | B | C | D | E | F |
-|---|---|---|---|---|---|
-| nomor_hewan | jenis_hewan | daftar_pekurban | jumlah_pekurban | instansi | wilayah |
+**Sheet manual (hewan qurban):**
 
-> Primary key: kombinasi `nomor_hewan + instansi + jenis_hewan`. Sapi dan kambing boleh punya nomor yang sama selama instansinya berbeda atau jenisnya berbeda.
->
-> Untuk sapi dengan beberapa pekurban, pisahkan nama dengan koma: `PAK JOKO, PAK ANWAR, BU KARTINI`
+**`Database`** — `nomor_hewan | jenis_hewan | daftar_pekurban | jumlah_pekurban | instansi | wilayah`
 
-**`Laporan`**
-| A | B | C | D | E | F | G | H | I | J | K | L | M | N | O |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| nomor_hewan | jenis_hewan | daftar_pekurban | jumlah_pekurban | instansi | wilayah | url_hidup | tgl_hidup | url_ditumbangkan | tgl_ditumbangkan | url_mati | tgl_mati | uploader_hidup | uploader_ditumbangkan | uploader_mati |
+**`Laporan`** — `nomor_hewan | jenis_hewan | daftar_pekurban | jumlah_pekurban | instansi | wilayah | url_hidup | tgl_hidup | url_ditumbangkan | tgl_ditumbangkan | url_mati | tgl_mati | uploader_hidup | uploader_ditumbangkan | uploader_mati`
 
-**`Akun`**
-| A | B | C | D | E |
-|---|---|---|---|---|
-| email | password_hash | username | role (admin/user) | salt |
+**`Akun`** — `email | password_hash | username | role (admin/user) | salt`
 
-> Password disimpan sebagai hash SHA-256 + salt (500 iterasi). Gunakan fungsi `hashPasswordsKeSheet()` di Apps Script untuk hash password dari plaintext.
+**`DokumentasiInstansi`** — `instansi | wilayah | jenis | folderUrl | tglUpload | uploader | catatan`
 
-**`DokumentasiInstansi`**
-| A | B | C | D | E | F | G |
-|---|---|---|---|---|---|---|
-| instansi | wilayah | jenis | folderUrl | tglUpload | uploader | catatan |
+**Sheet otomatis (kupon masjid)** — dibuat oleh `setupKuponSheets()`:
+- `PendaftaranMasjid` — data masjid, status, token sesi
+- `DataKK` — record KK per masjid, hasil OCR
+- `KuponMasjid` — kupon QR code per masjid
+- `SesiOTP` — OTP hash + rate limit tracking
+- `KonfigSistem` — periode pendaftaran, nomor diblokir
 
 ### 2. Google Apps Script
 
 1. Buka spreadsheet → **Extensions → Apps Script**
 2. Hapus kode default, paste isi `backend/Code.gs`
-3. Isi `ROOT_FOLDER_ID` dengan ID folder Google Drive tujuan penyimpanan foto
-4. Tambahkan Script Property:
-   - **Project Settings → Script Properties → Add property**
-   - Key: `SCRIPT_SECRET` — Value: string acak 32+ karakter (sama dengan `GAS_SECRET` di Vercel)
-5. **Deploy → New deployment → Web App**
+3. Isi `ROOT_FOLDER_ID` di baris pertama dengan ID folder Google Drive tujuan penyimpanan
+4. Aktifkan **Drive API**: Services → Drive API v2
+5. Tambahkan Script Properties (**Project Settings → Script Properties**):
+   - `SCRIPT_SECRET` — string acak 32+ karakter (sama dengan `GAS_SECRET` di Vercel)
+   - `FONNTE_API_TOKEN` — token API dari [fonnte.com](https://fonnte.com) untuk kirim OTP WhatsApp
+6. Jalankan `setupKuponSheets()` satu kali untuk membuat sheet kupon masjid
+7. **Deploy → New deployment → Web App**
    - Execute as: **Me**
    - Who has access: **Anyone**
-6. Salin URL deployment
+8. Salin URL deployment
 
 ### 3. Vercel
 
@@ -148,7 +172,7 @@ Set environment variables di **Vercel Dashboard → Settings → Environment Var
 
 | Key | Value |
 |---|---|
-| `APPS_SCRIPT_URL` | URL deployment Apps Script |
+| `APPS_SCRIPT_URL` | URL deployment Apps Script dari langkah 2.7 |
 | `GAS_SECRET` | String acak 32+ karakter |
 | `JWT_SECRET` | String acak 32+ karakter (berbeda dari GAS_SECRET) |
 | `ALLOWED_ORIGINS` | `https://namadomain.vercel.app` |
@@ -158,7 +182,20 @@ Generate secret key:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### 4. Lokal
+### 4. Buat Akun Admin Pertama
+
+Jalankan fungsi ini satu kali dari editor Apps Script:
+
+```javascript
+function buatAdminPertama() {
+  const { hash, salt } = hashPass('password_kamu', null);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Akun');
+  sheet.appendRow(['admin@email.kamu', hash, 'Admin BNT', 'admin', salt]);
+  Logger.log('Admin berhasil dibuat');
+}
+```
+
+### 5. Lokal (Development)
 
 ```bash
 npm install
@@ -183,15 +220,30 @@ npm run dev
 Semua request: `POST /api/proxy?action=<action>` dengan body JSON.
 Protected actions wajib menyertakan header: `Authorization: Bearer <token>`
 
-### Publik
+### Publik (tanpa auth)
 
 | Action | Body | Keterangan |
 |---|---|---|
-| `login` | `{ email, password }` | Verifikasi kredensial, kembalikan JWT |
-| `getPublicStats` | `{}` | Statistik publik |
-| `searchPekurban` | `{ query }` | Cari nama pekurban (min. 2 karakter) |
+| `login` | `{ email, password }` | Login panitia/admin, kembalikan JWT |
+| `getPublicStats` | `{}` | Statistik publik hewan qurban |
+| `searchPekurban` | `{ query }` | Cari nama pekurban |
 | `getPekurbanDetail` | `{ nama, nomor_hewan, instansi }` | Detail hewan + status foto |
-| `getDokumentasiWilayah` | `{ wilayah }` | Daftar file dokumentasi per wilayah |
+| `getDokumentasiWilayah` | `{ wilayah }` | Dokumentasi per wilayah |
+| `checkNomorWA` | `{ telepon_pic }` | Cek nomor WA masjid, kirim OTP jika terdaftar |
+| `registerMasjid` | `{ nama_masjid, alamat, kecamatan, kabupaten, nama_pic, telepon_pic }` | Daftar masjid baru |
+| `verifyOTP` | `{ masjid_id, otp_code }` | Verifikasi OTP, kembalikan session token |
+| `requestOTP` | `{ telepon_pic }` | Kirim ulang OTP |
+| `getKonfigSistem` | `{}` | Status periode pendaftaran |
+
+### Masjid (session token di body)
+
+| Action | Body | Keterangan |
+|---|---|---|
+| `uploadKK` | `{ masjid_id, session_token, file_base64, mime_type, file_name }` | Upload foto KK, OCR otomatis |
+| `konfirmasiAnggota` | `{ masjid_id, session_token, kk_id, anggota_data[] }` | Konfirmasi data anggota manual |
+| `konfirmasiSelesaiUpload` | `{ masjid_id, session_token }` | Kunci data KK untuk review admin |
+| `getKuponMasjid` | `{ masjid_id, session_token }` | Ambil kupon digital + QR code |
+| `getDashboardMasjid` | `{ masjid_id, session_token }` | Data lengkap dashboard masjid |
 
 ### Panitia (JWT role: user)
 
@@ -200,33 +252,32 @@ Protected actions wajib menyertakan header: `Authorization: Bearer <token>`
 | `getHewan` | `{}` | Semua hewan + status foto |
 | `uploadFoto` | `{ nomor_hewan, jenis_hewan, instansi, jenis_foto, base64Data, mimeType }` | Upload foto hewan |
 | `getDokumentasi` | `{}` | Riwayat dokumentasi instansi |
-| `uploadDokumentasi` | `{ instansi, wilayah, jenis_dokumentasi, files[] }` | Upload foto/video dokumentasi |
-| `getFileById` | `{ fileId }` | Ambil file Drive sebagai base64 (foto) atau preview URL (video) |
+| `uploadDokumentasi` | `{ instansi, wilayah, jenis_dokumentasi, files[] }` | Upload dokumentasi |
+| `validateKupon` | `{ kode_kupon }` | Validasi kupon (tidak ubah status) |
+| `konfirmasiPengambilan` | `{ kupon_id, foto_bukti_base64, mime_type }` | Konfirmasi pengambilan + foto bukti |
 
 ### Admin (JWT role: admin)
 
 | Action | Body | Keterangan |
 |---|---|---|
 | `getAdminData` | `{}` | Semua hewan + user + statistik |
-| `addHewan` | `{ hewan }` | Tambah hewan baru |
-| `updateHewan` | `{ hewan }` | Edit data hewan |
-| `deleteHewan` | `{ nomor_hewan, instansi }` | Hapus hewan + folder Drive |
-| `addUser` | `{ newUser }` | Tambah akun |
-| `updateUser` | `{ user }` | Edit akun |
-| `deleteUser` | `{ targetEmail }` | Hapus akun |
-
----
-
-## Fitur Portal Pekurban
-
-- **Dashboard publik** — statistik total hewan, sudah dipotong, jumlah pekurban, wilayah
-- **Pencarian privat** — ketik nama sendiri, nama pekurban lain tidak muncul
-- **Privasi sapi** — nama pekurban dipisah koma di sheet, masing-masing hanya melihat namanya sendiri
-- **Profil pekurban** — nomor hewan, instansi, wilayah, timeline status sembelih (3 fase)
-- **Foto dokumentasi** — tampil langsung di web app via base64, ada tombol unduh
-- **Dokumentasi wilayah** — foto pencacahan & penyaluran dari wilayah yang sama
-- **Sertifikat** — preview sertifikat terima kasih (unduh dalam pengembangan)
-- **Desktop layout** — 3 kolom penuh layar, mobile tetap scroll vertikal
+| `addHewan` / `updateHewan` / `deleteHewan` | `{ hewan }` | CRUD hewan |
+| `addUser` / `updateUser` / `deleteUser` | `{ user }` | CRUD akun |
+| `getRegistrations` | `{}` | Semua pendaftaran masjid |
+| `getKKDetail` | `{ masjid_id }` | Detail KK per masjid |
+| `getKKPerluVerifikasi` | `{ masjid_id? }` | KK yang perlu review admin |
+| `resolveKKVerifikasi` | `{ kk_id, action, koreksi_data? }` | Terima/tolak/koreksi KK |
+| `setJatah` | `{ masjid_id, jumlah_sapi }` | Tetapkan jatah + terbitkan kupon |
+| `togglePeriodePendaftaran` | `{ buka }` | Buka/tutup periode pendaftaran |
+| `revokeTokenMasjid` | `{ masjid_id }` | Paksa logout masjid |
+| `updateNomorWAMasjid` | `{ masjid_id, nomor_wa_baru }` | Update nomor WA PIC |
+| `hapusMasjid` | `{ masjid_id }` | Hapus masjid + semua KK |
+| `blokirMasjid` | `{ masjid_id, alasan }` | Blokir masjid |
+| `bukaBlokirMasjid` | `{ masjid_id }` | Buka blokir masjid |
+| `blokirNomorWA` | `{ nomor_wa }` | Blokir nomor WA |
+| `bukaBlokirNomorWA` | `{ nomor_wa }` | Buka blokir nomor WA |
+| `getNomorDiblokir` | `{}` | Daftar nomor WA yang diblokir |
+| `rejectRegistration` | `{ masjid_id, alasan }` | Tolak pendaftaran masjid |
 
 ---
 
@@ -236,10 +287,11 @@ Jalankan dari editor Apps Script (satu kali):
 
 | Fungsi | Kegunaan |
 |---|---|
-| `hashPasswordsKeSheet()` | Hash semua password plaintext di sheet Akun (dengan salt) |
-| `syncLaporanFromDatabase()` | Sinkronisasi baris Database → Laporan (data lama) |
+| `setupKuponSheets()` | Buat semua sheet kupon masjid + folder Drive |
+| `hashPasswordsKeSheet()` | Hash semua password plaintext di sheet Akun |
+| `syncLaporanFromDatabase()` | Sinkronisasi baris Database → Laporan |
 | `syncDokumentasiInstansi()` | Sinkronisasi instansi unik → DokumentasiInstansi |
-| `testSearchPekurban()` | Test pencarian pekurban dari editor |
+| `buatAdminPertama()` | Buat akun admin pertama (tulis manual di editor) |
 
 ---
 
@@ -247,24 +299,33 @@ Jalankan dari editor Apps Script (satu kali):
 
 ```
 ROOT_FOLDER/
-└── {instansi}/
-    └── {wilayah}/
-        └── {jenis_hewan}/
-            └── {nomor_hewan}/
-                ├── 001_hidup_1234567890.jpg
-                ├── 001_ditumbangkan_1234567891.jpg
-                └── 001_mati_1234567892.jpg
+├── {instansi}/
+│   └── {wilayah}/
+│       └── {jenis_hewan}/
+│           └── {nomor_hewan}/
+│               ├── 001_hidup_xxx.jpg
+│               ├── 001_ditumbangkan_xxx.jpg
+│               └── 001_mati_xxx.jpg
+├── KK/
+│   └── {masjid_id}/
+│       └── kk_{masjid_id}_{timestamp}.jpg
+└── BuktiFoto/
+    └── {masjid_id}/
+        └── bukti_{kupon_id}_{timestamp}.jpg
 ```
 
 ---
 
 ## Checklist Sebelum Go-Live
 
-- [ ] `ROOT_FOLDER_ID` diisi di Code.gs (jangan push ke GitHub)
-- [ ] `SCRIPT_SECRET` diset di Script Properties GAS
+- [ ] `ROOT_FOLDER_ID` diisi di Code.gs
+- [ ] `SCRIPT_SECRET` dan `FONNTE_API_TOKEN` diset di Script Properties GAS
+- [ ] Drive API v2 diaktifkan di GAS
+- [ ] `setupKuponSheets()` sudah dijalankan
+- [ ] Akun admin pertama sudah dibuat
 - [ ] Semua env vars diset di Vercel dashboard
-- [ ] Password akun di-hash via `hashPasswordsKeSheet()`
 - [ ] Apps Script di-deploy ulang setelah update Code.gs
+- [ ] Test alur lengkap: daftar masjid → OTP → upload KK → kupon → scan
 - [ ] 2FA aktif di akun Google pemilik spreadsheet
 - [ ] Spreadsheet tidak di-share ke publik
-- [ ] `.env.local` tidak ter-commit (cek dengan `git status`)
+- [ ] `.env.local` tidak ter-commit (`git status`)

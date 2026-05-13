@@ -2457,7 +2457,7 @@ function validateMasjidToken(masjidId, tokenIssuedAt) {
 function updateNomorWAMasjid(masjidId, nomorWaBaru, adminEmail) {
   try {
     if (!masjidId || !nomorWaBaru) return { success: false, error: 'Parameter tidak lengkap' };
-    if (!/^(+62|08)d{8,12}$/.test(String(nomorWaBaru).trim())) {
+    if (!/^(\+62|08)\d{8,12}$/.test(String(nomorWaBaru).trim())) {
       return { success: false, error: 'Format nomor WhatsApp tidak valid' };
     }
     const nomorBaru = String(nomorWaBaru).trim();
