@@ -765,15 +765,44 @@ async function initPage() {
   }
 }
 
+// ═══════════════════════════════════════════
+// STATE PERIODE
+// ═══════════════════════════════════════════
+let _periodeTutup = false;
+
 async function checkPeriodePendaftaran() {
   try {
     const res = await callApi('getKonfigSistem', {});
     if (res.success && res.config) {
-      if (!res.config.periode_pendaftaran_buka) {
+      _periodeTutup = !res.config.periode_pendaftaran_buka;
+      if (_periodeTutup) {
         document.getElementById('bannerPeriodeTutup').classList.add('show');
+        // Sembunyikan form input nomor WA dan tombol Lanjut
+        _sembunyikanFormAuth();
       }
     }
   } catch (e) { /* silent */ }
+}
+
+function _sembunyikanFormAuth() {
+  // Sembunyikan input nomor WA dan tombol Lanjut di viewAuth
+  const inputWA  = document.getElementById('inputNomorWA');
+  const btnLanjut = document.getElementById('btnLanjut');
+  const fieldLabel = inputWA ? inputWA.previousElementSibling : null;
+  if (inputWA)    inputWA.style.display    = 'none';
+  if (btnLanjut)  btnLanjut.style.display  = 'none';
+  if (fieldLabel && fieldLabel.classList.contains('m-field-label')) {
+    fieldLabel.style.display = 'none';
+  }
+  // Tampilkan pesan tambahan di bawah banner
+  const authCard = document.querySelector('#viewAuth .m-auth-card');
+  if (authCard && !document.getElementById('periodeClosedMsg')) {
+    const msg = document.createElement('div');
+    msg.id = 'periodeClosedMsg';
+    msg.style.cssText = 'text-align:center;padding:16px 0 8px;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;';
+    msg.innerHTML = 'Pendaftaran masjid baru sedang ditutup.<br>Jika masjid Anda sudah terdaftar, silakan hubungi admin.';
+    authCard.appendChild(msg);
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -806,6 +835,11 @@ async function handleNomorWASubmit() {
       showView('viewOTP');
       startResendCountdown();
     } else {
+      // Jika periode tutup, tidak bisa daftar baru
+      if (_periodeTutup) {
+        showError('authError', 'Periode pendaftaran sudah ditutup. Nomor ini belum terdaftar.');
+        return;
+      }
       document.getElementById('regTeleponPIC').value = telepon;
       showView('viewRegister');
       checkPeriodePendaftaran();
@@ -1068,6 +1102,26 @@ function updateStatusUI(status, kkValid) {
 
   if (status === 'draft') {
     uploadSection.style.display = 'block';
+    // Jika periode tutup, nonaktifkan upload KK
+    if (_periodeTutup) {
+      const uploadArea = document.getElementById('uploadArea');
+      const kkFileInput = document.getElementById('kkFileInput');
+      const btnSelesai = document.getElementById('btnSelesaiUpload');
+      if (uploadArea) {
+        uploadArea.classList.add('disabled');
+        uploadArea.onclick = null;
+      }
+      if (kkFileInput) kkFileInput.disabled = true;
+      if (btnSelesai) btnSelesai.style.display = 'none';
+      // Tampilkan pesan periode tutup di atas upload area
+      if (!document.getElementById('uploadPeriodeTutupMsg')) {
+        const msg = document.createElement('div');
+        msg.id = 'uploadPeriodeTutupMsg';
+        msg.style.cssText = 'background:rgba(239,172,21,0.12);border:1px solid rgba(239,172,21,0.3);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#f5c842;display:flex;align-items:center;gap:8px;';
+        msg.innerHTML = '<i class="icon icon-alert-triangle" style="font-size:16px;flex-shrink:0;"></i><span>Periode upload KK sudah ditutup. Data KK yang sudah diupload tetap tersimpan.</span>';
+        uploadSection.insertBefore(msg, uploadSection.firstChild);
+      }
+    }
     updateSelesaiButton();
   } else if (status === 'menunggu_review') {
     menungguSection.style.display = 'block';
