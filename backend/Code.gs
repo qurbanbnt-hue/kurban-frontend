@@ -77,11 +77,11 @@ function handleApiRequest(e) {
       case 'getKonfigSistem': result = getKonfigSistem(); break;
 
       // Kupon Masjid — Masjid (token sesi)
-      case 'uploadKK': result = processUploadKK(data.masjid_id, { base64Data: data.file_base64, mimeType: data.mime_type, fileName: data.file_name }); break;
-      case 'konfirmasiAnggota': result = konfirmasiAnggota(data.masjid_id, data.kk_id, data.anggota_data); break;
-      case 'konfirmasiSelesaiUpload': result = konfirmasiSelesaiUpload(data.masjid_id); break;
-      case 'getKuponMasjid': result = getKuponMasjidByMasjidId(data.masjid_id); break;
-      case 'getDashboardMasjid': result = getDashboardMasjid(data.masjid_id); break;
+      case 'uploadKK': result = processUploadKK(data.masjid_id, { base64Data: data.file_base64, mimeType: data.mime_type, fileName: data.file_name }, data.session_token); break;
+      case 'konfirmasiAnggota': result = konfirmasiAnggota(data.masjid_id, data.kk_id, data.anggota_data, data.session_token); break;
+      case 'konfirmasiSelesaiUpload': result = konfirmasiSelesaiUpload(data.masjid_id, data.session_token); break;
+      case 'getKuponMasjid': result = getKuponMasjidByMasjidId(data.masjid_id, data.session_token); break;
+      case 'getDashboardMasjid': result = getDashboardMasjid(data.masjid_id, data.session_token); break;
 
       // Kupon Masjid — Admin
       case 'getRegistrations': result = requireAdmin(user) || getRegistrations(); break;
@@ -164,7 +164,8 @@ function setupKuponSheets() {
       'nama_pic', 'telepon_pic', 'status', 'tgl_daftar', 'jumlah_kk_valid',
       'jumlah_sapi_jatah', 'tgl_penetapan', 'admin_penetap',
       'token_issued_at', 'token_revoked_at',
-      'alasan_blokir', 'admin_pemblokir', 'tgl_diblokir', 'status_sebelum_blokir'
+      'alasan_blokir', 'admin_pemblokir', 'tgl_diblokir', 'status_sebelum_blokir',
+      'session_token'
     ]);
   }
 
@@ -195,7 +196,7 @@ function setupKuponSheets() {
   sheet = ss.getSheetByName(NAMA_SHEET_SESI_OTP);
   if (!sheet) {
     sheet = ss.insertSheet(NAMA_SHEET_SESI_OTP);
-    sheet.appendRow(['masjid_id', 'otp_code', 'otp_expiry', 'tgl_kirim', 'attempt_count']);
+    sheet.appendRow(['masjid_id', 'otp_hash', 'otp_expiry', 'tgl_kirim', 'attempt_count', 'otp_send_count', 'otp_send_window_start']);
   }
 
   // KonfigSistem
@@ -372,7 +373,8 @@ function saveMasjidRecord(masjidData) {
     masjidData.alasan_blokir || '',
     masjidData.admin_pemblokir || '',
     masjidData.tgl_diblokir || '',
-    masjidData.status_sebelum_blokir || ''
+    masjidData.status_sebelum_blokir || '',
+    masjidData.session_token || ''
   ]);
 }
 
@@ -489,8 +491,7 @@ function rowToKKObj(headers, row) {
 function saveKKRecord(masjidId, fileId, nomorKK, statusOcr, anggotaData, jumlahTertera, jumlahParsed, discrepancyNote, anggotaDikonfirmasiManual) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_DATA_KK);
   const year  = new Date().getFullYear();
-  const count = sheet.getLastRow();
-  const kkId  = 'KK-' + year + '-' + String(count).padStart(5, '0');
+  const kkId = 'KK-' + year + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
   const anggotaJson = anggotaData ? JSON.stringify(anggotaData) : '[]';
   sheet.appendRow([
     kkId, masjidId, nomorKK || '', fileId || '',
@@ -636,11 +637,13 @@ function getOTPByMasjidId(masjidId) {
 
 function rowToOTPObj(headers, row) {
   return {
-    masjid_id:     String(row[0]),
-    otp_code:      String(row[1]),
-    otp_expiry:    row[2] ? new Date(row[2]) : null,
-    tgl_kirim:     row[3] ? new Date(row[3]) : null,
-    attempt_count: Number(row[4]) || 0
+    masjid_id:              String(row[0]),
+    otp_code:               String(row[1]),
+    otp_expiry:             row[2] ? new Date(row[2]) : null,
+    tgl_kirim:              row[3] ? new Date(row[3]) : null,
+    attempt_count:          Number(row[4]) || 0,
+    otp_send_count:         Number(row[5]) || 0,
+    otp_send_window_start:  row[6] ? new Date(row[6]) : null
   };
 }
 
@@ -648,7 +651,7 @@ function saveOTP(masjidId, otpCode, otpExpiry) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_SESI_OTP);
   // Hapus OTP lama jika ada
   deleteOTP(masjidId);
-  sheet.appendRow([masjidId, otpCode, otpExpiry.toISOString(), new Date().toISOString(), 0]);
+  sheet.appendRow([masjidId, hashOTP(otpCode), otpExpiry.toISOString(), new Date().toISOString(), 0, 1, new Date().toISOString()]);
 }
 
 function deleteOTP(masjidId) {
@@ -1719,12 +1722,19 @@ function checkNomorWA(teleponPic) {
 // 3.2 sendOTPWhatsApp — generate OTP 6 digit, simpan, kirim via Fonnte
 function sendOTPWhatsApp(masjidId, teleponPic) {
   try {
+    // 31.2 Cek rate limit OTP per masjid (max 3 kirim per 15 menit)
+    const rateLimitCheck = checkOTPRateLimit(masjidId);
+    if (!rateLimitCheck.allowed) {
+      return { success: false, error: rateLimitCheck.error };
+    }
+
     // Generate OTP 6 digit
     const otpCode   = String(Math.floor(100000 + Math.random() * 900000));
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 menit
 
     // Simpan OTP ke sheet
     saveOTP(masjidId, otpCode, otpExpiry);
+    updateOTPSendCount(masjidId, rateLimitCheck.newCount);
 
     // Kirim via Fonnte API
     const pesan = 'Kode OTP pendaftaran masjid Anda: ' + otpCode +
@@ -1756,6 +1766,88 @@ function sendOTPWhatsApp(masjidId, teleponPic) {
   }
 }
 
+// 31.2 checkOTPRateLimit — max 3 kirim OTP per 15 menit per masjid
+function checkOTPRateLimit(masjidId) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_SESI_OTP);
+  if (!sheet) return { allowed: true, newCount: 1 };
+
+  const data = sheet.getDataRange().getValues();
+  const WINDOW_MS = 15 * 60 * 1000; // 15 menit
+  const MAX_SENDS = 3;
+  const now = Date.now();
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() !== String(masjidId).trim()) continue;
+
+    const sendCount      = Number(data[i][5]) || 0;
+    const windowStartRaw = data[i][6];
+    const windowStart    = windowStartRaw ? new Date(windowStartRaw).getTime() : 0;
+
+    // Jika window sudah lewat 15 menit, reset
+    if (now - windowStart > WINDOW_MS) {
+      return { allowed: true, newCount: 1 };
+    }
+
+    // Masih dalam window — cek count
+    if (sendCount >= MAX_SENDS) {
+      const sisaMs    = WINDOW_MS - (now - windowStart);
+      const sisaMenit = Math.ceil(sisaMs / 60000);
+      return {
+        allowed: false,
+        error:   'Terlalu banyak permintaan OTP. Coba lagi dalam ' + sisaMenit + ' menit.'
+      };
+    }
+
+    return { allowed: true, newCount: sendCount + 1 };
+  }
+
+  // Tidak ada record OTP untuk masjid ini
+  return { allowed: true, newCount: 1 };
+}
+
+// updateOTPSendCount — update kolom otp_send_count dan otp_send_window_start
+function updateOTPSendCount(masjidId, newCount) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_SESI_OTP);
+  if (!sheet) return;
+  const data = sheet.getDataRange().getValues();
+  const now  = new Date().toISOString();
+  const WINDOW_MS = 15 * 60 * 1000;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() !== String(masjidId).trim()) continue;
+
+    const windowStartRaw = data[i][6];
+    const windowStart    = windowStartRaw ? new Date(windowStartRaw).getTime() : 0;
+    const isNewWindow    = (Date.now() - windowStart > WINDOW_MS) || newCount === 1;
+
+    sheet.getRange(i + 1, 6).setValue(newCount);
+    if (isNewWindow) {
+      sheet.getRange(i + 1, 7).setValue(now);
+    }
+    return;
+  }
+}
+
+// timingSafeEqual — perbandingan string dengan waktu konstan (anti timing attack)
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+// hashOTP — SHA-256 hash untuk OTP sebelum disimpan ke sheet
+function hashOTP(otpCode) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(otpCode),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+}
+
 // 3.3 verifyOTP — validasi OTP, hapus setelah berhasil, update token meta
 function verifyOTP(masjidId, otpCode) {
   try {
@@ -1778,7 +1870,7 @@ function verifyOTP(masjidId, otpCode) {
     }
 
     // Cek kode
-    if (String(otpCode).trim() !== storedOTP.otp_code) {
+    if (!timingSafeEqual(hashOTP(String(otpCode).trim()), storedOTP.otp_code)) {
       incrementOTPAttempt(masjidId);
       return { success: false, error: 'Kode OTP tidak valid.' };
     }
@@ -1786,17 +1878,21 @@ function verifyOTP(masjidId, otpCode) {
     // OTP valid — hapus dan update token meta
     deleteOTP(masjidId);
     const now = new Date().toISOString();
+    // Generate session token kriptografis
+    const sessionToken = Utilities.getUuid();
     updateMasjidFields(masjidId, {
       token_issued_at:  now,
-      token_revoked_at: ''
+      token_revoked_at: '',
+      session_token:    sessionToken
     });
 
     const masjid = getMasjidById(masjidId);
     return {
-      success:     true,
-      masjid_id:   masjidId,
-      nama_masjid: masjid ? masjid.nama_masjid : '',
-      telepon_pic: masjid ? masjid.telepon_pic  : ''
+      success:       true,
+      masjid_id:     masjidId,
+      nama_masjid:   masjid ? masjid.nama_masjid : '',
+      telepon_pic:   masjid ? masjid.telepon_pic  : '',
+      session_token: sessionToken
     };
   } catch (err) {
     Logger.log('verifyOTP error: ' + err.toString());
@@ -1838,6 +1934,31 @@ function checkTokenRevoked(masjidId, tokenIssuedAt) {
   const revokedAt = new Date(masjid.token_revoked_at);
   const issuedAt  = new Date(tokenIssuedAt);
   return revokedAt > issuedAt;
+}
+
+// validateMasjidSession — validasi session token kriptografis masjid
+function validateMasjidSession(masjidId, sessionToken) {
+  if (!masjidId || !sessionToken) {
+    return { valid: false, error: 'TOKEN_REVOKED' };
+  }
+  const masjid = getMasjidById(masjidId);
+  if (!masjid) return { valid: false, error: 'Masjid tidak ditemukan' };
+  if (masjid.status === 'diblokir') {
+    return { valid: false, error: 'Akun masjid Anda telah diblokir. Hubungi admin untuk informasi lebih lanjut.' };
+  }
+  // Cek session token
+  if (!masjid.session_token || String(masjid.session_token).trim() !== String(sessionToken).trim()) {
+    return { valid: false, error: 'TOKEN_REVOKED' };
+  }
+  // Cek token revoked
+  if (masjid.token_revoked_at && masjid.token_issued_at) {
+    const revokedAt = new Date(masjid.token_revoked_at);
+    const issuedAt  = new Date(masjid.token_issued_at);
+    if (!isNaN(revokedAt) && !isNaN(issuedAt) && revokedAt > issuedAt) {
+      return { valid: false, error: 'TOKEN_REVOKED' };
+    }
+  }
+  return { valid: true };
 }
 
 // ============================================================
@@ -1901,39 +2022,55 @@ function registerMasjid(data) {
       return { success: false, error: 'Periode pendaftaran sudah ditutup' };
     }
 
-    // Cek nomor WA sudah terdaftar
-    if (getMasjidByTelepon(telepon)) {
-      return { success: false, error: 'Nomor WhatsApp sudah terdaftar. Silakan login.' };
-    }
+    // Bungkus validasi nama + simpan dalam lock untuk mencegah race condition
+    const lockResult = processWithLock(function() {
+      // Cek nomor WA sudah terdaftar
+      if (getMasjidByTelepon(telepon)) {
+        return { success: false, error: 'Nomor WhatsApp sudah terdaftar. Silakan login.' };
+      }
 
-    // Validasi nama masjid (duplikat + fuzzy)
-    const namaValidasi = validateNamaMasjid(nama_masjid, kecamatan);
-    if (!namaValidasi.valid) {
-      return { success: false, error: namaValidasi.error };
-    }
+      // Validasi nama masjid (duplikat + fuzzy)
+      const namaValidasi = validateNamaMasjid(nama_masjid, kecamatan);
+      if (!namaValidasi.valid) {
+        return { success: false, error: namaValidasi.error };
+      }
 
-    // Generate masjid_id
-    const year    = new Date().getFullYear();
-    const allMsj  = getAllMasjid();
-    const seq     = String(allMsj.length + 1).padStart(3, '0');
-    const masjidId = 'MSJ-' + year + '-' + seq;
+      // Generate masjid_id — cari sequence tertinggi yang ada untuk tahun ini
+      const year = new Date().getFullYear();
+      let maxSeq = 0;
+      const allMsj = getAllMasjid();
+      for (const m of allMsj) {
+        const match = String(m.masjid_id).match(/^MSJ-\d{4}-(\d+)$/);
+        if (match) {
+          const seq = parseInt(match[1], 10);
+          if (seq > maxSeq) maxSeq = seq;
+        }
+      }
+      const masjidId = 'MSJ-' + year + '-' + String(maxSeq + 1).padStart(3, '0');
 
-    // Simpan data masjid
-    saveMasjidRecord({
-      masjid_id:        masjidId,
-      nama_masjid:      String(nama_masjid).trim(),
-      nama_normalized:  normalizeName(nama_masjid),
-      alamat:           String(alamat || '').trim(),
-      kecamatan:        String(kecamatan).trim(),
-      kabupaten:        String(kabupaten).trim(),
-      nama_pic:         String(nama_pic || '').trim(),
-      telepon_pic:      telepon,
-      status:           'draft',
-      tgl_daftar:       new Date().toISOString(),
-      jumlah_kk_valid:  0
-    });
+      // Simpan data masjid
+      saveMasjidRecord({
+        masjid_id:        masjidId,
+        nama_masjid:      String(nama_masjid).trim(),
+        nama_normalized:  normalizeName(nama_masjid),
+        alamat:           String(alamat || '').trim(),
+        kecamatan:        String(kecamatan).trim(),
+        kabupaten:        String(kabupaten).trim(),
+        nama_pic:         String(nama_pic || '').trim(),
+        telepon_pic:      telepon,
+        status:           'draft',
+        tgl_daftar:       new Date().toISOString(),
+        jumlah_kk_valid:  0
+      });
 
-    // Kirim OTP
+      return { success: true, masjid_id: masjidId };
+    }, 15000);
+
+    if (!lockResult.success) return lockResult;
+
+    const masjidId = lockResult.masjid_id;
+
+    // Kirim OTP (di luar lock karena bisa lambat)
     const otpResult = sendOTPWhatsApp(masjidId, telepon);
     if (!otpResult.success) {
       deleteMasjidRecord(masjidId);
@@ -2039,6 +2176,7 @@ function validateAnggotaCount(jumlahTertera, jumlahParsed) {
 
 // 5.1 extractNomorKK — OCR via Google Drive API
 function extractNomorKK(fileId) {
+  let ocrDocId = null;
   try {
     const resource = {
       title:    'ocr_temp_' + fileId,
@@ -2048,11 +2186,9 @@ function extractNomorKK(fileId) {
 
     const ocrDoc = Drive.Files.copy(fileId, resource, { ocr: true, ocrLanguage: 'id' });
     if (!ocrDoc) return { success: false, error: 'OCR gagal' };
+    ocrDocId = ocrDoc.id;
 
     const rawText = DocumentApp.openById(ocrDoc.id).getBody().getText();
-
-    // Hapus dokumen temp
-    try { Drive.Files.remove(ocrDoc.id); } catch (e) {}
 
     const nomorKK = parseNomorKK(rawText);
     if (!nomorKK) return { success: false, raw_text: rawText, error: 'Nomor KK tidak ditemukan' };
@@ -2068,13 +2204,22 @@ function extractNomorKK(fileId) {
   } catch (err) {
     Logger.log('extractNomorKK error: ' + err.toString());
     return { success: false, error: 'OCR gagal: ' + err.toString() };
+  } finally {
+    // Selalu hapus file temp
+    if (ocrDocId) {
+      try { Drive.Files.remove(ocrDocId); } catch (e) { Logger.log('Gagal hapus OCR temp: ' + e); }
+    }
   }
 }
 
 // 5.7 + 5.8 processUploadKK — alur lengkap upload KK
-function processUploadKK(masjidId, fileData) {
+function processUploadKK(masjidId, fileData, sessionToken) {
   try {
     if (!masjidId || !fileData) return { success: false, error: 'Parameter tidak lengkap' };
+
+    // Validasi session token
+    const sessionCheck = validateMasjidSession(masjidId, sessionToken);
+    if (!sessionCheck.valid) return { success: false, error: sessionCheck.error };
 
     // Validasi ukuran file (max 5MB)
     const base64 = fileData.base64Data || '';
@@ -2170,9 +2315,13 @@ function processUploadKK(masjidId, fileData) {
 // ============================================================
 
 // 6.1 + 6.2 konfirmasiAnggota — validasi data anggota, update status KK
-function konfirmasiAnggota(masjidId, kkId, anggotaData) {
+function konfirmasiAnggota(masjidId, kkId, anggotaData, sessionToken) {
   try {
     if (!masjidId || !kkId) return { success: false, error: 'Parameter tidak lengkap' };
+
+    // Validasi session token
+    const sessionCheck = validateMasjidSession(masjidId, sessionToken);
+    if (!sessionCheck.valid) return { success: false, error: sessionCheck.error };
 
     // Ownership check
     const ownershipCheck = validateMasjidOwnership(masjidId, null);
@@ -2233,9 +2382,13 @@ function konfirmasiAnggota(masjidId, kkId, anggotaData) {
 }
 
 // 6.3 konfirmasiSelesaiUpload — cek jumlah_kk_valid > 0, update status
-function konfirmasiSelesaiUpload(masjidId) {
+function konfirmasiSelesaiUpload(masjidId, sessionToken) {
   try {
     if (!masjidId) return { success: false, error: 'masjid_id diperlukan' };
+
+    // Validasi session token
+    const sessionCheck = validateMasjidSession(masjidId, sessionToken);
+    if (!sessionCheck.valid) return { success: false, error: sessionCheck.error };
 
     const masjid = getMasjidById(masjidId);
     if (!masjid) return { success: false, error: 'Masjid tidak ditemukan' };
@@ -2272,7 +2425,11 @@ function revokeTokenMasjid(masjidId, adminEmail) {
     if (!masjidId) return { success: false, error: 'masjid_id diperlukan' };
     const masjid = getMasjidById(masjidId);
     if (!masjid) return { success: false, error: 'Masjid tidak ditemukan' };
-    updateMasjidField(masjidId, 'token_revoked_at', new Date().toISOString());
+    const now = new Date().toISOString();
+    updateMasjidFields(masjidId, {
+      token_revoked_at: now,
+      session_token:    ''
+    });
     return { success: true };
   } catch (err) {
     Logger.log('revokeTokenMasjid error: ' + err.toString());
@@ -2458,14 +2615,29 @@ function generateKuponKode(masjidId, jumlahSapi) {
   return kodeKupon;
 }
 
-// 10.2 generateQRCode — Google Charts API, return base64 PNG
+// 10.2 generateQRCode — api.qrserver.com (pengganti Google Charts yang deprecated)
 function generateQRCode(kodeKupon) {
   try {
-    const qrUrl = 'https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=' +
-                  encodeURIComponent(kodeKupon) + '&choe=UTF-8';
+    // Coba api.qrserver.com (lebih stabil, tidak deprecated)
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/' +
+                  '?size=300x300&data=' + encodeURIComponent(kodeKupon) +
+                  '&format=png&ecc=M&margin=4';
     const response = UrlFetchApp.fetch(qrUrl, { muteHttpExceptions: true });
-    if (response.getResponseCode() !== 200) return null;
-    return Utilities.base64Encode(response.getContent());
+    if (response.getResponseCode() === 200) {
+      return Utilities.base64Encode(response.getContent());
+    }
+    Logger.log('generateQRCode: api.qrserver.com gagal (HTTP ' + response.getResponseCode() + '), mencoba fallback...');
+
+    // Fallback: Google Charts (mungkin masih aktif)
+    const fallbackUrl = 'https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=' +
+                        encodeURIComponent(kodeKupon) + '&choe=UTF-8';
+    const fallbackResponse = UrlFetchApp.fetch(fallbackUrl, { muteHttpExceptions: true });
+    if (fallbackResponse.getResponseCode() === 200) {
+      return Utilities.base64Encode(fallbackResponse.getContent());
+    }
+
+    Logger.log('generateQRCode: semua endpoint gagal');
+    return null;
   } catch (err) {
     Logger.log('generateQRCode error: ' + err.toString());
     return null;
@@ -2501,8 +2673,7 @@ function setJatah(masjidId, jumlahSapi, adminEmail) {
 
     // Simpan kupon
     const year    = new Date().getFullYear();
-    const sheet   = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_KUPON_MASJID);
-    const kuponId = 'KPN-' + year + '-' + String(sheet ? sheet.getLastRow() : 1).padStart(5, '0');
+    const kuponId = 'KPN-' + year + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
 
     saveKuponRecord({
       kupon_id:   kuponId,
@@ -2538,9 +2709,13 @@ function setJatah(masjidId, jumlahSapi, adminEmail) {
 }
 
 // getKuponMasjidByMasjidId — ambil kupon aktif masjid (untuk portal masjid)
-function getKuponMasjidByMasjidId(masjidId) {
+function getKuponMasjidByMasjidId(masjidId, sessionToken) {
   try {
     if (!masjidId) return { success: false, error: 'masjid_id diperlukan' };
+
+    // Validasi session token
+    const sessionCheck = validateMasjidSession(masjidId, sessionToken);
+    if (!sessionCheck.valid) return { success: false, error: sessionCheck.error };
 
     // Ownership check
     const ownershipCheck = validateMasjidOwnership(masjidId, null);
@@ -2586,9 +2761,14 @@ function getKuponMasjidByMasjidId(masjidId) {
 }
 
 // getDashboardMasjid — data lengkap untuk dashboard portal masjid
-function getDashboardMasjid(masjidId) {
+function getDashboardMasjid(masjidId, sessionToken) {
   try {
     if (!masjidId) return { success: false, error: 'masjid_id diperlukan' };
+
+    // Validasi session token
+    const sessionCheck = validateMasjidSession(masjidId, sessionToken);
+    if (!sessionCheck.valid) return { success: false, error: sessionCheck.error };
+
     const masjid = getMasjidById(masjidId);
     if (!masjid) return { success: false, error: 'Masjid tidak ditemukan' };
 
@@ -2690,6 +2870,10 @@ function konfirmasiPengambilan(kuponId, fotoBuktiBase64, mimeType, petugasEmail)
     if (!kuponId) return { success: false, error: 'kupon_id diperlukan' };
     if (!fotoBuktiBase64 || fotoBuktiBase64.trim() === '') {
       return { success: false, error: 'Foto bukti pengambilan wajib diupload' };
+    }
+    // Validasi ukuran foto (max 10MB)
+    if (Math.ceil(fotoBuktiBase64.length * 0.75) > 10 * 1024 * 1024) {
+      return { success: false, error: 'Ukuran foto melebihi 10 MB' };
     }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
       return { success: false, error: 'Tipe file foto tidak valid' };

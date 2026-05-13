@@ -670,11 +670,12 @@ function saveSession(data) {
   const now = new Date();
   const expiry = new Date(now.getTime() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
   const session = {
-    masjid_id: data.masjid_id,
-    nama_masjid: data.nama_masjid,
-    telepon_pic: data.telepon_pic,
-    expiry: expiry.toISOString(),
-    last_active: now.toISOString()
+    masjid_id:     data.masjid_id,
+    nama_masjid:   data.nama_masjid,
+    telepon_pic:   data.telepon_pic,
+    session_token: data.session_token || '',
+    expiry:        expiry.toISOString(),
+    last_active:   now.toISOString()
   };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   return session;
@@ -901,9 +902,10 @@ async function handleOTPSubmit() {
       return;
     }
     const session = saveSession({
-      masjid_id: res.masjid_id,
-      nama_masjid: res.nama_masjid,
-      telepon_pic: res.telepon_pic
+      masjid_id:     res.masjid_id,
+      nama_masjid:   res.nama_masjid,
+      telepon_pic:   res.telepon_pic,
+      session_token: res.session_token || ''
     });
     currentMasjidId = res.masjid_id;
     stopResendCountdown();
@@ -995,13 +997,22 @@ async function loadDashboard(session) {
 
   // Fetch fresh masjid data
   try {
-    const res = await callApi('getDashboardMasjid', { masjid_id: session.masjid_id });
+    const res = await callApi('getDashboardMasjid', {
+      masjid_id:     session.masjid_id,
+      session_token: session.session_token || ''
+    });
     if (res && res.error === 'TOKEN_REVOKED') {
       handleTokenRevoked();
       return;
     }
-    if (res && res.success && res.data) {
-      updateDashboardUI(res.data);
+    if (!res || !res.success) {
+      // Tampilkan error informatif, bukan blank screen
+      showToast(res?.error || 'Gagal memuat data dashboard. Coba refresh halaman.', 'error');
+      updateDashboardFromSession(session);
+      return;
+    }
+    if (res.success && res.masjid) {
+      updateDashboardUI(res.masjid);
     } else {
       // Fallback: show basic dashboard from session
       updateDashboardFromSession(session);
@@ -1135,10 +1146,11 @@ async function handleKKFileSelected(input) {
 
   try {
     const res = await callApi('uploadKK', {
-      masjid_id: session.masjid_id,
-      file_base64: base64Data,
-      mime_type: file.type,
-      file_name: file.name
+      masjid_id:     session.masjid_id,
+      session_token: session.session_token || '',
+      file_base64:   base64Data,
+      mime_type:     file.type,
+      file_name:     file.name
     });
     progressFill.style.width = '100%';
     setTimeout(() => progressBar.classList.remove('show'), 500);
@@ -1300,9 +1312,10 @@ async function handleKonfirmasiAnggota(itemId, kkId) {
 
   try {
     const res = await callApi('konfirmasiAnggota', {
-      masjid_id: session.masjid_id,
-      kk_id: kkId,
-      anggota_data: anggotaData
+      masjid_id:     session.masjid_id,
+      session_token: session.session_token || '',
+      kk_id:         kkId,
+      anggota_data:  anggotaData
     });
 
     if (!res.success) {
@@ -1362,7 +1375,10 @@ async function handleSelesaiUpload() {
   if (btn) btn.disabled = true;
 
   try {
-    const res = await callApi('konfirmasiSelesaiUpload', { masjid_id: session.masjid_id });
+    const res = await callApi('konfirmasiSelesaiUpload', {
+      masjid_id:     session.masjid_id,
+      session_token: session.session_token || ''
+    });
     closeDialog('dialogSelesai');
 
     if (!res.success) {
@@ -1395,7 +1411,10 @@ async function loadKupon() {
   if (!session) return;
 
   try {
-    const res = await callApi('getKuponMasjid', { masjid_id: session.masjid_id });
+    const res = await callApi('getKuponMasjid', {
+      masjid_id:     session.masjid_id,
+      session_token: session.session_token || ''
+    });
     if (!res.success) return;
     if (res.kupon) {
       renderKupon(res.kupon, session.nama_masjid);

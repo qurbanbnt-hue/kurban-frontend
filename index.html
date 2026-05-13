@@ -189,6 +189,86 @@
       margin-top: 4px; font-weight: 600; letter-spacing: 0.3px;
     }
 
+    /* ── SECTION MASJID ── */
+    .masjid-section {
+      position: relative; z-index: 1;
+      padding: 0 24px 64px;
+      display: flex; justify-content: center;
+    }
+    .masjid-card {
+      width: 100%; max-width: 480px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px;
+      padding: 32px 28px;
+      backdrop-filter: blur(12px);
+      animation: fadeUp 0.5s 0.35s ease both;
+    }
+    .masjid-card-eyebrow {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(239,172,21,0.15);
+      border: 1px solid rgba(239,172,21,0.3);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 11px; font-weight: 700;
+      color: #EFAC15;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .masjid-card-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 20px; font-weight: 800;
+      color: white; margin-bottom: 10px; line-height: 1.3;
+    }
+    .masjid-card-desc {
+      font-size: 13px; color: rgba(255,255,255,0.5);
+      line-height: 1.7; margin-bottom: 24px;
+    }
+    .masjid-steps {
+      display: flex; flex-direction: column; gap: 10px;
+      margin-bottom: 24px;
+    }
+    .masjid-step {
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .masjid-step-num {
+      width: 26px; height: 26px; border-radius: 8px;
+      background: rgba(239,172,21,0.2);
+      border: 1px solid rgba(239,172,21,0.35);
+      color: #EFAC15; font-size: 12px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .masjid-step-text {
+      font-size: 13px; color: rgba(255,255,255,0.65);
+      line-height: 1.5;
+    }
+    .masjid-step-text strong { color: rgba(255,255,255,0.9); }
+    .btn-masjid {
+      width: 100%; padding: 16px 20px;
+      background: linear-gradient(135deg, #C48A00, #EFAC15);
+      color: #0D1E35; border: none; border-radius: 14px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 800;
+      cursor: pointer; transition: all 0.25s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 6px 24px rgba(239,172,21,0.35);
+      letter-spacing: 0.02em;
+      text-decoration: none;
+    }
+    .btn-masjid:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(239,172,21,0.45); }
+    .btn-masjid:active { transform: translateY(0); }
+    .btn-masjid-arrow {
+      width: 26px; height: 26px; border-radius: 7px;
+      background: rgba(0,0,0,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .masjid-card-note {
+      margin-top: 14px; text-align: center;
+      font-size: 11px; color: rgba(255,255,255,0.25);
+    }
+
     /* ── FOOTER ── */
     .hero-footer {
       position: relative; z-index: 1;
@@ -409,6 +489,41 @@
         <div class="stat-lbl">Total Pekurban</div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- Section Masjid Penerima Manfaat -->
+<section class="masjid-section">
+  <div class="masjid-card">
+    <div class="masjid-card-eyebrow">
+      <i class="icon icon-building-2" style="font-size:13px;"></i>
+      Program Kurban untuk Masjid
+    </div>
+    <div class="masjid-card-title">Masjid Anda Ingin Menerima<br>Manfaat Kurban?</div>
+    <div class="masjid-card-desc">
+      Daftarkan masjid Anda sebagai penerima manfaat kurban Yayasan Bhakti Nusa Tenggara. 
+      Proses pendaftaran sepenuhnya online — cukup siapkan foto Kartu Keluarga warga sekitar masjid.
+    </div>
+    <div class="masjid-steps">
+      <div class="masjid-step">
+        <div class="masjid-step-num">1</div>
+        <div class="masjid-step-text"><strong>Daftar via WhatsApp</strong> — masukkan nomor WA pengurus masjid, terima kode OTP</div>
+      </div>
+      <div class="masjid-step">
+        <div class="masjid-step-num">2</div>
+        <div class="masjid-step-text"><strong>Upload foto KK</strong> — unggah Kartu Keluarga warga calon penerima manfaat</div>
+      </div>
+      <div class="masjid-step">
+        <div class="masjid-step-num">3</div>
+        <div class="masjid-step-text"><strong>Terima kupon digital</strong> — admin akan menetapkan jatah dan menerbitkan kupon QR code</div>
+      </div>
+    </div>
+    <a href="/masjid" class="btn-masjid">
+      <i class="icon icon-award" style="font-size:18px;"></i>
+      Daftar Masjid Penerima Kurban
+      <span class="btn-masjid-arrow"><i class="icon icon-chevron-right"></i></span>
+    </a>
+    <div class="masjid-card-note">Gratis · Tidak perlu akun · Cukup nomor WhatsApp pengurus</div>
   </div>
 </section>
 

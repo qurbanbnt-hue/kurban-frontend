@@ -195,34 +195,60 @@
 ## Bug Fixes & Security Patches (Hasil Analisis Kode)
 
 - [ ] 24. Perbaikan Bug Kritis — Backend (Code.gs)
-  - [ ] 24.1 **[BUG] `getKonfigSistem()` response format mismatch** — Fungsi mengembalikan raw object `{periode_pendaftaran_buka, tgl_tutup_pendaftaran, nomor_diblokir}` tanpa wrapper `{success: true, config: {...}}`, padahal `admin/index.html` dan `masjid/index.html` mengharapkan `cfgRes.success && cfgRes.config`. Perbaiki: ubah return value menjadi `{ success: true, config: { periode_pendaftaran_buka, tgl_tutup_pendaftaran, nomor_diblokir } }`
-  - [ ] 24.2 **[BUG] `generateKuponKode` regex salah** — Baris `.replace(/MSJ-d+-/, '')` seharusnya `.replace(/MSJ-\d+-/, '')` (missing backslash sebelum `d`). Akibatnya `masjidSeq` tidak ter-strip dengan benar dan kode kupon akan mengandung prefix `MSJ-YYYY-` yang tidak diinginkan.
-  - [ ] 24.3 **[BUG] `bukaBlokirMasjid` selalu restore ke `'draft'`** — Tidak menyimpan status sebelum diblokir. Masjid yang statusnya `menunggu_review` atau `disetujui` saat diblokir akan kehilangan statusnya. Perbaiki: simpan `status_sebelum_blokir` saat `blokirMasjid` dipanggil, dan restore ke nilai tersebut saat `bukaBlokirMasjid`. Tambahkan kolom `status_sebelum_blokir` di sheet PendaftaranMasjid atau simpan di field `alasan_blokir` sebagai JSON.
-  - [ ] 24.4 **[BUG] `getDashboardMasjid` tidak diimplementasikan** — `masjid/index.html` memanggil `callApi('getDashboardMasjid', ...)` di fungsi `loadDashboard()`, tapi action ini tidak ada di `proxy.js` (tidak masuk `ALLOWED_ACTIONS`) maupun di `Code.gs` switch-case. Akan menghasilkan error 400 "Action tidak valid" setiap kali portal masjid load dashboard. Perbaiki: implementasikan `getDashboardMasjid(masjidId)` di Code.gs yang mengembalikan data masjid + status KK + kupon, tambahkan ke proxy.js, dan tangani `TOKEN_REVOKED` check di dalamnya.
+  - [x] 24.1 **[BUG] `getKonfigSistem()` response format mismatch** — Fungsi mengembalikan raw object `{periode_pendaftaran_buka, tgl_tutup_pendaftaran, nomor_diblokir}` tanpa wrapper `{success: true, config: {...}}`, padahal `admin/index.html` dan `masjid/index.html` mengharapkan `cfgRes.success && cfgRes.config`. Perbaiki: ubah return value menjadi `{ success: true, config: { periode_pendaftaran_buka, tgl_tutup_pendaftaran, nomor_diblokir } }`
+  - [x] 24.2 **[BUG] `generateKuponKode` regex salah** — Baris `.replace(/MSJ-d+-/, '')` seharusnya `.replace(/MSJ-\d+-/, '')` (missing backslash sebelum `d`). Akibatnya `masjidSeq` tidak ter-strip dengan benar dan kode kupon akan mengandung prefix `MSJ-YYYY-` yang tidak diinginkan.
+  - [x] 24.3 **[BUG] `bukaBlokirMasjid` selalu restore ke `'draft'`** — Tidak menyimpan status sebelum diblokir. Masjid yang statusnya `menunggu_review` atau `disetujui` saat diblokir akan kehilangan statusnya. Perbaiki: simpan `status_sebelum_blokir` saat `blokirMasjid` dipanggil, dan restore ke nilai tersebut saat `bukaBlokirMasjid`. Tambahkan kolom `status_sebelum_blokir` di sheet PendaftaranMasjid atau simpan di field `alasan_blokir` sebagai JSON.
+  - [x] 24.4 **[BUG] `getDashboardMasjid` tidak diimplementasikan** — `masjid/index.html` memanggil `callApi('getDashboardMasjid', ...)` di fungsi `loadDashboard()`, tapi action ini tidak ada di `proxy.js` (tidak masuk `ALLOWED_ACTIONS`) maupun di `Code.gs` switch-case. Akan menghasilkan error 400 "Action tidak valid" setiap kali portal masjid load dashboard. Perbaiki: implementasikan `getDashboardMasjid(masjidId)` di Code.gs yang mengembalikan data masjid + status KK + kupon, tambahkan ke proxy.js, dan tangani `TOKEN_REVOKED` check di dalamnya.
 
 - [ ] 25. Perbaikan Keamanan — Authorization (Code.gs + proxy.js)
-  - [ ] 25.1 **[SECURITY] Masjid actions tidak memverifikasi ownership** — `uploadKK`, `konfirmasiAnggota`, `konfirmasiSelesaiUpload`, `getKuponMasjid` masuk `USER_ACTIONS` di proxy.js, artinya panitia (role: user) dengan JWT valid bisa memanggil endpoint ini dengan `masjid_id` sembarang. Di Code.gs, fungsi-fungsi ini tidak memverifikasi bahwa user JWT adalah PIC masjid yang bersangkutan. Perbaiki: pindahkan actions ini ke kategori terpisah `MASJID_ACTIONS` di proxy.js, atau tambahkan validasi di Code.gs bahwa `user.email` (telepon_pic) cocok dengan masjid yang dimaksud. Alternatif: gunakan token sesi masjid (dari localStorage) sebagai parameter tambahan dan validasi di GAS.
-  - [ ] 25.2 **[SECURITY] `uploadKK` dan `konfirmasiPengambilan` tidak memvalidasi ukuran base64 di GAS** — Proxy memvalidasi ukuran, tapi GAS tidak. Jika GAS dipanggil langsung (bypass proxy), tidak ada validasi ukuran file. Tambahkan validasi ukuran base64 di `processUploadKK` dan `konfirmasiPengambilan` di Code.gs.
-  - [ ] 25.3 **[SECURITY] `registerMasjid` tidak menggunakan `processWithLock`** — Race condition: dua request pendaftaran dengan nama masjid yang sama bisa lolos validasi duplikat secara bersamaan. Bungkus seluruh alur validasi + simpan di `processWithLock`.
-  - [ ] 25.4 **[SECURITY] `verifyOTP` tidak menggunakan timing-safe comparison** — Perbandingan string OTP dengan `!==` rentan terhadap timing attack. Gunakan perbandingan karakter-per-karakter dengan waktu konstan, atau tambahkan delay acak kecil sebelum return error.
+  - [x] 25.1 **[SECURITY] Masjid actions tidak memverifikasi ownership** — `uploadKK`, `konfirmasiAnggota`, `konfirmasiSelesaiUpload`, `getKuponMasjid` masuk `USER_ACTIONS` di proxy.js, artinya panitia (role: user) dengan JWT valid bisa memanggil endpoint ini dengan `masjid_id` sembarang. Di Code.gs, fungsi-fungsi ini tidak memverifikasi bahwa user JWT adalah PIC masjid yang bersangkutan. Perbaiki: pindahkan actions ini ke kategori terpisah `MASJID_ACTIONS` di proxy.js, atau tambahkan validasi di Code.gs bahwa `user.email` (telepon_pic) cocok dengan masjid yang dimaksud. Alternatif: gunakan token sesi masjid (dari localStorage) sebagai parameter tambahan dan validasi di GAS.
+  - [x] 25.2 **[SECURITY] `uploadKK` dan `konfirmasiPengambilan` tidak memvalidasi ukuran base64 di GAS** — Proxy memvalidasi ukuran, tapi GAS tidak. Jika GAS dipanggil langsung (bypass proxy), tidak ada validasi ukuran file. Tambahkan validasi ukuran base64 di `processUploadKK` dan `konfirmasiPengambilan` di Code.gs.
+  - [x] 25.3 **[SECURITY] `registerMasjid` tidak menggunakan `processWithLock`** — Race condition: dua request pendaftaran dengan nama masjid yang sama bisa lolos validasi duplikat secara bersamaan. Bungkus seluruh alur validasi + simpan di `processWithLock`.
+  - [x] 25.4 **[SECURITY] `verifyOTP` tidak menggunakan timing-safe comparison** — Perbandingan string OTP dengan `!==` rentan terhadap timing attack. Gunakan perbandingan karakter-per-karakter dengan waktu konstan, atau tambahkan delay acak kecil sebelum return error.
 
 - [ ] 26. Perbaikan Bug — Frontend (admin/index.html + masjid/index.html)
-  - [ ] 26.1 **[BUG] `loadKuponMasjid` di admin portal tidak menangani response `getKonfigSistem` yang salah format** — Setelah fix 24.1, pastikan `cfgRes.success && cfgRes.config` sudah benar. Sebelum fix, `updatePeriodeUI` tidak pernah dipanggil karena `cfgRes.config` selalu undefined.
-  - [ ] 26.2 **[BUG] `checkPeriodePendaftaran` di masjid portal tidak menangani response `getKonfigSistem` yang salah format** — Sama dengan 26.1, `res.config` selalu undefined sebelum fix 24.1. Banner periode tutup tidak pernah tampil.
-  - [ ] 26.3 **[BUG] `cetakKuponAdmin` menggunakan `_kuponState` yang hanya terisi setelah `submitJatah`** — Jika admin reload halaman atau buka tab kupon masjid tanpa baru saja menetapkan jatah, `_kuponState` akan null dan tombol cetak tidak berfungsi. Perbaiki: load data kupon dari backend saat membuka modal jatah untuk masjid yang sudah `disetujui`, atau tambahkan tombol cetak di tabel masjid yang fetch kupon langsung.
-  - [ ] 26.4 **[BUG] `openJatahModal` tidak menampilkan kupon yang sudah ada** — Jika masjid sudah punya kupon aktif, modal jatah tetap menampilkan form input jumlah sapi kosong tanpa informasi kupon yang sudah ada. Tambahkan pengecekan: jika masjid sudah `disetujui` dan punya kupon aktif, tampilkan preview kupon langsung tanpa form input.
-  - [ ] 26.5 **[BUG] `user/index.html` memuat CDN jsQR dua kali** — Script tag `<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js">` muncul dua kali di file. Hapus duplikasi.
+  - [x] 26.1 **[BUG] `loadKuponMasjid` di admin portal tidak menangani response `getKonfigSistem` yang salah format** — Setelah fix 24.1, pastikan `cfgRes.success && cfgRes.config` sudah benar. Sebelum fix, `updatePeriodeUI` tidak pernah dipanggil karena `cfgRes.config` selalu undefined.
+  - [x] 26.2 **[BUG] `checkPeriodePendaftaran` di masjid portal tidak menangani response `getKonfigSistem` yang salah format** — Sama dengan 26.1, `res.config` selalu undefined sebelum fix 24.1. Banner periode tutup tidak pernah tampil.
+  - [x] 26.3 **[BUG] `cetakKuponAdmin` menggunakan `_kuponState` yang hanya terisi setelah `submitJatah`** — Jika admin reload halaman atau buka tab kupon masjid tanpa baru saja menetapkan jatah, `_kuponState` akan null dan tombol cetak tidak berfungsi. Perbaiki: load data kupon dari backend saat membuka modal jatah untuk masjid yang sudah `disetujui`, atau tambahkan tombol cetak di tabel masjid yang fetch kupon langsung.
+  - [x] 26.4 **[BUG] `openJatahModal` tidak menampilkan kupon yang sudah ada** — Jika masjid sudah punya kupon aktif, modal jatah tetap menampilkan form input jumlah sapi kosong tanpa informasi kupon yang sudah ada. Tambahkan pengecekan: jika masjid sudah `disetujui` dan punya kupon aktif, tampilkan preview kupon langsung tanpa form input.
+  - [x] 26.5 **[BUG] `user/index.html` memuat CDN jsQR dua kali** — Script tag `<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js">` muncul dua kali di file. Hapus duplikasi.
 
 - [ ] 27. Perbaikan Bug — Data Integrity (Code.gs)
-  - [ ] 27.1 **[BUG] `saveKKRecord` menggunakan `sheet.getLastRow()` untuk generate `kk_id`** — Jika ada baris header, `getLastRow()` mengembalikan jumlah baris termasuk header. Saat sheet kosong (hanya header), `count = 1` dan `kk_id = 'KK-YYYY-00001'`. Tapi jika ada concurrent insert, dua record bisa mendapat `kk_id` yang sama. Perbaiki: gunakan timestamp + random suffix, atau gunakan `processWithLock` saat generate ID.
-  - [ ] 27.2 **[BUG] `setJatah` menggunakan `sheet.getLastRow()` untuk generate `kupon_id`** — Sama dengan 27.1, potensi duplikasi `kupon_id`. Perbaiki dengan cara yang sama.
-  - [ ] 27.3 **[BUG] `registerMasjid` menggunakan `allMsj.length + 1` untuk generate `masjid_id`** — Jika ada masjid yang dihapus, sequence bisa collision. Contoh: ada 3 masjid (MSJ-001, MSJ-002, MSJ-003), hapus MSJ-002, daftar baru → `allMsj.length = 2`, generate MSJ-003 yang sudah ada. Perbaiki: cari ID tertinggi yang ada dan increment dari sana, atau gunakan UUID/timestamp.
-  - [ ] 27.4 **[BUG] `extractNomorKK` membuat dokumen OCR temp di ROOT_FOLDER** — Jika proses gagal sebelum `Drive.Files.remove(ocrDoc.id)`, file temp akan tertinggal di Drive dan menumpuk. Tambahkan cleanup di blok `finally` untuk memastikan file temp selalu dihapus.
-  - [ ] 27.5 **[BUG] `getKonfigSistem` tidak menangani JSON parse error** — `JSON.parse(String(config['nomor_diblokir']))` akan throw jika nilai di sheet corrupt. Bungkus dalam try-catch dan fallback ke `[]`.
+  - [x] 27.1 **[BUG] `saveKKRecord` menggunakan `sheet.getLastRow()` untuk generate `kk_id`** — Jika ada baris header, `getLastRow()` mengembalikan jumlah baris termasuk header. Saat sheet kosong (hanya header), `count = 1` dan `kk_id = 'KK-YYYY-00001'`. Tapi jika ada concurrent insert, dua record bisa mendapat `kk_id` yang sama. Perbaiki: gunakan timestamp + random suffix, atau gunakan `processWithLock` saat generate ID.
+  - [x] 27.2 **[BUG] `setJatah` menggunakan `sheet.getLastRow()` untuk generate `kupon_id`** — Sama dengan 27.1, potensi duplikasi `kupon_id`. Perbaiki dengan cara yang sama.
+  - [x] 27.3 **[BUG] `registerMasjid` menggunakan `allMsj.length + 1` untuk generate `masjid_id`** — Jika ada masjid yang dihapus, sequence bisa collision. Contoh: ada 3 masjid (MSJ-001, MSJ-002, MSJ-003), hapus MSJ-002, daftar baru → `allMsj.length = 2`, generate MSJ-003 yang sudah ada. Perbaiki: cari ID tertinggi yang ada dan increment dari sana, atau gunakan UUID/timestamp.
+  - [x] 27.4 **[BUG] `extractNomorKK` membuat dokumen OCR temp di ROOT_FOLDER** — Jika proses gagal sebelum `Drive.Files.remove(ocrDoc.id)`, file temp akan tertinggal di Drive dan menumpuk. Tambahkan cleanup di blok `finally` untuk memastikan file temp selalu dihapus.
+  - [x] 27.5 **[BUG] `getKonfigSistem` tidak menangani JSON parse error** — `JSON.parse(String(config['nomor_diblokir']))` akan throw jika nilai di sheet corrupt. Bungkus dalam try-catch dan fallback ke `[]`.
 
 - [ ] 28. Perbaikan Minor — UX dan Robustness
-  - [ ] 28.1 Tambahkan validasi `jumlah_sapi > 0` dan `Number.isInteger(jumlah_sapi)` di `setJatah` di proxy.js (saat ini hanya `Number(body.jumlah_sapi) || 0` yang bisa lolos dengan nilai 0)
-  - [ ] 28.2 Tambahkan `rejectRegistration` ke `ALLOWED_ACTIONS` di proxy.js — saat ini sudah ada di `ADMIN_ONLY_ACTIONS` tapi perlu dipastikan masuk `ALLOWED_ACTIONS` (sudah via spread, tapi perlu verifikasi)
-  - [ ] 28.3 Tambahkan penanganan error di `masjid/index.html` saat `loadDashboard` gagal karena `getDashboardMasjid` tidak ada — tampilkan pesan error yang informatif, bukan blank screen
-  - [ ] 28.4 Tambahkan `Content-Security-Policy` header di proxy.js untuk mencegah XSS di response
-  - [ ] 28.5 Validasi format `nomor_wa_baru` di proxy.js untuk `updateNomorWAMasjid` — saat ini hanya `.slice(0, 20)` tanpa validasi format Indonesia
+  - [x] 28.1 Tambahkan validasi `jumlah_sapi > 0` dan `Number.isInteger(jumlah_sapi)` di `setJatah` di proxy.js (saat ini hanya `Number(body.jumlah_sapi) || 0` yang bisa lolos dengan nilai 0)
+  - [x] 28.2 Tambahkan `rejectRegistration` ke `ALLOWED_ACTIONS` di proxy.js — saat ini sudah ada di `ADMIN_ONLY_ACTIONS` tapi perlu dipastikan masuk `ALLOWED_ACTIONS` (sudah via spread, tapi perlu verifikasi)
+  - [x] 28.3 Tambahkan penanganan error di `masjid/index.html` saat `loadDashboard` gagal karena `getDashboardMasjid` tidak ada — tampilkan pesan error yang informatif, bukan blank screen
+  - [x] 28.4 Tambahkan `Content-Security-Policy` header di proxy.js untuk mencegah XSS di response
+  - [x] 28.5 Validasi format `nomor_wa_baru` di proxy.js untuk `updateNomorWAMasjid` — saat ini hanya `.slice(0, 20)` tanpa validasi format Indonesia
+
+- [x] 29. [KRITIS] OTP disimpan plain text di Google Sheets
+  - [x] 29.1 Buat fungsi `hashOTP(otpCode)` menggunakan SHA-256 via `Utilities.computeDigest`
+  - [x] 29.2 Di `saveOTP`: hash OTP sebelum disimpan ke sheet (`hashOTP(otpCode)`)
+  - [x] 29.3 Di `verifyOTP`: bandingkan `hashOTP(inputCode)` dengan nilai di sheet, bukan plain text
+  - [x] 29.4 Rename kolom `otp_code` → `otp_hash` di header sheet SesiOTP dan di `setupKuponSheets`
+
+- [x] 30. [KRITIS] Session masjid tidak punya token kriptografis
+  - [x] 30.1 Tambah kolom `session_token` di sheet PendaftaranMasjid (`setupKuponSheets` + `saveMasjidRecord`)
+  - [x] 30.2 Di `verifyOTP`: generate UUID via `Utilities.getUuid()`, simpan ke `session_token`, return ke client
+  - [x] 30.3 Di `revokeTokenMasjid`: set `session_token` ke null/kosong di sheet
+  - [x] 30.4 Buat fungsi `validateMasjidSession(masjidId, sessionToken)` di Code.gs
+  - [x] 30.5 Panggil `validateMasjidSession` di awal: `uploadKK`, `konfirmasiAnggota`, `konfirmasiSelesaiUpload`, `getKuponMasjid`, `getDashboardMasjid`
+  - [x] 30.6 Di `masjid/index.html`: simpan `session_token` ke localStorage saat `verifyOTP` berhasil
+  - [x] 30.7 Di `masjid/index.html`: kirim `session_token` di setiap request action masjid
+  - [x] 30.8 Di `proxy.js`: tambah `session_token` ke `buildSafeData` untuk semua masjid actions
+
+- [x] 31. [PERINGATAN] Tidak ada rate limit pengiriman OTP per nomor
+  - [x] 31.1 Tambah kolom `otp_send_count` dan `otp_send_window_start` di sheet SesiOTP
+  - [x] 31.2 Buat fungsi `checkOTPRateLimit(masjidId)` — max 3 kirim per 15 menit per masjid
+  - [x] 31.3 Panggil `checkOTPRateLimit` di awal `sendOTPWhatsApp` sebelum generate dan kirim OTP
+  - [x] 31.4 Di `proxy.js`: tambah validasi format telepon Indonesia di `sanitizePublicData` untuk `checkNomorWA` dan `requestOTP`
+
+- [-] 32. [PERINGATAN] Google Charts API deprecated — ganti QR generator
+  - [ ] 32.1 Ganti `generateQRCode()` di Code.gs dengan `api.qrserver.com` (Opsi B — quick fix)
+  - [ ] 32.2 Update `getKuponMasjidByMasjidId` agar regenerate QR via endpoint baru jika `qr_data` lama masih pakai format Google Charts

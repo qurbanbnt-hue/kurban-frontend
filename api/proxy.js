@@ -42,15 +42,20 @@ const USER_ACTIONS = new Set([
   'getDokumentasi',
   'uploadDokumentasi',
   'getFileById',
-  // Kupon Masjid — user/panitia (JWT required)
-  'uploadKK', 'konfirmasiAnggota', 'konfirmasiSelesaiUpload', 'getKuponMasjid',
+  // Kupon Masjid — panitia lokasi (JWT required, role user/admin)
   'validateKupon', 'konfirmasiPengambilan',
+]);
+
+// Kupon Masjid — masjid actions (JWT required, any role)
+const MASJID_ACTIONS = new Set([
+  'uploadKK', 'konfirmasiAnggota', 'konfirmasiSelesaiUpload', 'getKuponMasjid', 'getDashboardMasjid',
 ]);
 
 const ALLOWED_ACTIONS = new Set([
   ...PUBLIC_ACTIONS,
   ...ADMIN_ONLY_ACTIONS,
   ...USER_ACTIONS,
+  ...MASJID_ACTIONS,
 ]);
 
 // ── MIME whitelist ───────────────────────────────────────────
@@ -174,6 +179,8 @@ export default async function handler(req, res) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Content-Security-Policy', "default-src 'none'");
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
   const origin = req.headers.origin || '';
   const allowedOrigin = ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)
@@ -304,8 +311,16 @@ function sanitizePublicData(action, body) {
   };
   if (action === 'getDokumentasiWilayah') return { wilayah: String(body.wilayah || '').slice(0, 200) };
   // Kupon Masjid public actions
-  if (action === 'checkNomorWA')    return { telepon_pic: String(body.telepon_pic || '').slice(0, 20) };
-  if (action === 'requestOTP')      return { telepon_pic: String(body.telepon_pic || '').slice(0, 20) };
+  if (action === 'checkNomorWA') {
+    const telepon = String(body.telepon_pic || '').trim();
+    if (!/^(\+628|08)\d{7,13}$/.test(telepon)) return {};
+    return { telepon_pic: telepon.slice(0, 20) };
+  }
+  if (action === 'requestOTP') {
+    const telepon = String(body.telepon_pic || '').trim();
+    if (!/^(\+628|08)\d{7,13}$/.test(telepon)) return {};
+    return { telepon_pic: telepon.slice(0, 20) };
+  }
   if (action === 'getKonfigSistem') return {};
   if (action === 'verifyOTP')       return { masjid_id: String(body.masjid_id || '').slice(0, 20), otp_code: String(body.otp_code || '').slice(0, 6) };
   if (action === 'registerMasjid')  return {
@@ -374,28 +389,54 @@ function buildSafeData(action, body) {
       if (!ALLOWED_IMAGE_MIMES.has(mimeType)) return {};
       const base64 = String(body.file_base64 || '');
       if (Math.ceil(base64.length * 0.75) > MAX_IMAGE_BYTES) return {};
-      return { masjid_id: String(body.masjid_id || '').slice(0, 20), file_base64: base64, mime_type: mimeType, file_name: String(body.file_name || '').slice(0, 200) };
+      return {
+        masjid_id:     String(body.masjid_id     || '').slice(0, 20),
+        session_token: String(body.session_token || '').slice(0, 40),
+        file_base64:   base64,
+        mime_type:     mimeType,
+        file_name:     String(body.file_name || '').slice(0, 200)
+      };
     }
     case 'konfirmasiAnggota':
       return {
-        masjid_id: String(body.masjid_id || '').slice(0, 20),
-        kk_id:     String(body.kk_id     || '').slice(0, 30),
-        anggota_data: Array.isArray(body.anggota_data) ? body.anggota_data.slice(0, 50).map(a => ({ nama: String(a.nama || '').slice(0, 200), jk: String(a.jk || '').slice(0, 1), umur: Number(a.umur) || 0 })) : [],
+        masjid_id:     String(body.masjid_id     || '').slice(0, 20),
+        session_token: String(body.session_token || '').slice(0, 40),
+        kk_id:         String(body.kk_id         || '').slice(0, 30),
+        anggota_data:  Array.isArray(body.anggota_data) ? body.anggota_data.slice(0, 50).map(a => ({ nama: String(a.nama || '').slice(0, 200), jk: String(a.jk || '').slice(0, 1), umur: Number(a.umur) || 0 })) : [],
       };
     case 'konfirmasiSelesaiUpload':
-      return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+      return {
+        masjid_id:     String(body.masjid_id     || '').slice(0, 20),
+        session_token: String(body.session_token || '').slice(0, 40)
+      };
     case 'getKuponMasjid':
-      return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+      return {
+        masjid_id:     String(body.masjid_id     || '').slice(0, 20),
+        session_token: String(body.session_token || '').slice(0, 40)
+      };
+    case 'getDashboardMasjid':
+      return {
+        masjid_id:     String(body.masjid_id     || '').slice(0, 20),
+        session_token: String(body.session_token || '').slice(0, 40)
+      };
 
     // ── Kupon Masjid — Admin ─────────────────────────────────
     case 'getRegistrations': return {};
     case 'getKKDetail':          return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
     case 'getKKPerluVerifikasi': return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
     case 'resolveKKVerifikasi':  return { kk_id: String(body.kk_id || '').slice(0, 30), action: String(body.action || '').slice(0, 10), koreksi_data: body.koreksi_data || undefined };
-    case 'setJatah':             return { masjid_id: String(body.masjid_id || '').slice(0, 20), jumlah_sapi: Number(body.jumlah_sapi) || 0 };
+    case 'setJatah': {
+      const jumlahSapi = parseInt(body.jumlah_sapi, 10);
+      if (!Number.isInteger(jumlahSapi) || jumlahSapi <= 0) return {};
+      return { masjid_id: String(body.masjid_id || '').slice(0, 20), jumlah_sapi: jumlahSapi };
+    }
     case 'togglePeriodePendaftaran': return { buka: body.buka === true || body.buka === 'true' };
     case 'revokeTokenMasjid':    return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
-    case 'updateNomorWAMasjid':  return { masjid_id: String(body.masjid_id || '').slice(0, 20), nomor_wa_baru: String(body.nomor_wa_baru || '').slice(0, 20) };
+    case 'updateNomorWAMasjid': {
+      const nomorBaru = String(body.nomor_wa_baru || '').trim();
+      if (!/^(\+62|08)\d{8,12}$/.test(nomorBaru)) return {};
+      return { masjid_id: String(body.masjid_id || '').slice(0, 20), nomor_wa_baru: nomorBaru };
+    }
     case 'hapusMasjid':          return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
     case 'blokirMasjid':         return { masjid_id: String(body.masjid_id || '').slice(0, 20), alasan: String(body.alasan || '').slice(0, 500) };
     case 'bukaBlokirMasjid':     return { masjid_id: String(body.masjid_id || '').slice(0, 20) };

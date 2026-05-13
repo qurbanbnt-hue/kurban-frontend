@@ -1597,13 +1597,33 @@
     }
 
     // ==================== TETAPKAN JATAH ====================
-    function openJatahModal(masjidId) {
+    async function openJatahModal(masjidId) {
       currentJatahMasjidId = masjidId;
       const masjid = allMasjid.find(m => m.masjid_id === masjidId);
       document.getElementById('jatahMasjidName').textContent = masjid ? masjid.nama_masjid : masjidId;
       document.getElementById('inputJumlahSapi').value = '';
       document.getElementById('jatahKuponPreview').style.display = 'none';
       document.getElementById('jatahModal').classList.add('active');
+
+      // Jika masjid sudah disetujui, load kupon yang ada
+      if (masjid && masjid.status === 'disetujui') {
+        const res = await callApi('getKuponMasjid', { masjid_id: masjidId });
+        if (res.success && res.kupon) {
+          _kuponState = { kode: res.kupon.kode_kupon, qr_base64: res.kupon.qr_base64, jumlah_sapi: res.kupon.jumlah_sapi, masjid };
+          const qrEl = document.getElementById('jatahQRPreview');
+          document.getElementById('jatahKodePreview').textContent = res.kupon.kode_kupon || '';
+          document.getElementById('jatahSapiPreview').textContent = res.kupon.jumlah_sapi;
+          if (res.kupon.qr_base64) {
+            qrEl.innerHTML = `<img src="data:image/png;base64,${res.kupon.qr_base64}" style="width:100%;height:100%;object-fit:contain;" alt="QR Code">`;
+          }
+          document.getElementById('jatahKuponPreview').style.display = '';
+          document.getElementById('inputJumlahSapi').disabled = true;
+          document.getElementById('btnTetapkanJatah').style.display = 'none';
+        }
+      } else {
+        document.getElementById('inputJumlahSapi').disabled = false;
+        document.getElementById('btnTetapkanJatah').style.display = '';
+      }
     }
 
     async function submitJatah() {
@@ -1622,12 +1642,12 @@
       if (res.success && res.kupon) {
         const kupon = res.kupon;
         const masjid = allMasjid.find(m => m.masjid_id === currentJatahMasjidId);
-        _kuponState = { kode: kupon.kode, qr_base64: kupon.qr_base64, jumlah_sapi, masjid };
+        _kuponState = { kode: kupon.kode_kupon, qr_base64: kupon.qr_base64, jumlah_sapi, masjid };
 
         // Tampilkan preview
         const preview = document.getElementById('jatahKuponPreview');
         const qrEl = document.getElementById('jatahQRPreview');
-        document.getElementById('jatahKodePreview').textContent = kupon.kode || '';
+        document.getElementById('jatahKodePreview').textContent = kupon.kode_kupon || '';
         document.getElementById('jatahSapiPreview').textContent = jumlah_sapi;
         if (kupon.qr_base64) {
           qrEl.innerHTML = `<img src="data:image/png;base64,${kupon.qr_base64}" style="width:100%;height:100%;object-fit:contain;" alt="QR Code">`;
@@ -1643,8 +1663,15 @@
     }
 
     // ==================== CETAK KUPON ====================
-    function cetakKuponAdmin() {
-      if (!_kuponState) { showToast('Tidak ada data kupon untuk dicetak', 'error'); return; }
+    async function cetakKuponAdmin() {
+      if (!_kuponState) {
+        // Coba load dari masjid yang sedang aktif di modal
+        if (!currentJatahMasjidId) { showToast('Tidak ada data kupon untuk dicetak', 'error'); return; }
+        const res = await callApi('getKuponMasjid', { masjid_id: currentJatahMasjidId });
+        if (!res.success || !res.kupon) { showToast('Kupon tidak ditemukan', 'error'); return; }
+        const masjid = allMasjid.find(m => m.masjid_id === currentJatahMasjidId);
+        _kuponState = { kode: res.kupon.kode_kupon, qr_base64: res.kupon.qr_base64, jumlah_sapi: res.kupon.jumlah_sapi, masjid };
+      }
       const { kode, qr_base64, jumlah_sapi, masjid } = _kuponState;
       const namaMasjid = masjid ? esc(masjid.nama_masjid) : '';
       const alamat = masjid ? esc(masjid.alamat) : '';
