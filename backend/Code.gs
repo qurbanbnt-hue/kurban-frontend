@@ -81,6 +81,7 @@ function handleApiRequest(e) {
       case 'konfirmasiAnggota': result = konfirmasiAnggota(data.masjid_id, data.kk_id, data.anggota_data); break;
       case 'konfirmasiSelesaiUpload': result = konfirmasiSelesaiUpload(data.masjid_id); break;
       case 'getKuponMasjid': result = getKuponMasjidByMasjidId(data.masjid_id); break;
+      case 'getDashboardMasjid': result = getDashboardMasjid(data.masjid_id); break;
 
       // Kupon Masjid — Admin
       case 'getRegistrations': result = requireAdmin(user) || getRegistrations(); break;
@@ -163,7 +164,7 @@ function setupKuponSheets() {
       'nama_pic', 'telepon_pic', 'status', 'tgl_daftar', 'jumlah_kk_valid',
       'jumlah_sapi_jatah', 'tgl_penetapan', 'admin_penetap',
       'token_issued_at', 'token_revoked_at',
-      'alasan_blokir', 'admin_pemblokir', 'tgl_diblokir'
+      'alasan_blokir', 'admin_pemblokir', 'tgl_diblokir', 'status_sebelum_blokir'
     ]);
   }
 
@@ -370,7 +371,8 @@ function saveMasjidRecord(masjidData) {
     masjidData.token_revoked_at || '',
     masjidData.alasan_blokir || '',
     masjidData.admin_pemblokir || '',
-    masjidData.tgl_diblokir || ''
+    masjidData.tgl_diblokir || '',
+    masjidData.status_sebelum_blokir || ''
   ]);
 }
 
@@ -676,7 +678,8 @@ function incrementOTPAttempt(masjidId) {
 
 // ── 2.5 CRUD: KonfigSistem ────────────────────────────────────
 
-function getKonfigSistem() {
+// _getKonfigSistemRaw — internal use only, returns raw config object
+function _getKonfigSistemRaw() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAMA_SHEET_KONFIG_SISTEM);
   if (!sheet) return { periode_pendaftaran_buka: true, tgl_tutup_pendaftaran: null, nomor_diblokir: [] };
   const data = sheet.getDataRange().getValues();
@@ -686,11 +689,32 @@ function getKonfigSistem() {
     const nilai = data[i][1];
     config[kunci] = nilai;
   }
+  let nomorDiblokir = [];
+  try {
+    if (config['nomor_diblokir']) {
+      nomorDiblokir = JSON.parse(String(config['nomor_diblokir']));
+      if (!Array.isArray(nomorDiblokir)) nomorDiblokir = [];
+    }
+  } catch (e) {
+    Logger.log('getKonfigSistem: JSON parse error untuk nomor_diblokir: ' + e);
+    nomorDiblokir = [];
+  }
   return {
     periode_pendaftaran_buka: config['periode_pendaftaran_buka'] === 'true' || config['periode_pendaftaran_buka'] === true,
     tgl_tutup_pendaftaran:    config['tgl_tutup_pendaftaran'] || null,
-    nomor_diblokir:           config['nomor_diblokir'] ? JSON.parse(String(config['nomor_diblokir'])) : []
+    nomor_diblokir:           nomorDiblokir
   };
+}
+
+// getKonfigSistem — API-facing, returns {success: true, config: {...}}
+function getKonfigSistem() {
+  try {
+    const raw = _getKonfigSistemRaw();
+    return { success: true, config: raw };
+  } catch (err) {
+    Logger.log('getKonfigSistem error: ' + err.toString());
+    return { success: false, error: 'Internal server error' };
+  }
 }
 
 function updateKonfigSistem(kunci, nilai, adminEmail) {
@@ -1668,7 +1692,7 @@ function checkNomorWA(teleponPic) {
     const telepon = String(teleponPic).trim();
 
     // Cek NomorDiblokir
-    const config = getKonfigSistem();
+    const config = _getKonfigSistemRaw();
     if (config.nomor_diblokir && config.nomor_diblokir.includes(telepon)) {
       return { success: false, error: 'Nomor WhatsApp ini tidak dapat digunakan.' };
     }
@@ -1786,7 +1810,7 @@ function requestOTP(teleponPic) {
     if (!teleponPic) return { success: false, error: 'Nomor WhatsApp diperlukan' };
     const telepon = String(teleponPic).trim();
 
-    const config = getKonfigSistem();
+    const config = _getKonfigSistemRaw();
     if (config.nomor_diblokir && config.nomor_diblokir.includes(telepon)) {
       return { success: false, error: 'Nomor WhatsApp ini tidak dapat digunakan.' };
     }
@@ -1867,7 +1891,7 @@ function registerMasjid(data) {
     const telepon = String(telepon_pic).trim();
 
     // 4.3 Cek NomorDiblokir
-    const config = getKonfigSistem();
+    const config = _getKonfigSistemRaw();
     if (config.nomor_diblokir && config.nomor_diblokir.includes(telepon)) {
       return { success: false, error: 'Nomor WhatsApp ini tidak dapat digunakan untuk mendaftar.' };
     }
@@ -2052,15 +2076,26 @@ function processUploadKK(masjidId, fileData) {
   try {
     if (!masjidId || !fileData) return { success: false, error: 'Parameter tidak lengkap' };
 
+    // Validasi ukuran file (max 5MB)
+    const base64 = fileData.base64Data || '';
+    if (Math.ceil(base64.length * 0.75) > 5 * 1024 * 1024) {
+      return { success: false, error: 'Ukuran file melebihi 5 MB' };
+    }
+
     // 5.8 Cek status masjid (harus draft)
     const masjid = getMasjidById(masjidId);
     if (!masjid) return { success: false, error: 'Masjid tidak ditemukan' };
+
+    // Ownership check
+    const ownershipCheck = validateMasjidOwnership(masjidId, null);
+    if (ownershipCheck) return ownershipCheck;
+
     if (masjid.status !== 'draft') {
       return { success: false, error: 'Upload tidak diizinkan. Status masjid: ' + masjid.status };
     }
 
     // Cek periode pendaftaran
-    const config = getKonfigSistem();
+    const config = _getKonfigSistemRaw();
     if (!config.periode_pendaftaran_buka) {
       return { success: false, error: 'Periode pendaftaran sudah ditutup' };
     }
@@ -2139,6 +2174,10 @@ function konfirmasiAnggota(masjidId, kkId, anggotaData) {
   try {
     if (!masjidId || !kkId) return { success: false, error: 'Parameter tidak lengkap' };
 
+    // Ownership check
+    const ownershipCheck = validateMasjidOwnership(masjidId, null);
+    if (ownershipCheck) return ownershipCheck;
+
     // 6.2 Validasi array anggota tidak kosong
     if (!anggotaData || !Array.isArray(anggotaData) || anggotaData.length === 0) {
       return { success: false, error: 'Minimal 1 anggota harus diisi' };
@@ -2200,6 +2239,10 @@ function konfirmasiSelesaiUpload(masjidId) {
 
     const masjid = getMasjidById(masjidId);
     if (!masjid) return { success: false, error: 'Masjid tidak ditemukan' };
+
+    // Ownership check
+    const ownershipCheck = validateMasjidOwnership(masjidId, null);
+    if (ownershipCheck) return ownershipCheck;
 
     if (masjid.status !== 'draft') {
       return { success: false, error: 'Konfirmasi hanya bisa dilakukan saat status draft. Status saat ini: ' + masjid.status };
@@ -2400,7 +2443,7 @@ function getAllKKPerluVerifikasi() {
 // 10.1 generateKuponKode — format BNT-YYYY-MASJIDID-JUMLAHSAPI dengan collision check
 function generateKuponKode(masjidId, jumlahSapi) {
   const year     = new Date().getFullYear();
-  const masjidSeq = String(masjidId).replace('MSJ-' + year + '-', '').replace(/MSJ-d+-/, '');
+  const masjidSeq = String(masjidId).replace('MSJ-' + year + '-', '').replace(/MSJ-\d+-/, '');
   let kodeKupon  = 'BNT-' + year + '-' + masjidSeq + '-' + jumlahSapi + 'S';
 
   // Collision check — tambah suffix acak jika sudah ada
@@ -2498,6 +2541,11 @@ function setJatah(masjidId, jumlahSapi, adminEmail) {
 function getKuponMasjidByMasjidId(masjidId) {
   try {
     if (!masjidId) return { success: false, error: 'masjid_id diperlukan' };
+
+    // Ownership check
+    const ownershipCheck = validateMasjidOwnership(masjidId, null);
+    if (ownershipCheck) return ownershipCheck;
+
     const kupon = getActiveKuponByMasjid(masjidId);
     if (!kupon) {
       // Cek apakah ada kupon yang sudah digunakan
@@ -2533,6 +2581,57 @@ function getKuponMasjidByMasjidId(masjidId) {
     };
   } catch (err) {
     Logger.log('getKuponMasjidByMasjidId error: ' + err.toString());
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
+// getDashboardMasjid — data lengkap untuk dashboard portal masjid
+function getDashboardMasjid(masjidId) {
+  try {
+    if (!masjidId) return { success: false, error: 'masjid_id diperlukan' };
+    const masjid = getMasjidById(masjidId);
+    if (!masjid) return { success: false, error: 'Masjid tidak ditemukan' };
+
+    // Ownership/status check
+    const ownershipCheck = validateMasjidOwnership(masjidId, null);
+    if (ownershipCheck) return ownershipCheck;
+
+    const kkList = getKKByMasjid(masjidId);
+    const kupon = getActiveKuponByMasjid(masjidId);
+
+    return {
+      success: true,
+      masjid: {
+        masjid_id:         masjid.masjid_id,
+        nama_masjid:       masjid.nama_masjid,
+        alamat:            masjid.alamat,
+        kecamatan:         masjid.kecamatan,
+        kabupaten:         masjid.kabupaten,
+        nama_pic:          masjid.nama_pic,
+        telepon_pic:       masjid.telepon_pic,
+        status:            masjid.status,
+        jumlah_kk_valid:   masjid.jumlah_kk_valid,
+        jumlah_sapi_jatah: masjid.jumlah_sapi_jatah,
+        token_issued_at:   masjid.token_issued_at,
+        token_revoked_at:  masjid.token_revoked_at
+      },
+      kk_summary: {
+        total:             kkList.length,
+        valid:             kkList.filter(k => k.status_ocr === 'valid' || k.status_ocr === 'manual').length,
+        duplikat:          kkList.filter(k => k.status_ocr === 'duplikat').length,
+        gagal_ocr:         kkList.filter(k => k.status_ocr === 'gagal_ocr').length,
+        perlu_konfirmasi:  kkList.filter(k => k.status_ocr === 'perlu_konfirmasi_anggota').length
+      },
+      kupon: kupon ? {
+        kupon_id:    kupon.kupon_id,
+        kode_kupon:  kupon.kode_kupon,
+        jumlah_sapi: kupon.jumlah_sapi,
+        status:      kupon.status,
+        tgl_terbit:  kupon.tgl_terbit
+      } : null
+    };
+  } catch (err) {
+    Logger.log('getDashboardMasjid error: ' + err.toString());
     return { success: false, error: 'Internal server error' };
   }
 }
@@ -2648,6 +2747,14 @@ function konfirmasiPengambilan(kuponId, fotoBuktiBase64, mimeType, petugasEmail)
 //  TASK 12: MODERASI MASJID — HAPUS DAN BLOKIR
 // ============================================================
 
+// validateMasjidOwnership — helper untuk validasi masjid ada dan tidak diblokir
+function validateMasjidOwnership(masjidId, user) {
+  const masjid = getMasjidById(masjidId);
+  if (!masjid) return { success: false, error: 'Masjid tidak ditemukan' };
+  if (masjid.status === 'diblokir') return { success: false, error: 'Akun masjid Anda telah diblokir. Hubungi admin untuk informasi lebih lanjut.' };
+  return null; // null = valid
+}
+
 // 12.1 hapusMasjid — cek tidak ada kupon aktif, hapus masjid + semua DataKK
 function hapusMasjid(masjidId, adminEmail) {
   try {
@@ -2683,11 +2790,12 @@ function blokirMasjid(masjidId, alasan, adminEmail) {
 
     const now = new Date().toISOString();
     updateMasjidFields(masjidId, {
-      status:          'diblokir',
-      token_revoked_at: now,
-      alasan_blokir:   alasan || '',
-      admin_pemblokir: adminEmail || '',
-      tgl_diblokir:    now
+      status:               'diblokir',
+      token_revoked_at:     now,
+      alasan_blokir:        alasan || '',
+      admin_pemblokir:      adminEmail || '',
+      tgl_diblokir:         now,
+      status_sebelum_blokir: masjid.status
     });
 
     return { success: true };
@@ -2707,12 +2815,14 @@ function bukaBlokirMasjid(masjidId, adminEmail) {
       return { success: false, error: 'Masjid tidak dalam status diblokir' };
     }
 
-    // Kembalikan ke draft (default sebelum diblokir)
+    // Kembalikan ke status sebelum diblokir (fallback ke 'draft')
+    const statusRestore = masjid.status_sebelum_blokir || 'draft';
     updateMasjidFields(masjidId, {
-      status:          'draft',
-      alasan_blokir:   '',
-      admin_pemblokir: '',
-      tgl_diblokir:    ''
+      status:               statusRestore,
+      alasan_blokir:        '',
+      admin_pemblokir:      '',
+      tgl_diblokir:         '',
+      status_sebelum_blokir: ''
     });
 
     return { success: true };
@@ -2726,7 +2836,7 @@ function bukaBlokirMasjid(masjidId, adminEmail) {
 function blokirNomorWA(nomorWA, adminEmail) {
   try {
     if (!nomorWA) return { success: false, error: 'Nomor WA diperlukan' };
-    const config = getKonfigSistem();
+    const config = _getKonfigSistemRaw();
     const daftar = config.nomor_diblokir || [];
     const nomor  = String(nomorWA).trim();
     if (!daftar.includes(nomor)) {
@@ -2744,7 +2854,7 @@ function blokirNomorWA(nomorWA, adminEmail) {
 function bukaBlokirNomorWA(nomorWA, adminEmail) {
   try {
     if (!nomorWA) return { success: false, error: 'Nomor WA diperlukan' };
-    const config = getKonfigSistem();
+    const config = _getKonfigSistemRaw();
     const daftar = (config.nomor_diblokir || []).filter(n => n !== String(nomorWA).trim());
     updateKonfigSistem('nomor_diblokir', JSON.stringify(daftar), adminEmail);
     return { success: true };
@@ -2757,7 +2867,7 @@ function bukaBlokirNomorWA(nomorWA, adminEmail) {
 // 12.5 getNomorDiblokir — return daftar nomor WA yang diblokir
 function getNomorDiblokir() {
   try {
-    const config = getKonfigSistem();
+    const config = _getKonfigSistemRaw();
     return { success: true, data: config.nomor_diblokir || [] };
   } catch (err) {
     Logger.log('getNomorDiblokir error: ' + err.toString());
@@ -4742,7 +4852,7 @@ function testPropertyProcessUploadKKRestrictions() {
   var periodeWasOpen = null;
   try {
     // Simpan nilai periode saat ini
-    var configBefore = getKonfigSistem();
+    var configBefore = _getKonfigSistemRaw();
     periodeWasOpen = configBefore.periode_pendaftaran_buka;
 
     // Tutup periode pendaftaran
@@ -7148,7 +7258,7 @@ function testTogglePeriodePendaftaran() {
   Logger.log('=== testTogglePeriodePendaftaran START ===');
 
   // Simpan konfigurasi awal untuk di-restore
-  var configAwal = getKonfigSistem();
+  var configAwal = _getKonfigSistemRaw();
   var periodeAwal = configAwal.periode_pendaftaran_buka;
 
   try {
@@ -7166,7 +7276,7 @@ function testTogglePeriodePendaftaran() {
     Logger.log('--- Test 1: Periode BUKA ---');
     togglePeriodePendaftaran(true, 'admin-test@test.com');
 
-    var configBuka = getKonfigSistem();
+    var configBuka = _getKonfigSistemRaw();
     _t14_recordResult(results, passed, failed,
       'Toggle buka: KonfigSistem.periode_pendaftaran_buka = true',
       configBuka.periode_pendaftaran_buka === true,
@@ -7199,7 +7309,7 @@ function testTogglePeriodePendaftaran() {
     Logger.log('--- Test 2: Periode TUTUP ---');
     togglePeriodePendaftaran(false, 'admin-test@test.com');
 
-    var configTutup = getKonfigSistem();
+    var configTutup = _getKonfigSistemRaw();
     _t14_recordResult(results, passed, failed,
       'Toggle tutup: KonfigSistem.periode_pendaftaran_buka = false',
       configTutup.periode_pendaftaran_buka === false,
@@ -7254,7 +7364,7 @@ function testTogglePeriodePendaftaran() {
     Logger.log('--- Test 4: Buka kembali periode ---');
     togglePeriodePendaftaran(true, 'admin-test@test.com');
 
-    var configBukaLagi = getKonfigSistem();
+    var configBukaLagi = _getKonfigSistemRaw();
     _t14_recordResult(results, passed, failed,
       'Toggle buka lagi: KonfigSistem.periode_pendaftaran_buka = true',
       configBukaLagi.periode_pendaftaran_buka === true,
