@@ -20,3 +20,7 @@ Thumbs.db
 
 # Kiro specs — internal planning docs, tidak perlu di-repo
 .kiro/
+# Tapi design.md boleh dipublikasikan
+!.kiro/specs/
+!.kiro/specs/*/
+!.kiro/specs/*/design.md
