@@ -249,6 +249,6 @@
   - [x] 31.3 Panggil `checkOTPRateLimit` di awal `sendOTPWhatsApp` sebelum generate dan kirim OTP
   - [x] 31.4 Di `proxy.js`: tambah validasi format telepon Indonesia di `sanitizePublicData` untuk `checkNomorWA` dan `requestOTP`
 
-- [-] 32. [PERINGATAN] Google Charts API deprecated — ganti QR generator
-  - [ ] 32.1 Ganti `generateQRCode()` di Code.gs dengan `api.qrserver.com` (Opsi B — quick fix)
-  - [ ] 32.2 Update `getKuponMasjidByMasjidId` agar regenerate QR via endpoint baru jika `qr_data` lama masih pakai format Google Charts
+- [x] 32. [PERINGATAN] Google Charts API deprecated — ganti QR generator
+  - [x] 32.1 Ganti `generateQRCode()` di Code.gs dengan `api.qrserver.com` (Opsi B — quick fix)
+  - [x] 32.2 Update `getKuponMasjidByMasjidId` agar regenerate QR via endpoint baru jika `qr_data` lama masih pakai format Google Charts
