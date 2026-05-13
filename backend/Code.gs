@@ -79,6 +79,7 @@ function handleApiRequest(e) {
       // Kupon Masjid — Masjid (token sesi)
       case 'uploadKK': result = processUploadKK(data.masjid_id, { base64Data: data.file_base64, mimeType: data.mime_type, fileName: data.file_name }, data.session_token); break;
       case 'konfirmasiAnggota': result = konfirmasiAnggota(data.masjid_id, data.kk_id, data.anggota_data, data.session_token); break;
+      case 'konfirmasiAnggotaManual': result = konfirmasiAnggotaManual(data.masjid_id, data.kk_id, data.nomor_kk, data.anggota_data, data.session_token); break;
       case 'konfirmasiSelesaiUpload': result = konfirmasiSelesaiUpload(data.masjid_id, data.session_token); break;
       case 'getKuponMasjid': result = getKuponMasjidByMasjidId(data.masjid_id, data.session_token); break;
       case 'getDashboardMasjid': result = getDashboardMasjid(data.masjid_id, data.session_token); break;
@@ -2290,18 +2291,42 @@ function validateAnggotaCount(jumlahTertera, jumlahParsed) {
 function extractNomorKK(fileId) {
   let ocrDocId = null;
   try {
-    // Salin file ke Google Docs dengan OCR — tanpa parent folder agar tidak ada masalah JSON
+    const sourceFile = DriveApp.getFileById(fileId);
+    const blob = sourceFile.getBlob();
+
     const resource = {
-      title:    'ocr_temp_' + fileId,
-      mimeType: 'application/vnd.google-apps.document'
+      title: 'ocr_temp_' + Date.now()
     };
 
-    const ocrDoc = Drive.Files.copy(fileId, resource, { ocr: true, ocrLanguage: 'id' });
-    if (!ocrDoc) return { success: false, error: 'OCR gagal' };
-    ocrDocId = ocrDoc.id;
+    // Retry hingga 3x jika kena rate limit
+    let ocrDoc = null;
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        ocrDoc = Drive.Files.insert(resource, blob, {
+          ocr: true,
+          ocrLanguage: 'id',
+          convert: true
+        });
+        break; // berhasil, keluar loop
+      } catch (e) {
+        lastErr = e;
+        if (e.toString().includes('rate limit') || e.toString().includes('quota')) {
+          Logger.log('OCR rate limit, tunggu ' + (attempt + 1) * 5 + ' detik...');
+          Utilities.sleep((attempt + 1) * 5000); // tunggu 5s, 10s, 15s
+        } else {
+          throw e; // error lain, langsung lempar
+        }
+      }
+    }
 
-    const rawText = DocumentApp.openById(ocrDoc.id).getBody().getText();
-    Logger.log('OCR raw text (200 chars): ' + rawText.substring(0, 200));
+    if (!ocrDoc) {
+      return { success: false, error: 'OCR rate limit. Coba lagi dalam beberapa menit.' };
+    }
+
+    ocrDocId = ocrDoc.id;
+    const rawText = DocumentApp.openById(ocrDocId).getBody().getText();
+    Logger.log('OCR raw text (300 chars): ' + rawText.substring(0, 300));
 
     const nomorKK = parseNomorKK(rawText);
     if (!nomorKK) return { success: false, raw_text: rawText, error: 'Nomor KK tidak ditemukan' };
@@ -2491,6 +2516,83 @@ function konfirmasiAnggota(masjidId, kkId, anggotaData, sessionToken) {
     return { success: true, jumlah_anggota: anggotaNorm.length };
   } catch (err) {
     Logger.log('konfirmasiAnggota error: ' + err.toString());
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
+// konfirmasiAnggotaManual — input manual untuk KK yang gagal OCR
+// Menerima nomor_kk manual + data anggota, update record dari gagal_ocr ke valid
+function konfirmasiAnggotaManual(masjidId, kkId, nomorKK, anggotaData, sessionToken) {
+  try {
+    if (!masjidId || !kkId) return { success: false, error: 'Parameter tidak lengkap' };
+
+    // Validasi session token
+    const sessionCheck = validateMasjidSession(masjidId, sessionToken);
+    if (!sessionCheck.valid) return { success: false, error: sessionCheck.error };
+
+    // Validasi nomor KK
+    if (!nomorKK || !/^\d{16}$/.test(String(nomorKK).trim())) {
+      return { success: false, error: 'Nomor KK harus tepat 16 digit angka' };
+    }
+    const nomorKKStr = String(nomorKK).trim();
+    if (!isValidNomorKK(nomorKKStr)) {
+      return { success: false, error: 'Nomor KK tidak valid (kode wilayah tidak dikenal)' };
+    }
+
+    // Cek duplikat nomor KK
+    if (checkDuplicateNomorKK(nomorKKStr)) {
+      return { success: false, error: 'Nomor KK ' + nomorKKStr + ' sudah terdaftar di sistem' };
+    }
+
+    // Validasi data anggota
+    if (!anggotaData || !Array.isArray(anggotaData) || anggotaData.length === 0) {
+      return { success: false, error: 'Minimal 1 anggota harus diisi' };
+    }
+    for (const anggota of anggotaData) {
+      if (!anggota.nama || String(anggota.nama).trim().length === 0) {
+        return { success: false, error: 'Nama anggota tidak boleh kosong' };
+      }
+      if (!['L', 'P'].includes(String(anggota.jk).toUpperCase())) {
+        return { success: false, error: 'Jenis kelamin harus L atau P' };
+      }
+      const umur = Number(anggota.umur);
+      if (isNaN(umur) || umur < 0 || umur > 150) {
+        return { success: false, error: 'Umur harus antara 0-150' };
+      }
+    }
+
+    // Cek KK milik masjid ini dan statusnya gagal_ocr
+    const kkRecord = getKKById(kkId);
+    if (!kkRecord) return { success: false, error: 'Data KK tidak ditemukan' };
+    if (String(kkRecord.masjid_id).trim() !== String(masjidId).trim()) {
+      return { success: false, error: 'KK tidak milik masjid ini' };
+    }
+    if (kkRecord.status_ocr !== 'gagal_ocr') {
+      return { success: false, error: 'KK tidak dalam status gagal OCR' };
+    }
+
+    // Normalisasi data anggota
+    const anggotaNorm = anggotaData.map(a => ({
+      nama: String(a.nama).trim(),
+      jk:   String(a.jk).toUpperCase(),
+      umur: Number(a.umur)
+    }));
+
+    // Update record KK dengan nomor KK manual dan data anggota
+    updateKKRecord(kkId, {
+      nomor_kk:                   nomorKKStr,
+      status_ocr:                 'valid',
+      anggota_json:               JSON.stringify(anggotaNorm),
+      jumlah_anggota_parsed:      anggotaNorm.length,
+      anggota_dikonfirmasi_manual: true
+    });
+
+    // Tambah jumlah_kk_valid
+    incrementJumlahKKValid(masjidId, 1);
+
+    return { success: true, nomor_kk: nomorKKStr, jumlah_anggota: anggotaNorm.length };
+  } catch (err) {
+    Logger.log('konfirmasiAnggotaManual error: ' + err.toString());
     return { success: false, error: 'Internal server error' };
   }
 }
