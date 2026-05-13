@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Kupon Kurban · BNT 1447 H</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── SCREEN PREVIEW ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #e8edf5;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    h2 {
+      font-family: 'Sora', sans-serif;
+      font-size: 18px;
+      color: #0f2c56;
+      text-align: center;
+    }
+
+    .preview-note {
+      font-size: 13px;
+      color: #64748b;
+      text-align: center;
+      max-width: 500px;
+      line-height: 1.6;
+    }
+
+    /* ── KUPON ── */
+    /* Ukuran fisik: 9cm × 5.5cm → pada 96dpi ≈ 340px × 208px */
+    .kupon {
+      width: 340px;
+      height: 208px;
+      background: white;
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(15,44,86,0.12);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border: 1.5px solid #d4e3f5;
+      border-bottom: none;
+    }
+
+    /* ── HEADER STRIP ── */
+    .kupon-header {
+      background: linear-gradient(135deg, #0f2c56 0%, #1a4a8a 60%, #2c70b7 100%);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .kupon-logo {
+      width: 28px;
+      height: 28px;
+      background: white;
+      border-radius: 6px;
+      padding: 3px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .kupon-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .kupon-header-text {
+      flex: 1;
+    }
+
+    .kupon-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 10px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: 0.03em;
+      line-height: 1.2;
+    }
+
+    .kupon-subtitle {
+      font-size: 8px;
+      color: rgba(255,255,255,0.65);
+      font-weight: 600;
+      margin-top: 1px;
+    }
+
+    .kupon-nomor {
+      font-family: 'Sora', sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.5);
+      text-align: right;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── BODY ── */
+    .kupon-body {
+      flex: 1;
+      display: flex;
+      gap: 0;
+      min-height: 0;
+    }
+
+    /* ── LEFT: Info Masjid ── */
+    .kupon-info {
+      flex: 1;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border-right: 1px dashed #d4e3f5;
+    }
+
+    .info-row {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .info-label {
+      font-size: 6.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .info-value {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #0f2c56;
+      line-height: 1.2;
+    }
+
+    .info-value.masjid-name {
+      font-family: 'Sora', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      color: #0f2c56;
+    }
+
+    /* ── RIGHT: QR + Jatah ── */
+    .kupon-right {
+      width: 110px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      gap: 6px;
+    }
+
+    .kupon-qr-wrap {
+      width: 72px;
+      height: 72px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .kupon-qr-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Placeholder QR untuk preview */
+    .qr-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+    }
+
+    .qr-placeholder svg {
+      width: 56px;
+      height: 56px;
+    }
+
+    .kupon-jatah-box {
+      background: linear-gradient(135deg, #0f2c56, #2c70b7);
+      border-radius: 8px;
+      padding: 5px 10px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .jatah-label {
+      font-size: 6px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.65);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .jatah-value {
+      font-family: 'Sora', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      color: white;
+      line-height: 1.1;
+    }
+
+    .jatah-unit {
+      font-size: 7px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* ── SYARAT FOTO ── */
+    .kupon-syarat {
+      background: #fff8e1;
+      border-top: 1px solid #fde68a;
+      padding: 4px 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .syarat-icon {
+      font-size: 8px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .syarat-text {
+      font-size: 6.5px;
+      font-weight: 700;
+      color: #92400e;
+      line-height: 1.4;
+    }
+
+    /* ── FOOTER STRIP ── */
+    .kupon-footer {
+      background: #fef2f2;
+      border-top: 1px solid #fecaca;
+      padding: 4px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .footer-warning {
+      font-size: 6.5px;
+      font-weight: 700;
+      color: #dc2626;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      line-height: 1.3;
+    }
+
+    .footer-kode {
+      font-size: 7px;
+      font-weight: 700;
+      color: #94a3b8;
+      font-family: monospace;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+
+    /* ── DISCLAIMER STRIP (bagian bawah, dipisah garis putus-putus) ── */
+    .kupon-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 340px;
+      box-shadow: 0 8px 32px rgba(15,44,86,0.18);
+      border-radius: 12px;
+    }
+
+    .kupon-disclaimer-separator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 4px;
+      position: relative;
+    }
+
+    .kupon-disclaimer-separator::before,
+    .kupon-disclaimer-separator::after {
+      content: '';
+      flex: 1;
+      border-top: 1.5px dashed #94a3b8;
+    }
+
+    .separator-scissors {
+      font-size: 9px;
+      color: #94a3b8;
+      flex-shrink: 0;
+      transform: rotate(90deg);
+      display: inline-block;
+    }
+
+    .kupon-disclaimer {
+      background: #f8fafc;
+      border: 1.5px dashed #94a3b8;
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      padding: 5px 10px;
+      position: relative;
+    }
+
+    .disclaimer-title {
+      font-size: 6px;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 3px;
+    }
+
+    .disclaimer-text {
+      font-size: 5.5px;
+      color: #475569;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    /* ── DECORATIVE DOTS (perforasi) ── */
+    .kupon::before,
+    .kupon::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: #e8edf5;
+      border-radius: 50%;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+    }
+    .kupon::before { left: -7px; }
+    .kupon::after  { right: -7px; }
+
+    /* ── PRINT LAYOUT ── */
+    @media print {
+      body {
+        background: white;
+        padding: 10mm;
+        gap: 0;
+      }
+
+      h2, .preview-note, .print-btn, .print-hint {
+        display: none;
+      }
+
+      .print-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 90mm);
+        gap: 8mm;
+        width: 100%;
+      }
+
+      .kupon-wrapper {
+        break-inside: avoid;
+      }
+
+      .kupon {
+        width: 90mm;
+        height: 55mm;
+        box-shadow: none;
+        border: 1px solid #ccc;
+        border-radius: 4mm 4mm 0 0;
+        break-inside: avoid;
+      }
+
+      .kupon::before,
+      .kupon::after {
+        display: none;
+      }
+
+      .kupon-disclaimer-separator {
+        width: 90mm;
+      }
+
+      .kupon-disclaimer {
+        width: 90mm;
+        box-sizing: border-box;
+      }
+
+      .kupon-title   { font-size: 9pt; }
+      .kupon-subtitle { font-size: 7pt; }
+      .info-value.masjid-name { font-size: 10pt; }
+      .info-value    { font-size: 8.5pt; }
+      .info-label    { font-size: 6pt; }
+      .jatah-value   { font-size: 14pt; }
+      .footer-warning, .footer-kode { font-size: 6pt; }
+      .syarat-text   { font-size: 5.5pt; }
+      .disclaimer-text { font-size: 5pt; }
+      .disclaimer-title { font-size: 5.5pt; }
+    }
+
+    /* ── PRINT BUTTON ── */
+    .print-btn {
+      padding: 12px 28px;
+      background: linear-gradient(135deg, #0f2c56, #2c70b7);
+      color: white;
+      border: none;
+      border-radius: 100px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(44,112,183,0.35);
+      transition: all 0.2s;
+    }
+    .print-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(44,112,183,0.4); }
+
+    .print-hint {
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Preview Desain Kupon Kurban · BNT 1447 H</h2>
+  <p class="preview-note">
+    Ukuran fisik: <strong>9 × 5.5 cm</strong> (seperti kartu nama besar).
+    Satu halaman A4 muat <strong>6 kupon</strong> (2 kolom × 3 baris).
+  </p>
+
+  <!-- GRID UNTUK PRINT -->
+  <div class="print-grid">
+
+    <!-- KUPON 1 — Contoh dengan jatah 3 sapi -->
+    <div class="kupon-wrapper">
+    <div class="kupon">
+      <div class="kupon-header">
+        <div class="kupon-logo">
+          <img src="assets/images/logo/logo-bnt.webp" alt="BNT"
+               onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-size:14px;font-weight:900;color:#0f2c56;\'>B</span>'">
+        </div>
+        <div class="kupon-header-text">
+          <div class="kupon-title">KUPON KURBAN IDUL ADHA 1447 H</div>
+          <div class="kupon-subtitle">Yayasan Bhakti Nusa Tenggara</div>
+        </div>
+        <div class="kupon-nomor">#001</div>
+      </div>
+
+      <div class="kupon-body">
+        <div class="kupon-info">
+          <div class="info-row">
+            <span class="info-label">Nama Masjid</span>
+            <span class="info-value masjid-name">Masjid Al-Ikhlas</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Alamat</span>
+            <span class="info-value">Jl. Merdeka No. 1, Mataram</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Kecamatan</span>
+            <span class="info-value">Mataram</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Nama PIC</span>
+            <span class="info-value">Ahmad Fauzi</span>
+          </div>
+        </div>
+
+        <div class="kupon-right">
+          <div class="kupon-qr-wrap">
+            <!-- QR Code placeholder — diganti dengan <img src="data:image/png;base64,..."> saat cetak -->
+            <div class="qr-placeholder">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- QR pattern simulasi -->
+                <rect width="100" height="100" fill="white"/>
+                <!-- Finder pattern TL -->
+                <rect x="5" y="5" width="30" height="30" fill="#0f2c56" rx="3"/>
+                <rect x="10" y="10" width="20" height="20" fill="white" rx="2"/>
+                <rect x="14" y="14" width="12" height="12" fill="#0f2c56" rx="1"/>
+                <!-- Finder pattern TR -->
+                <rect x="65" y="5" width="30" height="30" fill="#0f2c56" rx="3"/>
+                <rect x="70" y="10" width="20" height="20" fill="white" rx="2"/>
+                <rect x="74" y="14" width="12" height="12" fill="#0f2c56" rx="1"/>
+                <!-- Finder pattern BL -->
+                <rect x="5" y="65" width="30" height="30" fill="#0f2c56" rx="3"/>
+                <rect x="10" y="70" width="20" height="20" fill="white" rx="2"/>
+                <rect x="14" y="74" width="12" height="12" fill="#0f2c56" rx="1"/>
+                <!-- Data modules simulasi -->
+                <rect x="42" y="5" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="5" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="13" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="13" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="21" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="21" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="21" width="6" height="6" fill="#0f2c56"/>
+                <rect x="5" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="13" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="5" y="50" width="6" height="6" fill="#0f2c56"/>
+                <rect x="21" y="50" width="6" height="6" fill="#0f2c56"/>
+                <rect x="5" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="13" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="66" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="74" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="82" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="50" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="50" width="6" height="6" fill="#0f2c56"/>
+                <rect x="74" y="50" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="66" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="82" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="66" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="66" width="6" height="6" fill="#0f2c56"/>
+                <rect x="74" y="66" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="74" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="74" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="74" width="6" height="6" fill="#0f2c56"/>
+                <rect x="66" y="74" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="82" width="6" height="6" fill="#0f2c56"/>
+                <rect x="66" y="82" width="6" height="6" fill="#0f2c56"/>
+                <rect x="82" y="82" width="6" height="6" fill="#0f2c56"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="kupon-jatah-box">
+            <div class="jatah-label">Jatah Sapi</div>
+            <div class="jatah-value">3</div>
+            <div class="jatah-unit">EKOR</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kupon-syarat">
+        <span class="syarat-icon">📸</span>
+        <span class="syarat-text">Wajib foto penerima berdiri di samping mobil pengambilan sebagai bukti. Kupon berlaku 1x — jika jatuh ke tangan yang tidak bertanggung jawab, sepenuhnya menjadi tanggung jawab masjid.</span>
+      </div>
+      <div class="kupon-footer">
+        <span class="footer-warning">⚠ Kupon yang sudah di-scan tidak dapat digunakan kembali</span>
+        <span class="footer-kode">BNT-2026-MSJ001-3S</span>
+      </div>
+    </div>
+    <!-- Garis putus-putus pemisah disclaimer -->
+    <div class="kupon-disclaimer-separator">
+      <span class="separator-scissors">✂</span>
+    </div>
+    <!-- Disclaimer strip -->
+    <div class="kupon-disclaimer">
+      <div class="disclaimer-title">⚠ Perhatian — Tanggung Jawab Pemegang Kupon</div>
+      <div class="disclaimer-text">Kupon ini adalah bukti hak pengambilan sapi kurban. Yayasan Bhakti Nusa Tenggara tidak bertanggung jawab atas kehilangan atau penyalahgunaan kupon ini. Apabila kupon jatuh ke tangan yang tidak bertanggung jawab dan digunakan oleh pihak lain, maka jatah yang telah dikeluarkan berdasarkan scan kode QR yang valid tidak dapat diganti. Keamanan kupon ini sepenuhnya menjadi tanggung jawab pihak masjid.</div>
+    </div>
+    </div><!-- end .kupon-wrapper -->
+
+    <!-- KUPON 2 — Contoh dengan jatah 1 sapi -->
+    <div class="kupon-wrapper">
+    <div class="kupon">
+      <div class="kupon-header">
+        <div class="kupon-logo">
+          <img src="assets/images/logo/logo-bnt.webp" alt="BNT"
+               onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-size:14px;font-weight:900;color:#0f2c56;\'>B</span>'">
+        </div>
+        <div class="kupon-header-text">
+          <div class="kupon-title">KUPON KURBAN IDUL ADHA 1447 H</div>
+          <div class="kupon-subtitle">Yayasan Bhakti Nusa Tenggara</div>
+        </div>
+        <div class="kupon-nomor">#002</div>
+      </div>
+
+      <div class="kupon-body">
+        <div class="kupon-info">
+          <div class="info-row">
+            <span class="info-label">Nama Masjid</span>
+            <span class="info-value masjid-name">Masjid Nurul Huda</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Alamat</span>
+            <span class="info-value">Jl. Sriwijaya No. 45, Cakranegara</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Kecamatan</span>
+            <span class="info-value">Cakranegara</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Nama PIC</span>
+            <span class="info-value">Budi Santoso</span>
+          </div>
+        </div>
+
+        <div class="kupon-right">
+          <div class="kupon-qr-wrap">
+            <div class="qr-placeholder">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100" height="100" fill="white"/>
+                <rect x="5" y="5" width="30" height="30" fill="#0f2c56" rx="3"/>
+                <rect x="10" y="10" width="20" height="20" fill="white" rx="2"/>
+                <rect x="14" y="14" width="12" height="12" fill="#0f2c56" rx="1"/>
+                <rect x="65" y="5" width="30" height="30" fill="#0f2c56" rx="3"/>
+                <rect x="70" y="10" width="20" height="20" fill="white" rx="2"/>
+                <rect x="74" y="14" width="12" height="12" fill="#0f2c56" rx="1"/>
+                <rect x="5" y="65" width="30" height="30" fill="#0f2c56" rx="3"/>
+                <rect x="10" y="70" width="20" height="20" fill="white" rx="2"/>
+                <rect x="14" y="74" width="12" height="12" fill="#0f2c56" rx="1"/>
+                <rect x="42" y="5" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="5" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="13" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="21" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="21" width="6" height="6" fill="#0f2c56"/>
+                <rect x="5" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="21" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="13" y="50" width="6" height="6" fill="#0f2c56"/>
+                <rect x="5" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="21" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="74" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="82" y="42" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="50" width="6" height="6" fill="#0f2c56"/>
+                <rect x="66" y="50" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="66" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="82" y="58" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="66" width="6" height="6" fill="#0f2c56"/>
+                <rect x="74" y="66" width="6" height="6" fill="#0f2c56"/>
+                <rect x="42" y="74" width="6" height="6" fill="#0f2c56"/>
+                <rect x="58" y="74" width="6" height="6" fill="#0f2c56"/>
+                <rect x="82" y="74" width="6" height="6" fill="#0f2c56"/>
+                <rect x="50" y="82" width="6" height="6" fill="#0f2c56"/>
+                <rect x="66" y="82" width="6" height="6" fill="#0f2c56"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="kupon-jatah-box">
+            <div class="jatah-label">Jatah Sapi</div>
+            <div class="jatah-value">1</div>
+            <div class="jatah-unit">EKOR</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kupon-syarat">
+        <span class="syarat-icon">📸</span>
+        <span class="syarat-text">Wajib foto penerima berdiri di samping mobil pengambilan sebagai bukti. Kupon berlaku 1x — jika jatuh ke tangan yang tidak bertanggung jawab, sepenuhnya menjadi tanggung jawab masjid.</span>
+      </div>
+      <div class="kupon-footer">
+        <span class="footer-warning">⚠ Kupon yang sudah di-scan tidak dapat digunakan kembali</span>
+        <span class="footer-kode">BNT-2026-MSJ002-1S</span>
+      </div>
+    </div>
+    <!-- Garis putus-putus pemisah disclaimer -->
+    <div class="kupon-disclaimer-separator">
+      <span class="separator-scissors">✂</span>
+    </div>
+    <!-- Disclaimer strip -->
+    <div class="kupon-disclaimer">
+      <div class="disclaimer-title">⚠ Perhatian — Tanggung Jawab Pemegang Kupon</div>
+      <div class="disclaimer-text">Kupon ini adalah bukti hak pengambilan sapi kurban. Yayasan Bhakti Nusa Tenggara tidak bertanggung jawab atas kehilangan atau penyalahgunaan kupon ini. Apabila kupon jatuh ke tangan yang tidak bertanggung jawab dan digunakan oleh pihak lain, maka jatah yang telah dikeluarkan berdasarkan scan kode QR yang valid tidak dapat diganti. Keamanan kupon ini sepenuhnya menjadi tanggung jawab pihak masjid.</div>
+    </div>
+    </div><!-- end .kupon-wrapper -->
+
+  </div><!-- end .print-grid -->
+
+  <button class="print-btn" onclick="window.print()">🖨 Cetak Kupon</button>
+  <p class="print-hint">Saat cetak, pilih ukuran kertas A4 · Skala 100% · Tanpa margin</p>
+
+</body>
+</html>

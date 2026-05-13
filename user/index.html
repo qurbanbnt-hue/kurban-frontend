@@ -538,6 +538,11 @@
           <span>Dokumentasi Instansi</span>
           <i class="icon icon-chevron-right" style="margin-left:auto;opacity:0.5;"></i>
         </button>
+        <button class="qa-btn" style="background:rgba(239,172,21,0.15);border-color:rgba(239,172,21,0.3);" onclick="switchScreen('scan-kupon')">
+          <i class="icon icon-qr-code"></i>
+          <span>Scan Kupon</span>
+          <i class="icon icon-chevron-right" style="margin-left:auto;opacity:0.5;"></i>
+        </button>
       </div>
 
       <div class="ucard">
@@ -696,6 +701,106 @@
       <button class="btn-logout" id="logoutBtn">Keluar</button>
     </div>
 
+    <!-- SCAN KUPON -->
+    <div id="screen-scan-kupon" class="screen">
+      <!-- Langkah 1: Input kode kupon (scan atau manual) -->
+      <div id="scanStep1" class="ucard">
+        <div class="card-title"><i class="icon icon-qr-code"></i> Scan Kupon Kurban</div>
+        
+        <!-- Area kamera QR scanner -->
+        <div id="qrScannerContainer" style="position:relative;width:100%;max-width:320px;margin:0 auto 16px;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:1;">
+          <video id="qrVideo" style="width:100%;height:100%;object-fit:cover;" playsinline muted></video>
+          <div id="qrScanOverlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+            <div style="width:200px;height:200px;border:3px solid #EFAC15;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.4);"></div>
+          </div>
+          <div id="qrScanStatus" style="position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;color:white;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,0.8);">Arahkan kamera ke QR code</div>
+        </div>
+        
+        <!-- Tombol kamera -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;justify-content:center;">
+          <button id="btnStartCamera" class="btn-submit panitia" style="flex:1;max-width:160px;" onclick="startQRScanner()">
+            <i class="icon icon-camera"></i> Buka Kamera
+          </button>
+          <button id="btnStopCamera" class="btn-submit panitia" style="flex:1;max-width:160px;display:none;background:rgba(224,80,80,0.8);" onclick="stopQRScanner()">
+            <i class="icon icon-camera-off"></i> Tutup Kamera
+          </button>
+        </div>
+        
+        <!-- Divider -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="flex:1;height:1px;background:rgba(255,255,255,0.15);"></div>
+          <span style="font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;">atau input manual</span>
+          <div style="flex:1;height:1px;background:rgba(255,255,255,0.15);"></div>
+        </div>
+        
+        <!-- Input manual -->
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="inputKodeKupon" placeholder="Contoh: BNT-2025-MSJ001-3S" 
+            style="flex:1;padding:12px;border:1.5px solid rgba(255,255,255,0.2);border-radius:12px;background:rgba(255,255,255,0.1);color:white;font-family:inherit;font-size:14px;"
+            onkeydown="if(event.key==='Enter') validateKuponManual()">
+          <button class="btn-submit panitia" style="padding:12px 16px;white-space:nowrap;" onclick="validateKuponManual()">
+            <i class="icon icon-search"></i> Cek
+          </button>
+        </div>
+      </div>
+
+      <!-- Langkah 2: Info kupon valid + upload foto -->
+      <div id="scanStep2" style="display:none;">
+        <div class="ucard" id="kuponInfoCard">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(22,163,74,0.2);display:flex;align-items:center;justify-content:center;">
+              <i class="icon icon-check-circle" style="font-size:20px;color:#16a34a;"></i>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:800;color:white;">Kupon Valid</div>
+              <div id="kuponKodeDisplay" style="font-size:11px;color:rgba(255,255,255,0.5);font-family:monospace;"></div>
+            </div>
+          </div>
+          <div id="kuponMasjidInfo" style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(239,172,21,0.15);border:1px solid rgba(239,172,21,0.3);border-radius:10px;padding:10px;">
+            <i class="icon icon-package" style="font-size:20px;color:#EFAC15;"></i>
+            <div>
+              <div id="kuponJumlahSapi" style="font-size:22px;font-weight:800;color:#EFAC15;line-height:1;"></div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.6);">Ekor Sapi Jatah</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ucard">
+          <div class="card-title"><i class="icon icon-camera"></i> Foto Bukti Pengambilan</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:12px;display:flex;align-items:flex-start;gap:6px;">
+            <i class="icon icon-info" style="font-size:14px;color:#00A2EA;flex-shrink:0;margin-top:1px;"></i>
+            <span>Foto penerima berdiri di samping mobil pengambilan</span>
+          </div>
+          <div class="upload-area" id="buktiFotoArea" onclick="document.getElementById('buktiFotoInput').click()" style="cursor:pointer;">
+            <i class="icon icon-image" style="font-size:32px;margin-bottom:8px;"></i>
+            <div style="font-weight:600;">Ketuk untuk pilih foto</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;">JPG, PNG, WEBP (maks. 5MB)</div>
+          </div>
+          <input type="file" id="buktiFotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="onBuktiFotoSelected(this)">
+          <div id="buktiFotoPreview" style="display:none;margin-top:12px;position:relative;">
+            <img id="buktiFotoImg" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover;" alt="Foto bukti">
+            <button onclick="clearBuktiFoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;"><i class="icon icon-x"></i></button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn-submit panitia" style="flex:1;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);" onclick="resetScanKupon()">
+            <i class="icon icon-arrow-left"></i> Scan Lagi
+          </button>
+          <button id="btnKonfirmasiPengambilan" class="btn-submit panitia" style="flex:2;opacity:0.4;cursor:not-allowed;" disabled onclick="submitKonfirmasiPengambilan()">
+            <i class="icon icon-check-circle"></i> Konfirmasi Pengambilan
+          </button>
+        </div>
+      </div>
+
+      <!-- Riwayat scan sesi ini -->
+      <div class="ucard" id="riwayatScanCard" style="margin-top:16px;display:none;">
+        <div class="card-title"><i class="icon icon-history"></i> Riwayat Scan Sesi Ini</div>
+        <div id="riwayatScanList"></div>
+      </div>
+    </div>
+
     <div class="desktop-right-placeholder" id="desktopPlaceholder">
       <i class="icon icon-list"></i>
       <span>Pilih hewan untuk upload foto</span>
@@ -704,6 +809,7 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script src="../assets/js/api.js"></script>
 <script src="../assets/js/auth.js"></script>
 <script>
@@ -1430,5 +1536,250 @@
     <div class="upload-overlay-sub">Mohon tunggu, jangan tutup halaman</div>
   </div>
 </div>
+
+<script>
+// ==================== SCAN KUPON ====================
+let _qrStream = null;
+let _qrAnimFrame = null;
+let _currentKuponId = null;
+let _currentBuktiFotoBase64 = null;
+let _currentBuktiFotoMime = null;
+let _riwayatScan = [];
+
+// Inisialisasi kamera QR scanner menggunakan jsQR
+async function startQRScanner() {
+  const video = document.getElementById('qrVideo');
+  const btnStart = document.getElementById('btnStartCamera');
+  const btnStop = document.getElementById('btnStopCamera');
+  const status = document.getElementById('qrScanStatus');
+
+  try {
+    _qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = _qrStream;
+    await video.play();
+    btnStart.style.display = 'none';
+    btnStop.style.display = '';
+    status.textContent = 'Arahkan kamera ke QR code...';
+    _scanQRLoop();
+  } catch (err) {
+    showToast('Tidak dapat mengakses kamera: ' + err.message, 'error');
+  }
+}
+
+function stopQRScanner() {
+  if (_qrStream) {
+    _qrStream.getTracks().forEach(t => t.stop());
+    _qrStream = null;
+  }
+  if (_qrAnimFrame) {
+    cancelAnimationFrame(_qrAnimFrame);
+    _qrAnimFrame = null;
+  }
+  const video = document.getElementById('qrVideo');
+  video.srcObject = null;
+  document.getElementById('btnStartCamera').style.display = '';
+  document.getElementById('btnStopCamera').style.display = 'none';
+  document.getElementById('qrScanStatus').textContent = 'Arahkan kamera ke QR code';
+}
+
+function _scanQRLoop() {
+  const video = document.getElementById('qrVideo');
+  if (!_qrStream || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    _qrAnimFrame = requestAnimationFrame(_scanQRLoop);
+    return;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  // jsQR harus tersedia dari CDN
+  if (typeof jsQR !== 'undefined') {
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+    if (code && code.data) {
+      stopQRScanner();
+      document.getElementById('qrScanStatus').textContent = 'QR terdeteksi!';
+      processKuponCode(code.data);
+      return;
+    }
+  }
+  _qrAnimFrame = requestAnimationFrame(_scanQRLoop);
+}
+
+function validateKuponManual() {
+  const kode = document.getElementById('inputKodeKupon').value.trim().toUpperCase();
+  if (!kode) { showToast('Masukkan kode kupon terlebih dahulu', 'error'); return; }
+  processKuponCode(kode);
+}
+
+async function processKuponCode(kodeKupon) {
+  document.getElementById('qrScanStatus').textContent = 'Memvalidasi kupon...';
+  const overlay = document.getElementById('uploadOverlay');
+  document.getElementById('uploadOverlayText').textContent = 'Memvalidasi kupon...';
+  overlay.classList.add('active');
+
+  const res = await callApi('validateKupon', { kode_kupon: kodeKupon, petugas_email: email });
+  overlay.classList.remove('active');
+
+  if (!res.success) {
+    showToast(res.error || 'Kupon tidak valid', 'error');
+    document.getElementById('qrScanStatus').textContent = 'Arahkan kamera ke QR code';
+    return;
+  }
+
+  // Kupon valid — tampilkan info
+  _currentKuponId = res.kupon_id;
+  _currentBuktiFotoBase64 = null;
+  _currentBuktiFotoMime = null;
+
+  const masjid = res.masjid || {};
+  document.getElementById('kuponKodeDisplay').textContent = kodeKupon;
+  document.getElementById('kuponJumlahSapi').textContent = res.jumlah_sapi || '-';
+  document.getElementById('kuponMasjidInfo').innerHTML = `
+    <div style="font-size:14px;font-weight:800;color:white;margin-bottom:4px;">${esc(masjid.nama_masjid || '-')}</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.6);">${esc(masjid.alamat || '')}${masjid.kecamatan ? ' · ' + esc(masjid.kecamatan) : ''}</div>
+    ${masjid.nama_pic ? `<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;">PIC: ${esc(masjid.nama_pic)}</div>` : ''}
+  `;
+
+  // Reset foto bukti
+  clearBuktiFoto();
+
+  // Tampilkan step 2
+  document.getElementById('scanStep1').style.display = 'none';
+  document.getElementById('scanStep2').style.display = '';
+}
+
+function onBuktiFotoSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Validasi tipe dan ukuran
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    showToast('Tipe file tidak didukung. Gunakan JPG, PNG, atau WEBP', 'error');
+    input.value = '';
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Ukuran file melebihi 5 MB', 'error');
+    input.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64Full = e.target.result; // data:image/jpeg;base64,....
+    const parts = base64Full.split(',');
+    _currentBuktiFotoBase64 = parts[1];
+    _currentBuktiFotoMime = file.type;
+
+    // Tampilkan preview
+    document.getElementById('buktiFotoImg').src = base64Full;
+    document.getElementById('buktiFotoPreview').style.display = '';
+    document.getElementById('buktiFotoArea').style.display = 'none';
+
+    // Aktifkan tombol konfirmasi
+    const btn = document.getElementById('btnKonfirmasiPengambilan');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearBuktiFoto() {
+  _currentBuktiFotoBase64 = null;
+  _currentBuktiFotoMime = null;
+  document.getElementById('buktiFotoInput').value = '';
+  document.getElementById('buktiFotoPreview').style.display = 'none';
+  document.getElementById('buktiFotoArea').style.display = '';
+  const btn = document.getElementById('btnKonfirmasiPengambilan');
+  btn.disabled = true;
+  btn.style.opacity = '0.4';
+  btn.style.cursor = 'not-allowed';
+}
+
+async function submitKonfirmasiPengambilan() {
+  if (!_currentKuponId || !_currentBuktiFotoBase64) {
+    showToast('Foto bukti wajib dipilih sebelum konfirmasi', 'error');
+    return;
+  }
+
+  const overlay = document.getElementById('uploadOverlay');
+  document.getElementById('uploadOverlayText').textContent = 'Mengkonfirmasi pengambilan...';
+  overlay.classList.add('active');
+
+  const res = await callApi('konfirmasiPengambilan', {
+    kupon_id: _currentKuponId,
+    foto_bukti_base64: _currentBuktiFotoBase64,
+    mime_type: _currentBuktiFotoMime,
+    petugas_email: email
+  });
+  overlay.classList.remove('active');
+
+  if (res.success) {
+    // Tambah ke riwayat
+    const kode = document.getElementById('kuponKodeDisplay').textContent;
+    const namaMasjid = document.getElementById('kuponMasjidInfo').querySelector('[style*="font-weight:800"]')?.textContent || '-';
+    const jumlahSapi = document.getElementById('kuponJumlahSapi').textContent;
+    _riwayatScan.unshift({ kode, namaMasjid, jumlahSapi, waktu: new Date() });
+    renderRiwayatScan();
+
+    showToast('Pengambilan berhasil dikonfirmasi!', 'success');
+    resetScanKupon();
+  } else {
+    const errMsg = res.error || 'Terjadi kesalahan';
+    showToast('Gagal: ' + errMsg, 'error');
+    // Jika kupon sudah digunakan, tampilkan detail
+    if (errMsg.toLowerCase().includes('sudah digunakan') || errMsg.toLowerCase().includes('already used')) {
+      document.getElementById('kuponMasjidInfo').innerHTML += `
+        <div style="margin-top:8px;padding:8px;background:rgba(224,80,80,0.15);border-radius:8px;font-size:12px;color:#ff6b6b;">
+          <i class="icon icon-alert-circle" style="font-size:13px;"></i> ${esc(errMsg)}
+        </div>`;
+    }
+  }
+}
+
+function resetScanKupon() {
+  _currentKuponId = null;
+  clearBuktiFoto();
+  document.getElementById('inputKodeKupon').value = '';
+  document.getElementById('scanStep1').style.display = '';
+  document.getElementById('scanStep2').style.display = 'none';
+  document.getElementById('qrScanStatus').textContent = 'Arahkan kamera ke QR code';
+}
+
+function renderRiwayatScan() {
+  const card = document.getElementById('riwayatScanCard');
+  const list = document.getElementById('riwayatScanList');
+  if (_riwayatScan.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  list.innerHTML = _riwayatScan.map(r => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:white;">${esc(r.namaMasjid)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.5);font-family:monospace;">${esc(r.kode)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:16px;font-weight:800;color:#EFAC15;">${esc(r.jumlahSapi)}<span style="font-size:10px;color:rgba(255,255,255,0.4);"> sapi</span></div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);">${r.waktu.toLocaleTimeString('id-ID')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Stop kamera saat pindah screen
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('[onclick*="switchScreen"]') || e.target.closest('[data-screen]');
+  if (target) {
+    const screen = target.getAttribute('data-screen') || (target.getAttribute('onclick') || '').match(/switchScreen\('([^']+)'\)/)?.[1];
+    if (screen && screen !== 'scan-kupon') {
+      stopQRScanner();
+    }
+  }
+});
+</script>
 </body>
 </html>

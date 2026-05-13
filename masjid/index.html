@@ -1,0 +1,1484 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Portal Masjid · Kurban Digital</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="icon" type="image/png" href="../assets/images/logo/logo-bnt.webp">
+  <style>
+    /* ── BACKGROUND ── */
+    body.masjid-frame {
+      background: #0a1628 !important;
+      position: relative;
+    }
+    body.masjid-frame::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url('../assets/images/bg_desktop/pekurban_portal_qurban_bnt.webp');
+      background-size: cover; background-position: center;
+    }
+    body.masjid-frame::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(135deg, rgba(10,22,40,0.88) 0%, rgba(15,44,86,0.82) 100%);
+    }
+    @media (max-width: 900px) {
+      body.masjid-frame::before {
+        background-image: url('../assets/images/bg_mobile/pekurban_mobile_qurban_bnt.webp');
+        background-position: top center;
+      }
+    }
+    .phone-shell { position: relative; z-index: 1; }
+
+    /* ── PHONE SHELL ── */
+    .phone-shell {
+      width: 100%; margin: 0 auto;
+      background: rgba(255,255,255,0.04) !important;
+      backdrop-filter: blur(2px);
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5) !important;
+    }
+    @media (max-width: 899px) {
+      body.masjid-frame { padding: 16px; display: flex; justify-content: center; }
+      .phone-shell { max-width: 480px; border-radius: 28px !important; }
+    }
+    @media (min-width: 900px) {
+      body.masjid-frame { padding: 0 !important; display: block !important; min-height: 100vh; }
+      .phone-shell {
+        max-width: 100% !important; width: 100% !important;
+        min-height: 100vh; border-radius: 0 !important;
+        border: none !important; box-shadow: none !important;
+        display: grid !important;
+        grid-template-columns: 380px 1fr !important;
+        grid-template-rows: auto 1fr !important;
+        background: transparent !important; backdrop-filter: none !important;
+      }
+      .m-header { grid-column: 1 / -1; }
+      .m-left {
+        grid-column: 1; grid-row: 2;
+        overflow-y: auto; height: calc(100vh - 140px);
+        border-right: 1px solid rgba(255,255,255,0.08);
+      }
+      .m-right {
+        grid-column: 2; grid-row: 2;
+        overflow-y: auto; height: calc(100vh - 140px);
+        padding: 24px 32px;
+      }
+    }
+    @media (min-width: 1200px) {
+      .phone-shell { grid-template-columns: 420px 1fr !important; }
+    }
+
+    /* ── HEADER ── */
+    .m-header {
+      background:
+        linear-gradient(150deg, rgba(10,22,40,0.82) 0%, rgba(26,74,133,0.78) 55%, rgba(44,112,183,0.75) 100%),
+        url('../assets/images/bg_desktop/pekurban_portal_qurban_bnt.webp') center/cover no-repeat;
+      padding: 24px 22px 32px;
+      position: relative; overflow: hidden;
+    }
+    .m-header::after {
+      content: '';
+      position: absolute; bottom: -1px; left: 0; right: 0;
+      height: 20px; background: transparent;
+    }
+    .m-topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px; position: relative; z-index: 2;
+    }
+    .m-brand { display: flex; align-items: center; gap: 10px; }
+    .m-brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(255,255,255,0.15); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .m-brand-name { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: white; }
+    .m-brand-sub { font-size: 10px; color: rgba(255,255,255,0.45); }
+    .m-greet { position: relative; z-index: 2; }
+    .m-hi { font-size: 12px; color: rgba(255,255,255,0.6); }
+    .m-name { font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 700; color: white; margin-top: 2px; }
+    .m-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+    /* ── VIEWS ── */
+    .m-view { display: none; flex-direction: column; flex: 1; }
+    .m-view.active { display: flex; animation: mFadeUp 0.35s ease forwards; }
+    @keyframes mFadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── AUTH / OTP / REGISTER VIEWS ── */
+    .m-left { padding: 20px 18px; }
+    .m-auth-card {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px; padding: 24px 20px;
+      margin-bottom: 14px;
+    }
+    .m-auth-title {
+      font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700;
+      color: white; margin-bottom: 6px;
+    }
+    .m-auth-sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 20px; line-height: 1.5; }
+    .m-field-label {
+      display: block; font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.5); letter-spacing: 0.8px;
+      text-transform: uppercase; margin-bottom: 7px;
+    }
+    .m-field {
+      width: 100%; padding: 13px 16px;
+      background: rgba(255,255,255,0.1);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 14px; color: white;
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px;
+      outline: none; transition: all 0.2s; margin-bottom: 14px;
+    }
+    .m-field:focus { border-color: var(--sky); background: rgba(255,255,255,0.15); box-shadow: 0 0 0 3px rgba(0,162,234,0.15); }
+    .m-field::placeholder { color: rgba(255,255,255,0.3); }
+    .m-field option { background: #0f2c56; color: white; }
+    .m-field:disabled { opacity: 0.5; cursor: not-allowed; }
+    .m-btn {
+      width: 100%; padding: 14px; border: none; border-radius: 14px;
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all 0.22s; letter-spacing: 0.2px;
+    }
+    .m-btn-primary {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--sky) 100%);
+      color: white; box-shadow: 0 4px 16px rgba(44,112,183,0.4);
+    }
+    .m-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(44,112,183,0.5); }
+    .m-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .m-btn-ghost {
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+      border: 1.5px solid rgba(255,255,255,0.15); margin-top: 10px;
+    }
+    .m-btn-ghost:hover { background: rgba(255,255,255,0.14); color: white; }
+    .m-btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+    .m-error {
+      background: rgba(224,80,80,0.15); border: 1px solid rgba(224,80,80,0.3);
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+      font-size: 13px; color: #ff8080; display: none;
+    }
+    .m-error.show { display: block; }
+    .m-info {
+      background: rgba(0,162,234,0.12); border: 1px solid rgba(0,162,234,0.25);
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+      font-size: 13px; color: rgba(0,162,234,0.9); display: none;
+    }
+    .m-info.show { display: block; }
+    .m-banner-closed {
+      background: rgba(239,172,21,0.15); border: 1px solid rgba(239,172,21,0.3);
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+      font-size: 13px; color: #f5c842; display: none;
+      align-items: center; gap: 8px;
+    }
+    .m-banner-closed.show { display: flex; }
+
+    /* OTP input */
+    .otp-input-wrap { display: flex; gap: 8px; margin-bottom: 14px; }
+    .otp-digit {
+      flex: 1; padding: 14px 0; text-align: center;
+      background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 12px; color: white; font-size: 22px; font-weight: 700;
+      font-family: 'Sora', sans-serif; outline: none; transition: all 0.2s;
+    }
+    .otp-digit:focus { border-color: var(--sky); background: rgba(255,255,255,0.18); }
+
+    /* ── DASHBOARD ── */
+    .m-dash-left { padding: 16px 18px; }
+    .m-status-banner {
+      background: rgba(255,255,255,0.08); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 18px;
+      padding: 18px 16px; margin-bottom: 14px;
+    }
+    .m-status-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: white; margin-bottom: 4px; }
+    .m-status-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .m-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700;
+    }
+    .m-pill-draft { background: rgba(139,163,187,0.2); color: #8BA3BB; border: 1px solid rgba(139,163,187,0.3); }
+    .m-pill-menunggu { background: rgba(239,172,21,0.2); color: #f5c842; border: 1px solid rgba(239,172,21,0.3); }
+    .m-pill-disetujui { background: rgba(62,170,92,0.2); color: #5dd87a; border: 1px solid rgba(62,170,92,0.3); }
+    .m-pill-ditolak { background: rgba(224,80,80,0.2); color: #ff8080; border: 1px solid rgba(224,80,80,0.3); }
+    .m-pill-diblokir { background: rgba(224,80,80,0.2); color: #ff8080; border: 1px solid rgba(224,80,80,0.3); }
+    .m-kk-counter {
+      background: rgba(44,112,183,0.15); border: 1px solid rgba(44,112,183,0.3);
+      border-radius: 12px; padding: 10px 14px; margin-top: 10px;
+      font-size: 13px; color: rgba(255,255,255,0.8);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .m-kk-counter strong { color: var(--sky); font-size: 18px; font-family: 'Sora', sans-serif; }
+
+    /* Upload section */
+    .m-section-title {
+      font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700;
+      color: white; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .m-upload-area {
+      border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px;
+      padding: 28px 16px; text-align: center;
+      background: rgba(255,255,255,0.05); cursor: pointer;
+      transition: all 0.2s; margin-bottom: 14px;
+    }
+    .m-upload-area:hover { border-color: var(--sky); background: rgba(0,162,234,0.06); }
+    .m-upload-area.disabled { opacity: 0.4; pointer-events: none; }
+    .m-upload-area i { font-size: 36px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 8px; }
+    .m-upload-area .ua-title { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.8); }
+    .m-upload-area .ua-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+
+    /* KK result items */
+    .kk-result-item {
+      background: rgba(255,255,255,0.07); border-radius: 14px;
+      padding: 14px; margin-bottom: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .kk-result-item.valid { border-color: rgba(62,170,92,0.4); background: rgba(62,170,92,0.08); }
+    .kk-result-item.duplikat { border-color: rgba(239,172,21,0.4); background: rgba(239,172,21,0.08); }
+    .kk-result-item.gagal_ocr { border-color: rgba(224,80,80,0.4); background: rgba(224,80,80,0.08); }
+    .kk-result-item.perlu_konfirmasi { border-color: rgba(0,162,234,0.4); background: rgba(0,162,234,0.08); }
+    .kk-result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .kk-result-icon { font-size: 18px; }
+    .kk-result-name { font-size: 13px; font-weight: 700; color: white; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .kk-result-badge {
+      font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 100px;
+    }
+    .badge-valid { background: rgba(62,170,92,0.25); color: #5dd87a; }
+    .badge-duplikat { background: rgba(239,172,21,0.25); color: #f5c842; }
+    .badge-gagal { background: rgba(224,80,80,0.25); color: #ff8080; }
+    .badge-konfirmasi { background: rgba(0,162,234,0.25); color: #00A2EA; }
+    .kk-result-sub { font-size: 12px; color: rgba(255,255,255,0.45); }
+
+    /* Konfirmasi anggota inline */
+    .konfirmasi-box {
+      background: rgba(0,162,234,0.06); border: 1px solid rgba(0,162,234,0.25);
+      border-radius: 14px; padding: 14px; margin-top: 10px;
+    }
+    .konfirmasi-box img { width: 100%; border-radius: 10px; margin-bottom: 12px; max-height: 200px; object-fit: contain; background: rgba(0,0,0,0.3); }
+    .anggota-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    .anggota-table th { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .anggota-table td { padding: 6px 4px; }
+    .anggota-table input, .anggota-table select {
+      width: 100%; padding: 7px 8px; background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+      color: white; font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif; outline: none;
+    }
+    .anggota-table select option { background: #0f2c56; }
+    .anggota-table input::placeholder { color: rgba(255,255,255,0.25); }
+    .btn-remove-row { background: none; border: none; color: rgba(255,80,80,0.6); cursor: pointer; font-size: 16px; padding: 4px; }
+    .btn-remove-row:hover { color: #ff6b6b; }
+    .btn-add-row {
+      background: rgba(255,255,255,0.08); border: 1px dashed rgba(255,255,255,0.2);
+      border-radius: 10px; padding: 8px 14px; color: rgba(255,255,255,0.6);
+      font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 10px;
+      transition: all 0.2s;
+    }
+    .btn-add-row:hover { background: rgba(255,255,255,0.12); color: white; }
+    .btn-konfirmasi-anggota {
+      width: 100%; padding: 11px; border: none; border-radius: 12px;
+      background: linear-gradient(135deg, var(--sky) 0%, var(--blue) 100%);
+      color: white; font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-konfirmasi-anggota:hover { transform: translateY(-1px); }
+    .btn-konfirmasi-anggota:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Kupon section */
+    .m-kupon-card {
+      background: linear-gradient(145deg, var(--blue-dk) 0%, #1A5E9A 100%);
+      border-radius: 20px; padding: 24px 20px; margin-bottom: 14px;
+      position: relative; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .m-kupon-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--blue) 0%, var(--sky) 50%, var(--amber) 100%);
+    }
+    .m-kupon-qr {
+      width: 160px; height: 160px; margin: 0 auto 16px;
+      background: white; border-radius: 12px; padding: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .m-kupon-qr img { width: 100%; height: 100%; object-fit: contain; }
+    .m-kupon-kode {
+      text-align: center; font-family: 'Sora', sans-serif;
+      font-size: 18px; font-weight: 800; color: white;
+      letter-spacing: 2px; margin-bottom: 8px;
+    }
+    .m-kupon-info { text-align: center; font-size: 13px; color: rgba(255,255,255,0.65); margin-bottom: 4px; }
+    .m-kupon-sapi {
+      text-align: center; font-family: 'Sora', sans-serif;
+      font-size: 28px; font-weight: 800; color: var(--amber);
+      margin: 8px 0 4px;
+    }
+    .m-kupon-sapi-lbl { text-align: center; font-size: 12px; color: rgba(255,255,255,0.45); }
+    .btn-download-kupon {
+      width: 100%; padding: 13px; border: none; border-radius: 14px; margin-top: 16px;
+      background: rgba(255,255,255,0.15); color: white;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.2); transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-download-kupon:hover { background: rgba(255,255,255,0.22); }
+
+    /* Loading spinner */
+    .m-spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+      border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Summary dialog */
+    .m-dialog-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+      z-index: 500; align-items: center; justify-content: center; padding: 20px;
+    }
+    .m-dialog-overlay.active { display: flex; }
+    .m-dialog {
+      background: #0f2c56; border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 24px; padding: 28px 24px; width: 100%; max-width: 380px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+    .m-dialog-title { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; color: white; margin-bottom: 8px; }
+    .m-dialog-body { font-size: 14px; color: rgba(255,255,255,0.65); line-height: 1.6; margin-bottom: 20px; }
+    .m-dialog-actions { display: flex; gap: 10px; }
+    .m-dialog-actions .m-btn { flex: 1; padding: 12px; font-size: 14px; }
+
+    /* Toast */
+    .m-toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 12px 22px; border-radius: 100px; font-weight: 600; font-size: 14px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.4); z-index: 9999;
+      pointer-events: none; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease;
+      white-space: nowrap; max-width: 90vw;
+    }
+    .m-toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+    .m-toast.success { background: var(--green); color: white; }
+    .m-toast.error { background: #E05050; color: white; }
+    .m-toast.info { background: var(--blue); color: white; }
+
+    /* Logout button */
+    .btn-logout-m {
+      width: 100%; padding: 13px; background: rgba(224,80,80,0.15);
+      color: #ff8080; border: 1px solid rgba(224,80,80,0.25);
+      border-radius: 14px; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; margin-top: 8px;
+    }
+    .btn-logout-m:hover { background: #E05050; color: white; border-color: #E05050; }
+
+    /* Right panel placeholder */
+    .m-right-placeholder {
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px; flex: 1;
+      color: rgba(255,255,255,0.2); font-size: 14px; font-weight: 600;
+    }
+    .m-right-placeholder i { font-size: 48px; opacity: 0.2; }
+
+    /* Upload progress */
+    .upload-progress-bar {
+      height: 4px; background: rgba(255,255,255,0.1); border-radius: 100px;
+      overflow: hidden; margin-top: 8px; display: none;
+    }
+    .upload-progress-bar.show { display: block; }
+    .upload-progress-fill {
+      height: 100%; border-radius: 100px;
+      background: linear-gradient(90deg, var(--blue), var(--sky));
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body class="masjid-frame" style="padding:16px;display:flex;justify-content:center;">
+<div class="phone-shell">
+
+  <!-- ═══════════════════════════════════════════
+       HEADER (shared across all views)
+  ═══════════════════════════════════════════ -->
+  <div class="m-header">
+    <div class="m-topbar">
+      <div class="m-brand">
+        <div class="m-brand-icon">
+          <img src="../assets/images/logo/logo-bnt.webp" alt="BNT" style="width:28px;height:35px;object-fit:contain;">
+        </div>
+        <div>
+          <div class="m-brand-name">Kurban Digital</div>
+          <div class="m-brand-sub">Portal Masjid · BNT 1447 H</div>
+        </div>
+      </div>
+      <button id="btnLogout" onclick="handleLogout()" style="display:none;background:rgba(255,80,80,0.15);border:1px solid rgba(255,80,80,0.25);color:#ff8080;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;">
+        <i class="icon icon-log-out" style="font-size:14px;vertical-align:middle;margin-right:4px;"></i>Keluar
+      </button>
+    </div>
+    <div class="m-greet" id="headerGreet">
+      <div class="m-hi">Assalamu'alaikum,</div>
+      <div class="m-name" id="headerName">Selamat Datang</div>
+      <div class="m-sub" id="headerSub">Portal Pendaftaran Masjid Kurban</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       LEFT PANEL (auth/otp/register/dashboard-left)
+  ═══════════════════════════════════════════ -->
+  <div class="m-left">
+
+    <!-- Banner periode tutup -->
+    <div class="m-banner-closed" id="bannerPeriodeTutup">
+      <i class="icon icon-alert-triangle" style="font-size:18px;flex-shrink:0;"></i>
+      <span>Periode pendaftaran sudah ditutup. Hubungi admin untuk informasi lebih lanjut.</span>
+    </div>
+
+    <!-- ── VIEW: AUTH ── -->
+    <div class="m-view active" id="viewAuth">
+      <div class="m-auth-card">
+        <div class="m-auth-title"><i class="icon icon-smartphone" style="font-size:20px;vertical-align:middle;margin-right:8px;"></i>Masuk / Daftar</div>
+        <div class="m-auth-sub">Masukkan nomor WhatsApp Anda. Kami akan cek apakah masjid Anda sudah terdaftar.</div>
+        <div class="m-error" id="authError"></div>
+        <label class="m-field-label">Nomor WhatsApp</label>
+        <input type="tel" class="m-field" id="inputNomorWA" placeholder="08xx atau +628xx" autocomplete="tel" inputmode="tel">
+        <button class="m-btn m-btn-primary" id="btnLanjut" onclick="handleNomorWASubmit()">
+          <i class="icon icon-arrow-right" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Lanjut
+        </button>
+      </div>
+    </div>
+
+    <!-- ── VIEW: OTP ── -->
+    <div class="m-view" id="viewOTP">
+      <div class="m-auth-card">
+        <div class="m-auth-title"><i class="icon icon-shield-check" style="font-size:20px;vertical-align:middle;margin-right:8px;"></i>Verifikasi OTP</div>
+        <div class="m-auth-sub" id="otpSubText">Masukkan kode 6 digit yang dikirim ke WhatsApp Anda.</div>
+        <div class="m-error" id="otpError"></div>
+        <div class="m-info" id="otpInfo"></div>
+        <label class="m-field-label">Kode OTP</label>
+        <div class="otp-input-wrap" id="otpInputWrap">
+          <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        </div>
+        <button class="m-btn m-btn-primary" id="btnVerifikasiOTP" onclick="handleOTPSubmit()">
+          <i class="icon icon-check-circle" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Verifikasi
+        </button>
+        <button class="m-btn m-btn-ghost" id="btnKirimUlang" onclick="handleResendOTP()" disabled>
+          <span id="resendText">Kirim Ulang OTP (<span id="resendCountdown">60</span>s)</span>
+        </button>
+        <button class="m-btn m-btn-ghost" onclick="showView('viewAuth')" style="margin-top:8px;">
+          <i class="icon icon-arrow-left" style="font-size:14px;vertical-align:middle;margin-right:6px;"></i>Ganti Nomor
+        </button>
+      </div>
+    </div>
+
+    <!-- ── VIEW: REGISTER ── -->
+    <div class="m-view" id="viewRegister">
+      <div class="m-auth-card">
+        <div class="m-auth-title"><i class="icon icon-building-2" style="font-size:20px;vertical-align:middle;margin-right:8px;"></i>Daftar Masjid Baru</div>
+        <div class="m-auth-sub">Lengkapi data masjid Anda untuk mendaftar program kurban.</div>
+        <div class="m-error" id="registerError"></div>
+        <label class="m-field-label">Nama Masjid <span style="color:#ff8080;">*</span></label>
+        <input type="text" class="m-field" id="regNamaMasjid" placeholder="Contoh: Masjid Al-Ikhlas" maxlength="200">
+        <label class="m-field-label">Alamat <span style="color:#ff8080;">*</span></label>
+        <input type="text" class="m-field" id="regAlamat" placeholder="Jl. Merdeka No. 1">
+        <label class="m-field-label">Kecamatan <span style="color:#ff8080;">*</span></label>
+        <input type="text" class="m-field" id="regKecamatan" placeholder="Nama kecamatan">
+        <label class="m-field-label">Kabupaten/Kota <span style="color:#ff8080;">*</span></label>
+        <input type="text" class="m-field" id="regKabupaten" placeholder="Nama kabupaten/kota">
+        <label class="m-field-label">Nama PIC (Penanggung Jawab) <span style="color:#ff8080;">*</span></label>
+        <input type="text" class="m-field" id="regNamaPIC" placeholder="Nama lengkap penanggung jawab">
+        <label class="m-field-label">Nomor WhatsApp PIC</label>
+        <input type="tel" class="m-field" id="regTeleponPIC" placeholder="08xx atau +628xx" readonly style="opacity:0.7;">
+        <button class="m-btn m-btn-primary" id="btnDaftar" onclick="handleRegistrationSubmit()">
+          <i class="icon icon-user-plus" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Daftar &amp; Kirim OTP
+        </button>
+        <button class="m-btn m-btn-ghost" onclick="showView('viewAuth')">
+          <i class="icon icon-arrow-left" style="font-size:14px;vertical-align:middle;margin-right:6px;"></i>Kembali
+        </button>
+      </div>
+    </div>
+
+    <!-- ── VIEW: DASHBOARD LEFT ── -->
+    <div class="m-view" id="viewDashboard">
+      <!-- Status banner -->
+      <div class="m-status-banner" id="statusBanner">
+        <div class="m-status-name" id="dashNamaMasjid">-</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);" id="dashTelepon">-</div>
+        <div class="m-status-row">
+          <span class="m-pill" id="dashStatusPill">-</span>
+        </div>
+        <div class="m-kk-counter" id="kkCounter">
+          <i class="icon icon-file-text" style="font-size:18px;color:var(--sky);"></i>
+          <span>KK Valid: <strong id="kkValidCount">0</strong></span>
+        </div>
+      </div>
+
+      <!-- Upload section (only when status = draft) -->
+      <div id="uploadSection">
+        <div class="m-section-title">
+          <i class="icon icon-upload-cloud" style="font-size:18px;color:var(--sky);"></i>
+          Upload Kartu Keluarga
+        </div>
+        <div class="m-upload-area" id="uploadArea" onclick="document.getElementById('kkFileInput').click()">
+          <i class="icon icon-file-plus"></i>
+          <div class="ua-title">Pilih foto KK</div>
+          <div class="ua-sub">JPEG, PNG, WEBP · Maks. 5 MB</div>
+        </div>
+        <input type="file" id="kkFileInput" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleKKFileSelected(this)">
+        <div class="upload-progress-bar" id="uploadProgressBar">
+          <div class="upload-progress-fill" id="uploadProgressFill" style="width:0%"></div>
+        </div>
+
+        <!-- KK results list -->
+        <div id="kkResultsList"></div>
+
+        <!-- Konfirmasi selesai upload -->
+        <button class="m-btn m-btn-primary" id="btnSelesaiUpload" onclick="showSelesaiDialog()" style="margin-top:8px;display:none;">
+          <i class="icon icon-check-square" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Konfirmasi Selesai Upload
+        </button>
+      </div>
+
+      <!-- Menunggu review state -->
+      <div id="menungguSection" style="display:none;">
+        <div class="m-auth-card" style="text-align:center;">
+          <i class="icon icon-clock" style="font-size:40px;color:var(--amber);display:block;margin-bottom:12px;"></i>
+          <div class="m-auth-title" style="justify-content:center;">Menunggu Review</div>
+          <div class="m-auth-sub" style="margin-bottom:0;">Data KK Anda sedang direview oleh admin. Kami akan menghubungi Anda jika ada informasi lebih lanjut.</div>
+        </div>
+      </div>
+
+      <!-- Ditolak state -->
+      <div id="ditolakSection" style="display:none;">
+        <div class="m-auth-card" style="text-align:center;border-color:rgba(224,80,80,0.3);">
+          <i class="icon icon-x-circle" style="font-size:40px;color:#ff8080;display:block;margin-bottom:12px;"></i>
+          <div class="m-auth-title" style="justify-content:center;">Pendaftaran Ditolak</div>
+          <div class="m-auth-sub" style="margin-bottom:0;">Pendaftaran masjid Anda tidak disetujui. Hubungi admin untuk informasi lebih lanjut.</div>
+        </div>
+      </div>
+
+      <!-- Diblokir state -->
+      <div id="diblokirSection" style="display:none;">
+        <div class="m-auth-card" style="text-align:center;border-color:rgba(224,80,80,0.3);">
+          <i class="icon icon-shield-off" style="font-size:40px;color:#ff8080;display:block;margin-bottom:12px;"></i>
+          <div class="m-auth-title" style="justify-content:center;">Akun Diblokir</div>
+          <div class="m-auth-sub" style="margin-bottom:0;">Akun masjid Anda telah diblokir. Hubungi admin untuk informasi lebih lanjut.</div>
+        </div>
+      </div>
+
+      <button class="btn-logout-m" onclick="handleLogout()">
+        <i class="icon icon-log-out" style="font-size:14px;vertical-align:middle;margin-right:6px;"></i>Keluar
+      </button>
+    </div>
+
+  </div><!-- end .m-left -->
+
+  <!-- ═══════════════════════════════════════════
+       RIGHT PANEL (kupon / detail)
+  ═══════════════════════════════════════════ -->
+  <div class="m-right" id="mRight">
+    <!-- Kupon section (shown when status = disetujui) -->
+    <div id="kuponSection" style="display:none;">
+      <div class="m-section-title">
+        <i class="icon icon-award" style="font-size:18px;color:var(--amber);"></i>
+        Kupon Digital Anda
+      </div>
+      <div class="m-kupon-card" id="kuponCard">
+        <div class="m-kupon-qr" id="kuponQR">
+          <i class="icon icon-qr-code" style="font-size:60px;color:rgba(0,0,0,0.2);"></i>
+        </div>
+        <div class="m-kupon-kode" id="kuponKode">-</div>
+        <div class="m-kupon-info" id="kuponNamaMasjid">-</div>
+        <div class="m-kupon-sapi" id="kuponJumlahSapi">-</div>
+        <div class="m-kupon-sapi-lbl">Ekor Sapi Jatah</div>
+        <button class="btn-download-kupon" onclick="downloadKupon()">
+          <i class="icon icon-download" style="font-size:16px;"></i>
+          Unduh / Cetak Kupon
+        </button>
+      </div>
+      <div style="background:rgba(239,172,21,0.1);border:1px solid rgba(239,172,21,0.25);border-radius:14px;padding:14px;font-size:12px;color:rgba(255,255,255,0.6);line-height:1.6;">
+        <i class="icon icon-info" style="font-size:14px;color:var(--amber);vertical-align:middle;margin-right:6px;"></i>
+        Tunjukkan kupon ini saat pengambilan sapi di lokasi pemotongan. Kupon berlaku <strong style="color:var(--amber);">1 kali</strong> dan akan di-scan oleh petugas.
+      </div>
+    </div>
+
+    <!-- Right placeholder (when no kupon) -->
+    <div class="m-right-placeholder" id="rightPlaceholder">
+      <i class="icon icon-mosque"></i>
+      <span>Dashboard Masjid</span>
+      <span style="font-size:12px;opacity:0.6;text-align:center;max-width:200px;">Upload KK dan konfirmasi selesai untuk mendapatkan kupon kurban</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       DIALOG: Konfirmasi Selesai Upload
+  ═══════════════════════════════════════════ -->
+  <div class="m-dialog-overlay" id="dialogSelesai">
+    <div class="m-dialog">
+      <div class="m-dialog-title"><i class="icon icon-check-circle" style="font-size:20px;vertical-align:middle;margin-right:8px;color:var(--green);"></i>Konfirmasi Selesai Upload</div>
+      <div class="m-dialog-body" id="dialogSelesaiBody">
+        Anda akan mengunci data KK untuk direview admin. Setelah konfirmasi, Anda tidak dapat menambah KK baru.
+      </div>
+      <div class="m-dialog-actions">
+        <button class="m-btn m-btn-ghost" onclick="closeDialog('dialogSelesai')">Batal</button>
+        <button class="m-btn m-btn-primary" id="btnKonfirmasiSelesai" onclick="handleSelesaiUpload()">Ya, Selesai</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="m-toast" id="mToast"></div>
+
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/api.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// SESSION MANAGEMENT
+// ═══════════════════════════════════════════
+const SESSION_KEY = "masjid_session";
+const SESSION_TTL_DAYS = 7;
+
+function getSessionToken() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function isSessionValid(session) {
+  if (!session || !session.expiry) return false;
+  const now = Date.now();
+  const expiry = new Date(session.expiry).getTime();
+  if (now >= expiry) {
+    localStorage.removeItem(SESSION_KEY);
+    return false;
+  }
+  refreshToken(session);
+  return true;
+}
+
+function refreshToken(session) {
+  const now = new Date();
+  const expiry = new Date(now.getTime() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+  session.expiry = expiry.toISOString();
+  session.last_active = now.toISOString();
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+function saveSession(data) {
+  const now = new Date();
+  const expiry = new Date(now.getTime() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+  const session = {
+    masjid_id: data.masjid_id,
+    nama_masjid: data.nama_masjid,
+    telepon_pic: data.telepon_pic,
+    expiry: expiry.toISOString(),
+    last_active: now.toISOString()
+  };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  return session;
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let currentMasjidId = null;
+let currentOTPMasjidId = null;
+let resendTimer = null;
+let kkUploadCount = 0;
+let kkValidCount = 0;
+
+// ═══════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════
+function showView(viewId) {
+  document.querySelectorAll('.m-view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById(viewId);
+  if (el) el.classList.add('active');
+}
+
+function showError(elId, msg) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideError(elId) {
+  const el = document.getElementById(elId);
+  if (el) el.classList.remove('show');
+}
+
+function showInfo(elId, msg) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function setLoading(btnId, loading, text) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn.dataset.origText = btn.innerHTML;
+    btn.innerHTML = '<span class="m-spinner"></span> ' + (text || 'Memproses...');
+  } else {
+    btn.innerHTML = btn.dataset.origText || text || btn.innerHTML;
+  }
+}
+
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('mToast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'm-toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function closeDialog(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('active');
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════
+// PAGE INIT
+// ═══════════════════════════════════════════
+async function initPage() {
+  const session = getSessionToken();
+  if (session && isSessionValid(session)) {
+    currentMasjidId = session.masjid_id;
+    await loadDashboard(session);
+  } else {
+    showView('viewAuth');
+    checkPeriodePendaftaran();
+  }
+}
+
+async function checkPeriodePendaftaran() {
+  try {
+    const res = await callApi('getKonfigSistem', {});
+    if (res.success && res.config) {
+      if (!res.config.periode_pendaftaran_buka) {
+        document.getElementById('bannerPeriodeTutup').classList.add('show');
+      }
+    }
+  } catch (e) { /* silent */ }
+}
+
+// ═══════════════════════════════════════════
+// AUTH FLOW
+// ═══════════════════════════════════════════
+async function handleNomorWASubmit() {
+  const telepon = document.getElementById('inputNomorWA').value.trim();
+  hideError('authError');
+
+  if (!telepon) {
+    showError('authError', 'Masukkan nomor WhatsApp Anda.');
+    return;
+  }
+  if (!isValidTelepon(telepon)) {
+    showError('authError', 'Format nomor tidak valid. Gunakan 08xx atau +628xx.');
+    return;
+  }
+
+  setLoading('btnLanjut', true, 'Memeriksa...');
+  try {
+    const res = await callApi('checkNomorWA', { telepon_pic: telepon });
+    if (!res.success) {
+      showError('authError', res.error || 'Terjadi kesalahan. Coba lagi.');
+      return;
+    }
+    if (res.terdaftar) {
+      currentOTPMasjidId = res.masjid_id;
+      document.getElementById('otpSubText').textContent =
+        'Kode OTP telah dikirim ke WhatsApp ' + telepon + '. Masukkan kode 6 digit di bawah.';
+      showView('viewOTP');
+      startResendCountdown();
+    } else {
+      document.getElementById('regTeleponPIC').value = telepon;
+      showView('viewRegister');
+      checkPeriodePendaftaran();
+    }
+  } catch (e) {
+    showError('authError', 'Gagal terhubung ke server. Coba lagi.');
+  } finally {
+    setLoading('btnLanjut', false, '<i class="icon icon-arrow-right" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Lanjut');
+  }
+}
+
+function isValidTelepon(telepon) {
+  return /^(08\d{8,12}|\+628\d{8,12})$/.test(telepon.replace(/\s/g,''));
+}
+
+// ═══════════════════════════════════════════
+// REGISTRATION FLOW
+// ═══════════════════════════════════════════
+async function handleRegistrationSubmit() {
+  hideError('registerError');
+  const namaMasjid = document.getElementById('regNamaMasjid').value.trim();
+  const alamat = document.getElementById('regAlamat').value.trim();
+  const kecamatan = document.getElementById('regKecamatan').value.trim();
+  const kabupaten = document.getElementById('regKabupaten').value.trim();
+  const namaPIC = document.getElementById('regNamaPIC').value.trim();
+  const teleponPIC = document.getElementById('regTeleponPIC').value.trim();
+
+  if (!namaMasjid) { showError('registerError', 'Nama masjid wajib diisi.'); return; }
+  if (namaMasjid.length > 200) { showError('registerError', 'Nama masjid maksimal 200 karakter.'); return; }
+  if (!kecamatan) { showError('registerError', 'Kecamatan wajib diisi.'); return; }
+  if (!kabupaten) { showError('registerError', 'Kabupaten/kota wajib diisi.'); return; }
+  if (!namaPIC) { showError('registerError', 'Nama PIC wajib diisi.'); return; }
+  if (!isValidTelepon(teleponPIC)) { showError('registerError', 'Format nomor WhatsApp tidak valid.'); return; }
+
+  setLoading('btnDaftar', true, 'Mendaftarkan...');
+  try {
+    const res = await callApi('registerMasjid', {
+      nama_masjid: namaMasjid,
+      alamat: alamat,
+      kecamatan: kecamatan,
+      kabupaten: kabupaten,
+      nama_pic: namaPIC,
+      telepon_pic: teleponPIC
+    });
+    if (!res.success) {
+      showError('registerError', res.error || 'Pendaftaran gagal. Coba lagi.');
+      return;
+    }
+    currentOTPMasjidId = res.masjid_id;
+    document.getElementById('otpSubText').textContent =
+      'Pendaftaran berhasil! Kode OTP telah dikirim ke WhatsApp ' + teleponPIC + '.';
+    showView('viewOTP');
+    startResendCountdown();
+  } catch (e) {
+    showError('registerError', 'Gagal terhubung ke server. Coba lagi.');
+  } finally {
+    setLoading('btnDaftar', false, '<i class="icon icon-user-plus" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Daftar &amp; Kirim OTP');
+  }
+}
+
+// ═══════════════════════════════════════════
+// OTP FLOW
+// ═══════════════════════════════════════════
+function getOTPValue() {
+  return Array.from(document.querySelectorAll('.otp-digit')).map(i => i.value).join('');
+}
+
+function clearOTPInputs() {
+  document.querySelectorAll('.otp-digit').forEach(i => { i.value = ''; });
+  document.querySelectorAll('.otp-digit')[0].focus();
+}
+
+async function handleOTPSubmit() {
+  hideError('otpError');
+  const otp = getOTPValue();
+  if (otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+    showError('otpError', 'Masukkan 6 digit kode OTP.');
+    return;
+  }
+  if (!currentOTPMasjidId) {
+    showError('otpError', 'Sesi tidak valid. Mulai ulang dari awal.');
+    return;
+  }
+
+  setLoading('btnVerifikasiOTP', true, 'Memverifikasi...');
+  try {
+    const res = await callApi('verifyOTP', {
+      masjid_id: currentOTPMasjidId,
+      otp_code: otp
+    });
+    if (!res.success) {
+      showError('otpError', res.error || 'OTP tidak valid atau sudah kadaluarsa.');
+      clearOTPInputs();
+      return;
+    }
+    const session = saveSession({
+      masjid_id: res.masjid_id,
+      nama_masjid: res.nama_masjid,
+      telepon_pic: res.telepon_pic
+    });
+    currentMasjidId = res.masjid_id;
+    stopResendCountdown();
+    await loadDashboard(session);
+  } catch (e) {
+    showError('otpError', 'Gagal terhubung ke server. Coba lagi.');
+  } finally {
+    setLoading('btnVerifikasiOTP', false, '<i class="icon icon-check-circle" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Verifikasi');
+  }
+}
+
+async function handleResendOTP() {
+  const telepon = document.getElementById('inputNomorWA').value.trim() ||
+                  document.getElementById('regTeleponPIC').value.trim();
+  if (!telepon) return;
+  document.getElementById('btnKirimUlang').disabled = true;
+  try {
+    const res = await callApi('requestOTP', { telepon_pic: telepon });
+    if (res.success) {
+      showInfo('otpInfo', 'OTP baru telah dikirim ke WhatsApp Anda.');
+      startResendCountdown();
+    } else {
+      showError('otpError', res.error || 'Gagal mengirim ulang OTP.');
+    }
+  } catch (e) {
+    showError('otpError', 'Gagal terhubung ke server.');
+  }
+}
+
+function startResendCountdown() {
+  stopResendCountdown();
+  let secs = 60;
+  const btn = document.getElementById('btnKirimUlang');
+  const countdown = document.getElementById('resendCountdown');
+  btn.disabled = true;
+  resendTimer = setInterval(() => {
+    secs--;
+    if (countdown) countdown.textContent = secs;
+    if (secs <= 0) {
+      stopResendCountdown();
+      btn.disabled = false;
+      document.getElementById('resendText').innerHTML = 'Kirim Ulang OTP';
+    }
+  }, 1000);
+}
+
+function stopResendCountdown() {
+  if (resendTimer) { clearInterval(resendTimer); resendTimer = null; }
+}
+
+// ═══════════════════════════════════════════
+// OTP INPUT KEYBOARD NAVIGATION
+// ═══════════════════════════════════════════
+function initOTPInputs() {
+  const inputs = document.querySelectorAll('.otp-digit');
+  inputs.forEach((input, idx) => {
+    input.addEventListener('input', e => {
+      const val = e.target.value.replace(/\D/g, '');
+      e.target.value = val.slice(-1);
+      if (val && idx < inputs.length - 1) inputs[idx + 1].focus();
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !e.target.value && idx > 0) inputs[idx - 1].focus();
+      if (e.key === 'ArrowLeft' && idx > 0) inputs[idx - 1].focus();
+      if (e.key === 'ArrowRight' && idx < inputs.length - 1) inputs[idx + 1].focus();
+    });
+    input.addEventListener('paste', e => {
+      e.preventDefault();
+      const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'');
+      paste.split('').slice(0, 6).forEach((ch, i) => {
+        if (inputs[i]) inputs[i].value = ch;
+      });
+      const last = Math.min(paste.length, 5);
+      inputs[last].focus();
+    });
+  });
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+async function loadDashboard(session) {
+  showView('viewDashboard');
+  document.getElementById('btnLogout').style.display = 'flex';
+  document.getElementById('headerName').textContent = session.nama_masjid || 'Masjid';
+  document.getElementById('headerSub').textContent = 'Portal Masjid · ' + (session.telepon_pic || '');
+  document.getElementById('dashNamaMasjid').textContent = session.nama_masjid || '-';
+  document.getElementById('dashTelepon').textContent = session.telepon_pic || '-';
+
+  // Fetch fresh masjid data
+  try {
+    const res = await callApi('getDashboardMasjid', { masjid_id: session.masjid_id });
+    if (res && res.error === 'TOKEN_REVOKED') {
+      handleTokenRevoked();
+      return;
+    }
+    if (res && res.success && res.data) {
+      updateDashboardUI(res.data);
+    } else {
+      // Fallback: show basic dashboard from session
+      updateDashboardFromSession(session);
+    }
+  } catch (e) {
+    updateDashboardFromSession(session);
+  }
+}
+
+function updateDashboardFromSession(session) {
+  updateStatusUI('draft', 0);
+}
+
+function updateDashboardUI(data) {
+  const status = data.status || 'draft';
+  const kkValid = data.jumlah_kk_valid || 0;
+  kkValidCount = kkValid;
+  updateStatusUI(status, kkValid);
+
+  if (status === 'disetujui') {
+    loadKupon();
+  }
+}
+
+function updateStatusUI(status, kkValid) {
+  const pillEl = document.getElementById('dashStatusPill');
+  const pillMap = {
+    draft: ['m-pill-draft', 'Draft'],
+    menunggu_review: ['m-pill-menunggu', 'Menunggu Review'],
+    disetujui: ['m-pill-disetujui', 'Disetujui'],
+    ditolak: ['m-pill-ditolak', 'Ditolak'],
+    diblokir: ['m-pill-diblokir', 'Diblokir']
+  };
+  const [cls, label] = pillMap[status] || ['m-pill-draft', status];
+  pillEl.className = 'm-pill ' + cls;
+  pillEl.textContent = label;
+  document.getElementById('kkValidCount').textContent = kkValid;
+
+  // Show/hide sections based on status
+  const uploadSection = document.getElementById('uploadSection');
+  const menungguSection = document.getElementById('menungguSection');
+  const ditolakSection = document.getElementById('ditolakSection');
+  const diblokirSection = document.getElementById('diblokirSection');
+  const kuponSection = document.getElementById('kuponSection');
+  const rightPlaceholder = document.getElementById('rightPlaceholder');
+
+  uploadSection.style.display = 'none';
+  menungguSection.style.display = 'none';
+  ditolakSection.style.display = 'none';
+  diblokirSection.style.display = 'none';
+  kuponSection.style.display = 'none';
+  rightPlaceholder.style.display = 'flex';
+
+  if (status === 'draft') {
+    uploadSection.style.display = 'block';
+    updateSelesaiButton();
+  } else if (status === 'menunggu_review') {
+    menungguSection.style.display = 'block';
+  } else if (status === 'ditolak') {
+    ditolakSection.style.display = 'block';
+  } else if (status === 'diblokir') {
+    diblokirSection.style.display = 'block';
+  } else if (status === 'disetujui') {
+    kuponSection.style.display = 'block';
+    rightPlaceholder.style.display = 'none';
+  }
+}
+
+function handleTokenRevoked() {
+  clearSession();
+  currentMasjidId = null;
+  showView('viewAuth');
+  document.getElementById('btnLogout').style.display = 'none';
+  showError('authError', 'Sesi tidak valid. Silakan login ulang dengan OTP.');
+  document.getElementById('authError').classList.add('show');
+}
+
+function handleLogout() {
+  clearSession();
+  currentMasjidId = null;
+  currentOTPMasjidId = null;
+  kkUploadCount = 0;
+  kkValidCount = 0;
+  document.getElementById('kkResultsList').innerHTML = '';
+  document.getElementById('btnLogout').style.display = 'none';
+  document.getElementById('headerName').textContent = 'Selamat Datang';
+  document.getElementById('headerSub').textContent = 'Portal Pendaftaran Masjid Kurban';
+  showView('viewAuth');
+  showToast('Berhasil keluar.', 'info');
+}
+
+// ═══════════════════════════════════════════
+// KK UPLOAD (Task 17)
+// ═══════════════════════════════════════════
+async function handleKKFileSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  // Client-side validation
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    showToast('Format file tidak didukung. Gunakan JPEG, PNG, atau WEBP.', 'error');
+    return;
+  }
+  const maxSize = 5 * 1024 * 1024;
+  if (file.size > maxSize) {
+    showToast('Ukuran file melebihi 5 MB.', 'error');
+    return;
+  }
+
+  const session = getSessionToken();
+  if (!session) { handleTokenRevoked(); return; }
+
+  // Show progress
+  const progressBar = document.getElementById('uploadProgressBar');
+  const progressFill = document.getElementById('uploadProgressFill');
+  progressBar.classList.add('show');
+  progressFill.style.width = '30%';
+
+  // Convert to base64
+  let base64Data;
+  try {
+    base64Data = await fileToBase64(file);
+    progressFill.style.width = '60%';
+  } catch (e) {
+    progressBar.classList.remove('show');
+    showToast('Gagal membaca file.', 'error');
+    return;
+  }
+
+  try {
+    const res = await callApi('uploadKK', {
+      masjid_id: session.masjid_id,
+      file_base64: base64Data,
+      mime_type: file.type,
+      file_name: file.name
+    });
+    progressFill.style.width = '100%';
+    setTimeout(() => progressBar.classList.remove('show'), 500);
+
+    if (!res.success) {
+      if (res.error === 'TOKEN_REVOKED') { handleTokenRevoked(); return; }
+      showToast(res.error || 'Upload gagal.', 'error');
+      return;
+    }
+
+    kkUploadCount++;
+    renderKKResult(res, file.name);
+    if (res.status_ocr === 'valid') {
+      kkValidCount++;
+      document.getElementById('kkValidCount').textContent = kkValidCount;
+    }
+    updateSelesaiButton();
+    refreshToken(session);
+  } catch (e) {
+    progressBar.classList.remove('show');
+    showToast('Gagal terhubung ke server.', 'error');
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderKKResult(res, fileName) {
+  const list = document.getElementById('kkResultsList');
+  const status = res.status_ocr;
+  const itemId = 'kk-' + Date.now();
+
+  const statusConfig = {
+    valid: { cls: 'valid', icon: 'icon-check-circle', badge: 'badge-valid', label: 'Valid', color: '#5dd87a' },
+    duplikat: { cls: 'duplikat', icon: 'icon-copy', badge: 'badge-duplikat', label: 'Duplikat', color: '#f5c842' },
+    gagal_ocr: { cls: 'gagal_ocr', icon: 'icon-alert-circle', badge: 'badge-gagal', label: 'Gagal OCR', color: '#ff8080' },
+    perlu_konfirmasi_anggota: { cls: 'perlu_konfirmasi', icon: 'icon-user-check', badge: 'badge-konfirmasi', label: 'Perlu Konfirmasi', color: '#00A2EA' }
+  };
+  const cfg = statusConfig[status] || statusConfig.gagal_ocr;
+
+  const subText = {
+    valid: 'KK berhasil diverifikasi dan dihitung.',
+    duplikat: 'Nomor KK ini sudah terdaftar di sistem.',
+    gagal_ocr: 'OCR gagal membaca nomor KK. Coba upload ulang dengan foto lebih jelas.',
+    perlu_konfirmasi_anggota: 'Data anggota perlu dikonfirmasi manual.'
+  }[status] || '';
+
+  const kkId = res.kk_id || '';
+  const fotoUrl = res.foto_url || '';
+  const anggotaParsial = res.anggota_parsial || [];
+
+  let konfirmasiHtml = '';
+  if (status === 'perlu_konfirmasi_anggota') {
+    konfirmasiHtml = buildKonfirmasiForm(itemId, kkId, fotoUrl, anggotaParsial);
+  }
+
+  const html = '<div class="kk-result-item ' + cfg.cls + '" id="' + itemId + '">' +
+    '<div class="kk-result-header">' +
+    '<i class="icon ' + cfg.icon + ' kk-result-icon" style="color:' + cfg.color + ';"></i>' +
+    '<span class="kk-result-name">' + esc(fileName) + '</span>' +
+    '<span class="kk-result-badge ' + cfg.badge + '">' + cfg.label + '</span>' +
+    '</div>' +
+    '<div class="kk-result-sub">' + esc(subText) + (res.nomor_kk ? ' · KK: ' + esc(res.nomor_kk) : '') + '</div>' +
+    konfirmasiHtml +
+    '</div>';
+
+  list.insertAdjacentHTML('beforeend', html);
+}
+
+function buildKonfirmasiForm(itemId, kkId, fotoUrl, anggotaParsial) {
+  const fotoHtml = fotoUrl
+    ? '<img src="' + esc(fotoUrl) + '" alt="Foto KK" onerror="this.style.display=\'none\'">'
+    : '';
+
+  let rowsHtml = '';
+  if (anggotaParsial && anggotaParsial.length > 0) {
+    anggotaParsial.forEach((a, i) => {
+      rowsHtml += buildAnggotaRow(i, a.nama || '', a.jk || 'L', a.umur || '');
+    });
+  } else {
+    rowsHtml = buildAnggotaRow(0, '', 'L', '');
+  }
+
+  return '<div class="konfirmasi-box" id="konfirmasi-' + itemId + '">' +
+    fotoHtml +
+    '<div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:10px;">Periksa dan lengkapi data anggota keluarga:</div>' +
+    '<table class="anggota-table" id="tbl-' + itemId + '">' +
+    '<thead><tr><th>Nama</th><th>JK</th><th>Umur</th><th></th></tr></thead>' +
+    '<tbody id="tbody-' + itemId + '">' + rowsHtml + '</tbody>' +
+    '</table>' +
+    '<button class="btn-add-row" onclick="addAnggotaRow(\'' + itemId + '\')">' +
+    '<i class="icon icon-plus" style="font-size:13px;vertical-align:middle;margin-right:4px;"></i>Tambah Anggota' +
+    '</button>' +
+    '<button class="btn-konfirmasi-anggota" id="btnKonfirmasi-' + itemId + '" onclick="handleKonfirmasiAnggota(\'' + itemId + '\',\'' + kkId + '\')">' +
+    '<i class="icon icon-check" style="font-size:14px;vertical-align:middle;margin-right:6px;"></i>Konfirmasi Data Anggota' +
+    '</button>' +
+    '</div>';
+}
+
+function buildAnggotaRow(idx, nama, jk, umur) {
+  return '<tr>' +
+    '<td><input type="text" placeholder="Nama lengkap" value="' + esc(nama) + '"></td>' +
+    '<td><select><option value="L"' + (jk === 'L' ? ' selected' : '') + '>L</option><option value="P"' + (jk === 'P' ? ' selected' : '') + '>P</option></select></td>' +
+    '<td><input type="number" placeholder="Umur" min="0" max="150" value="' + esc(String(umur)) + '" style="width:60px;"></td>' +
+    '<td><button class="btn-remove-row" onclick="removeAnggotaRow(this)" title="Hapus"><i class="icon icon-trash-2" style="font-size:14px;"></i></button></td>' +
+    '</tr>';
+}
+
+function addAnggotaRow(itemId) {
+  const tbody = document.getElementById('tbody-' + itemId);
+  if (!tbody) return;
+  const idx = tbody.querySelectorAll('tr').length;
+  tbody.insertAdjacentHTML('beforeend', buildAnggotaRow(idx, '', 'L', ''));
+}
+
+function removeAnggotaRow(btn) {
+  const row = btn.closest('tr');
+  const tbody = row.parentElement;
+  if (tbody.querySelectorAll('tr').length > 1) {
+    row.remove();
+  } else {
+    showToast('Minimal 1 anggota harus diisi.', 'error');
+  }
+}
+
+async function handleKonfirmasiAnggota(itemId, kkId) {
+  const session = getSessionToken();
+  if (!session) { handleTokenRevoked(); return; }
+
+  const tbody = document.getElementById('tbody-' + itemId);
+  if (!tbody) return;
+
+  const rows = tbody.querySelectorAll('tr');
+  const anggotaData = [];
+  let valid = true;
+
+  rows.forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    const selects = row.querySelectorAll('select');
+    const nama = inputs[0] ? inputs[0].value.trim() : '';
+    const jk = selects[0] ? selects[0].value : 'L';
+    const umur = inputs[1] ? parseInt(inputs[1].value) : 0;
+
+    if (!nama) { valid = false; showToast('Nama anggota ke-' + (i+1) + ' wajib diisi.', 'error'); return; }
+    if (isNaN(umur) || umur < 0 || umur > 150) { valid = false; showToast('Umur anggota ke-' + (i+1) + ' tidak valid (0-150).', 'error'); return; }
+    anggotaData.push({ nama, jk, umur });
+  });
+
+  if (!valid || anggotaData.length === 0) return;
+
+  const btn = document.getElementById('btnKonfirmasi-' + itemId);
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await callApi('konfirmasiAnggota', {
+      masjid_id: session.masjid_id,
+      kk_id: kkId,
+      anggota_data: anggotaData
+    });
+
+    if (!res.success) {
+      if (res.error === 'TOKEN_REVOKED') { handleTokenRevoked(); return; }
+      showToast(res.error || 'Konfirmasi gagal.', 'error');
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    // Update the item to show valid
+    const item = document.getElementById(itemId);
+    if (item) {
+      item.className = 'kk-result-item valid';
+      const badge = item.querySelector('.kk-result-badge');
+      if (badge) { badge.className = 'kk-result-badge badge-valid'; badge.textContent = 'Valid'; }
+      const icon = item.querySelector('.kk-result-icon');
+      if (icon) { icon.className = 'icon icon-check-circle kk-result-icon'; icon.style.color = '#5dd87a'; }
+      const sub = item.querySelector('.kk-result-sub');
+      if (sub) sub.textContent = 'KK dikonfirmasi manual. ' + anggotaData.length + ' anggota.';
+      const konfBox = document.getElementById('konfirmasi-' + itemId);
+      if (konfBox) konfBox.remove();
+    }
+
+    kkValidCount++;
+    document.getElementById('kkValidCount').textContent = kkValidCount;
+    updateSelesaiButton();
+    showToast('Data anggota berhasil dikonfirmasi!', 'success');
+    refreshToken(session);
+  } catch (e) {
+    showToast('Gagal terhubung ke server.', 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+
+function updateSelesaiButton() {
+  const btn = document.getElementById('btnSelesaiUpload');
+  if (!btn) return;
+  if (kkValidCount > 0) {
+    btn.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function showSelesaiDialog() {
+  const dialog = document.getElementById('dialogSelesai');
+  const body = document.getElementById('dialogSelesaiBody');
+  body.textContent = 'Anda akan mengunci ' + kkValidCount + ' KK valid untuk direview admin. Setelah konfirmasi, Anda tidak dapat menambah KK baru.';
+  dialog.classList.add('active');
+}
+
+async function handleSelesaiUpload() {
+  const session = getSessionToken();
+  if (!session) { handleTokenRevoked(); return; }
+
+  const btn = document.getElementById('btnKonfirmasiSelesai');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await callApi('konfirmasiSelesaiUpload', { masjid_id: session.masjid_id });
+    closeDialog('dialogSelesai');
+
+    if (!res.success) {
+      if (res.error === 'TOKEN_REVOKED') { handleTokenRevoked(); return; }
+      showToast(res.error || 'Gagal konfirmasi.', 'error');
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    // Disable upload, show menunggu
+    document.getElementById('uploadSection').style.display = 'none';
+    document.getElementById('menungguSection').style.display = 'block';
+    const pillEl = document.getElementById('dashStatusPill');
+    pillEl.className = 'm-pill m-pill-menunggu';
+    pillEl.textContent = 'Menunggu Review';
+    showToast('Berhasil! Data KK Anda sedang direview admin.', 'success');
+    refreshToken(session);
+  } catch (e) {
+    closeDialog('dialogSelesai');
+    showToast('Gagal terhubung ke server.', 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// KUPON DIGITAL (Task 18)
+// ═══════════════════════════════════════════
+async function loadKupon() {
+  const session = getSessionToken();
+  if (!session) return;
+
+  try {
+    const res = await callApi('getKuponMasjid', { masjid_id: session.masjid_id });
+    if (!res.success) return;
+    if (res.kupon) {
+      renderKupon(res.kupon, session.nama_masjid);
+    }
+  } catch (e) { /* silent */ }
+}
+
+function renderKupon(kupon, namaMasjid) {
+  const kuponSection = document.getElementById('kuponSection');
+  const rightPlaceholder = document.getElementById('rightPlaceholder');
+  kuponSection.style.display = 'block';
+  rightPlaceholder.style.display = 'none';
+
+  // QR code
+  const qrEl = document.getElementById('kuponQR');
+  if (kupon.qr_base64) {
+    qrEl.innerHTML = '<img src="data:image/png;base64,' + kupon.qr_base64 + '" alt="QR Code Kupon">';
+  }
+
+  document.getElementById('kuponKode').textContent = kupon.kode_kupon || '-';
+  document.getElementById('kuponNamaMasjid').textContent = namaMasjid || '-';
+  document.getElementById('kuponJumlahSapi').textContent = kupon.jumlah_sapi || '-';
+}
+
+function downloadKupon() {
+  const session = getSessionToken();
+  const namaMasjid = session ? session.nama_masjid : 'Masjid';
+  const kode = document.getElementById('kuponKode').textContent;
+  const jumlah = document.getElementById('kuponJumlahSapi').textContent;
+  const qrImg = document.querySelector('#kuponQR img');
+
+  // Build a printable page
+  const printContent = '<html><head><title>Kupon Kurban - ' + kode + '</title>' +
+    '<style>' +
+    'body{font-family:Arial,sans-serif;margin:0;padding:20px;background:#fff;}' +
+    '.kupon{border:2px solid #1A4A85;border-radius:16px;overflow:hidden;max-width:400px;margin:0 auto;}' +
+    '.kupon-header{background:#1A4A85;color:white;padding:20px;text-align:center;}' +
+    '.kupon-header h2{margin:0;font-size:18px;}' +
+    '.kupon-header p{margin:4px 0 0;font-size:12px;opacity:0.7;}' +
+    '.kupon-body{padding:24px;text-align:center;}' +
+    '.kupon-qr{width:160px;height:160px;margin:0 auto 16px;}' +
+    '.kupon-qr img{width:100%;height:100%;}' +
+    '.kupon-kode{font-size:20px;font-weight:800;letter-spacing:2px;color:#1A4A85;margin-bottom:8px;}' +
+    '.kupon-masjid{font-size:14px;color:#4A637E;margin-bottom:4px;}' +
+    '.kupon-sapi{font-size:32px;font-weight:800;color:#EFAC15;margin:8px 0 4px;}' +
+    '.kupon-sapi-lbl{font-size:12px;color:#8BA3BB;}' +
+    '.kupon-amber{background:#EFAC15;padding:12px 16px;font-size:11px;color:#0D1E35;line-height:1.5;}' +
+    '.kupon-footer{background:#C0392B;color:white;padding:10px 16px;font-size:11px;text-align:center;}' +
+    '.kupon-disclaimer{border-top:2px dashed #ccc;padding:12px 16px;font-size:10px;color:#8BA3BB;line-height:1.5;}' +
+    '@media print{body{padding:0;}}' +
+    '</style></head><body>' +
+    '<div class="kupon">' +
+    '<div class="kupon-header"><h2>KUPON KURBAN</h2><p>Yayasan Bhakti Nusa Tenggara 1447 H</p></div>' +
+    '<div class="kupon-body">' +
+    '<div class="kupon-qr">' + (qrImg ? '<img src="' + qrImg.src + '">' : '') + '</div>' +
+    '<div class="kupon-kode">' + kode + '</div>' +
+    '<div class="kupon-masjid">' + namaMasjid + '</div>' +
+    '<div class="kupon-sapi">' + jumlah + '</div>' +
+    '<div class="kupon-sapi-lbl">Ekor Sapi Jatah</div>' +
+    '</div>' +
+    '<div class="kupon-amber">Wajib foto penerima berdiri di samping mobil pengambilan sebagai bukti. Kupon berlaku 1x — jika jatuh ke tangan yang tidak bertanggung jawab, sepenuhnya menjadi tanggung jawab masjid.</div>' +
+    '<div class="kupon-footer">Kupon yang sudah di-scan tidak dapat digunakan kembali.</div>' +
+    '<div class="kupon-disclaimer">Yayasan Bhakti Nusa Tenggara tidak bertanggung jawab atas kehilangan atau penyalahgunaan kupon ini. Simpan kupon dengan aman dan jangan berikan kepada pihak yang tidak berwenang.</div>' +
+    '</div>' +
+    '</body></html>';
+
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(printContent);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 500);
+  }
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initOTPInputs();
+  initPage();
+});
+</script>
+</div><!-- end .phone-shell -->
+</body>
+</html>

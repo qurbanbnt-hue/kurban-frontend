@@ -345,6 +345,8 @@
       <div class="sb-item" data-tab="hewan"><i class="icon icon-list"></i> Data Hewan <span class="sb-badge" id="totalHewanBadge">0</span></div>
       <div class="sb-item" data-tab="pengguna"><i class="icon icon-users"></i> Pengguna <span class="sb-badge green" id="totalUserBadge">0</span></div>
       <div class="sb-item" data-tab="dokumentasi"><i class="icon icon-folder"></i> Dokumentasi</div>
+      <div class="sb-section">Kurban</div>
+      <div class="sb-item" data-tab="kupon-masjid"><i class="icon icon-award"></i> Kupon Masjid <span class="sb-badge amber" id="pendingMasjidBadge" style="display:none;">0</span></div>
       <div class="sb-footer">
         <div class="sb-user">
           <div class="sb-ava" id="adminAvatar" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;"></div>
@@ -441,6 +443,90 @@
           <table><thead><tr><th>Instansi</th><th>Wilayah</th><th>Jenis</th><th>Uploader</th><th>Tanggal</th><th>Folder</th></tr></thead><tbody id="dokTableBody"></tbody></table>
         </div>
       </div>
+
+      <!-- KUPON MASJID -->
+      <div id="tab-kupon-masjid" class="tab-content">
+        <div class="a-topbar">
+          <div class="a-page-h"><h1>Kupon Masjid</h1><p>Manajemen pendaftaran, KK, dan kupon kurban</p></div>
+          <div class="a-actions">
+            <button class="btn-ghost" id="btnTogglePeriode" onclick="togglePeriodePendaftaran()" style="display:flex;align-items:center;gap:6px;">
+              <i class="icon icon-calendar" style="font-size:16px;"></i>
+              <span id="lblTogglePeriode">Tutup Pendaftaran</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Status periode -->
+        <div id="periodeBanner" style="display:none;background:rgba(239,172,21,0.15);border:1px solid rgba(239,172,21,0.3);border-radius:14px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#f5c842;display:flex;align-items:center;gap:8px;">
+          <i class="icon icon-alert-triangle" style="font-size:16px;"></i>
+          <span id="periodeBannerText">Periode pendaftaran sedang ditutup.</span>
+        </div>
+
+        <!-- KPI Kupon -->
+        <div class="kpi-grid" style="margin-bottom:20px;">
+          <div class="kpi kpi-1"><div class="kpi-icon blue"><i class="icon icon-building-2"></i></div><div class="kpi-val" id="kpiTotalMasjid">-</div><div class="kpi-lbl">Total Masjid</div></div>
+          <div class="kpi kpi-3"><div class="kpi-icon amber"><i class="icon icon-clock"></i></div><div class="kpi-val" id="kpiMenunggu">-</div><div class="kpi-lbl">Menunggu Review</div></div>
+          <div class="kpi kpi-2"><div class="kpi-icon green"><i class="icon icon-check-circle"></i></div><div class="kpi-val" id="kpiDisetujui">-</div><div class="kpi-lbl">Disetujui</div></div>
+          <div class="kpi kpi-4"><div class="kpi-icon sky"><i class="icon icon-award"></i></div><div class="kpi-val" id="kpiKuponAktif">-</div><div class="kpi-lbl">Kupon Aktif</div></div>
+        </div>
+
+        <!-- Filter & Search -->
+        <div class="action-bar" style="margin-bottom:16px;">
+          <input type="text" id="searchMasjid" class="field" placeholder="Cari nama masjid, kecamatan..." style="flex:1;">
+          <div class="filter-select-wrap" style="min-width:140px;">
+            <button class="filter-select-btn" id="btnFilterStatusMasjid" onclick="toggleMasjidFilter('status')">
+              <span id="lblFilterStatusMasjid">Semua Status</span><i class="icon icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown" id="ddFilterStatusMasjid"></div>
+          </div>
+        </div>
+
+        <!-- Tabel Masjid -->
+        <div class="acard" style="margin-bottom:20px;">
+          <div class="acard-head">
+            <div class="acard-title"><i class="icon icon-list" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Daftar Pendaftaran Masjid</div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table id="masjidTable">
+              <thead>
+                <tr>
+                  <th>Nama Masjid</th>
+                  <th>Kecamatan</th>
+                  <th>Status</th>
+                  <th>KK Valid</th>
+                  <th>Tgl Daftar</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="masjidTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- KK Perlu Verifikasi -->
+        <div class="acard" id="kkVerifikasiCard" style="display:none;margin-bottom:20px;">
+          <div class="acard-head">
+            <div class="acard-title" style="color:#f5c842;"><i class="icon icon-alert-triangle" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>KK Perlu Verifikasi Admin</div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Masjid</th><th>Nomor KK</th><th>Anggota Tertera</th><th>Anggota Parsed</th><th>Catatan</th><th>Aksi</th></tr></thead>
+              <tbody id="kkVerifikasiBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Nomor WA Diblokir -->
+        <div class="acard">
+          <div class="acard-head">
+            <div class="acard-title"><i class="icon icon-shield-off" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Nomor WA Diblokir</div>
+            <button class="btn-primary" onclick="openBlokirNomorModal()" style="font-size:12px;padding:8px 14px;">
+              <i class="icon icon-plus" style="font-size:14px;"></i> Blokir Nomor
+            </button>
+          </div>
+          <div id="nomorDiblokirList"><p style="color:rgba(255,255,255,0.4);font-size:13px;">Belum ada nomor yang diblokir.</p></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -450,6 +536,7 @@
     <button class="nav-item" data-tab="hewan"><i class="icon icon-list"></i><span>Hewan</span></button>
     <button class="nav-item" data-tab="pengguna"><i class="icon icon-users"></i><span>User</span></button>
     <button class="nav-item" data-tab="dokumentasi"><i class="icon icon-folder"></i><span>Dok</span></button>
+    <button class="nav-item" data-tab="kupon-masjid"><i class="icon icon-award"></i><span>Kupon</span></button>
     <button class="nav-item" onclick="logout()" style="color:#E05050;"><i class="icon icon-log-out"></i><span>Keluar</span></button>
   </nav>
 
@@ -506,6 +593,110 @@
       <div class="modal-actions">
         <button type="button" class="btn-ghost" onclick="closeConfirmDeleteModal()">Batal</button>
         <button type="button" class="btn-primary" style="background:#E05050;" id="confirmDeleteBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detail KK Masjid -->
+  <div class="modal" id="kkDetailModal">
+    <div class="modal-content" style="max-width:700px;">
+      <h3 id="kkDetailTitle">Detail KK Masjid</h3>
+      <div id="kkDetailContent" style="overflow-x:auto;max-height:60vh;overflow-y:auto;"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeModal('kkDetailModal')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tetapkan Jatah -->
+  <div class="modal" id="jatahModal">
+    <div class="modal-content" style="max-width:480px;">
+      <h3>Tetapkan Jatah Sapi</h3>
+      <p id="jatahMasjidName" style="color:#64748b;font-size:14px;margin-bottom:16px;"></p>
+      <div id="jatahKuponPreview" style="display:none;margin-bottom:16px;background:#f0f5fb;border-radius:14px;padding:16px;text-align:center;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Preview Kupon</div>
+        <div id="jatahQRPreview" style="width:120px;height:120px;margin:0 auto 10px;background:white;border-radius:10px;padding:6px;display:flex;align-items:center;justify-content:center;"></div>
+        <div id="jatahKodePreview" style="font-size:16px;font-weight:800;color:#1A4A85;letter-spacing:2px;margin-bottom:4px;"></div>
+        <div id="jatahSapiPreview" style="font-size:24px;font-weight:800;color:#EFAC15;"></div>
+        <div style="font-size:11px;color:#8BA3BB;">Ekor Sapi Jatah</div>
+        <button class="btn-primary" onclick="cetakKuponAdmin()" style="margin-top:12px;font-size:12px;padding:8px 16px;">
+          <i class="icon icon-printer" style="font-size:14px;"></i> Cetak Kupon
+        </button>
+      </div>
+      <div class="form-group">
+        <label>Jumlah Sapi</label>
+        <input type="number" id="inputJumlahSapi" min="1" max="100" placeholder="Masukkan jumlah sapi" style="width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-family:inherit;font-size:14px;">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeModal('jatahModal')">Batal</button>
+        <button type="button" class="btn-primary" id="btnTetapkanJatah" onclick="submitJatah()">Tetapkan Jatah</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Blokir Masjid -->
+  <div class="modal" id="blokirMasjidModal">
+    <div class="modal-content" style="max-width:440px;">
+      <h3>Blokir Masjid</h3>
+      <p id="blokirMasjidName" style="color:#64748b;font-size:14px;margin-bottom:16px;"></p>
+      <div class="form-group">
+        <label>Alasan Pemblokiran</label>
+        <input type="text" id="inputAlasanBlokir" placeholder="Masukkan alasan..." style="width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-family:inherit;font-size:14px;">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeModal('blokirMasjidModal')">Batal</button>
+        <button type="button" class="btn-primary" style="background:#E05050;" onclick="submitBlokirMasjid()">Blokir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Update Nomor WA -->
+  <div class="modal" id="updateNomorWAModal">
+    <div class="modal-content" style="max-width:440px;">
+      <h3>Update Nomor WA PIC</h3>
+      <p id="updateNomorMasjidName" style="color:#64748b;font-size:14px;margin-bottom:16px;"></p>
+      <div class="form-group">
+        <label>Nomor WA Baru</label>
+        <input type="tel" id="inputNomorWABaru" placeholder="08xx atau +628xx" style="width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-family:inherit;font-size:14px;">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeModal('updateNomorWAModal')">Batal</button>
+        <button type="button" class="btn-primary" onclick="submitUpdateNomorWA()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Blokir Nomor WA -->
+  <div class="modal" id="blokirNomorModal">
+    <div class="modal-content" style="max-width:440px;">
+      <h3>Blokir Nomor WhatsApp</h3>
+      <div class="form-group">
+        <label>Nomor WA</label>
+        <input type="tel" id="inputNomorWABlokir" placeholder="08xx atau +628xx" style="width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-family:inherit;font-size:14px;">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeModal('blokirNomorModal')">Batal</button>
+        <button type="button" class="btn-primary" style="background:#E05050;" onclick="submitBlokirNomor()">Blokir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Resolve KK Verifikasi -->
+  <div class="modal" id="resolveKKModal">
+    <div class="modal-content" style="max-width:480px;">
+      <h3>Resolusi KK Perlu Verifikasi</h3>
+      <p id="resolveKKInfo" style="color:#64748b;font-size:13px;margin-bottom:16px;"></p>
+      <div id="resolveKKKoreksiForm" style="display:none;">
+        <div class="form-group">
+          <label>Nomor KK (koreksi)</label>
+          <input type="text" id="resolveKKNomor" maxlength="16" placeholder="16 digit nomor KK" style="width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-family:inherit;font-size:14px;">
+        </div>
+      </div>
+      <div class="modal-actions" style="flex-wrap:wrap;gap:8px;">
+        <button type="button" class="btn-ghost" onclick="closeModal('resolveKKModal')">Batal</button>
+        <button type="button" class="btn-primary" style="background:#16a34a;" onclick="submitResolveKK('terima')">✓ Terima</button>
+        <button type="button" class="btn-primary" style="background:#E05050;" onclick="submitResolveKK('tolak')">✗ Tolak</button>
+        <button type="button" class="btn-primary" style="background:#EFAC15;color:#0D1E35;" onclick="toggleKoreksiForm()">✎ Koreksi</button>
       </div>
     </div>
   </div>
@@ -651,6 +842,7 @@
       else if (tab === 'hewan') loadHewan();
       else if (tab === 'pengguna') loadUsers();
       else if (tab === 'dokumentasi') loadDokumentasi();
+      else if (tab === 'kupon-masjid') loadKuponMasjid();
     }
 
     document.querySelectorAll('.sb-item[data-tab]').forEach(item => item.addEventListener('click', () => switchTab(item.dataset.tab)));
@@ -1105,6 +1297,581 @@
     }
 
     loadDashboard();
+  </script>
+﻿  <script>
+    // ==================== HELPER MODAL ====================
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    }
+
+    // ==================== KUPON MASJID STATE ====================
+    let allMasjid = [];
+    let masjidFilterStatus = '';
+    let currentJatahMasjidId = null;
+    let currentBlokirMasjidId = null;
+    let currentUpdateNomorMasjidId = null;
+    let currentResolveKKId = null;
+    let _kuponState = null; // { kode, qr_base64, jumlah_sapi, masjid }
+
+    // ==================== LOAD KUPON MASJID ====================
+    async function loadKuponMasjid() {
+      const tbody = document.getElementById('masjidTableBody');
+      showSkeleton(tbody, 6, 5);
+
+      // Load konfigurasi sistem (periode pendaftaran)
+      const cfgRes = await callApi('getKonfigSistem', { email });
+      if (cfgRes.success && cfgRes.config) {
+        updatePeriodeUI(cfgRes.config.periode_pendaftaran_buka, cfgRes.config.tgl_tutup_pendaftaran);
+      }
+
+      // Load daftar pendaftaran masjid
+      const regRes = await callApi('getRegistrations', { email });
+      if (!regRes.success) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Gagal memuat data</td></tr>';
+        return;
+      }
+      allMasjid = regRes.data || [];
+
+      // Update KPI
+      const total = allMasjid.length;
+      const menunggu = allMasjid.filter(m => m.status === 'menunggu_review').length;
+      const disetujui = allMasjid.filter(m => m.status === 'disetujui').length;
+      const kuponAktif = allMasjid.filter(m => m.status === 'disetujui' && m.jumlah_sapi_jatah > 0).length;
+      document.getElementById('kpiTotalMasjid').textContent = total;
+      document.getElementById('kpiMenunggu').textContent = menunggu;
+      document.getElementById('kpiDisetujui').textContent = disetujui;
+      document.getElementById('kpiKuponAktif').textContent = kuponAktif;
+
+      // Update badge
+      const badge = document.getElementById('pendingMasjidBadge');
+      if (menunggu > 0) {
+        badge.textContent = menunggu;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+
+      // Setup filter dropdown
+      renderMasjidFilterDropdown();
+
+      // Render tabel
+      filterMasjid();
+
+      // Load KK perlu verifikasi
+      await loadKKPerluVerifikasi();
+
+      // Load nomor diblokir
+      await loadNomorDiblokir();
+    }
+
+    // ==================== PERIODE PENDAFTARAN ====================
+    async function togglePeriodePendaftaran() {
+      const lbl = document.getElementById('lblTogglePeriode').textContent.trim();
+      const currentBuka = lbl === 'Tutup Pendaftaran';
+      const msg = currentBuka
+        ? 'Tutup periode pendaftaran? Masjid tidak bisa mendaftar atau upload KK.'
+        : 'Buka periode pendaftaran? Masjid bisa mendaftar dan upload KK kembali.';
+      if (!confirm(msg)) return;
+      const res = await callApi('togglePeriodePendaftaran', { email, buka: !currentBuka });
+      if (res.success) {
+        showToast(currentBuka ? 'Periode pendaftaran ditutup' : 'Periode pendaftaran dibuka', 'success');
+        await loadKuponMasjid();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    function updatePeriodeUI(buka, tglTutup) {
+      const lbl = document.getElementById('lblTogglePeriode');
+      const banner = document.getElementById('periodeBanner');
+      const bannerText = document.getElementById('periodeBannerText');
+      if (buka) {
+        lbl.textContent = 'Tutup Pendaftaran';
+        banner.style.display = 'none';
+      } else {
+        lbl.textContent = 'Buka Pendaftaran';
+        banner.style.display = 'flex';
+        bannerText.textContent = tglTutup
+          ? 'Periode pendaftaran ditutup sejak ' + new Date(tglTutup).toLocaleDateString('id-ID') + '.'
+          : 'Periode pendaftaran sedang ditutup.';
+      }
+    }
+
+    // ==================== FILTER MASJID ====================
+    function toggleMasjidFilter(key) {
+      const dd  = document.getElementById('ddFilterStatusMasjid');
+      const btn = document.getElementById('btnFilterStatusMasjid');
+      const isOpen = dd.classList.contains('open');
+      document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));
+      document.querySelectorAll('.filter-select-btn').forEach(b => b.classList.remove('open'));
+      if (!isOpen) { dd.classList.add('open'); btn.classList.add('open'); }
+    }
+
+    function renderMasjidFilterDropdown() {
+      const dd = document.getElementById('ddFilterStatusMasjid');
+      const options = [
+        { value: '', label: 'Semua Status' },
+        { value: 'draft', label: 'Draft' },
+        { value: 'menunggu_review', label: 'Menunggu Review' },
+        { value: 'disetujui', label: 'Disetujui' },
+        { value: 'ditolak', label: 'Ditolak' },
+        { value: 'diblokir', label: 'Diblokir' }
+      ];
+      dd.innerHTML = options.map(o =>
+        `<div class="filter-option${masjidFilterStatus === o.value ? ' selected' : ''}" data-value="${esc(o.value)}" data-label="${esc(o.label)}">${esc(o.label)}</div>`
+      ).join('');
+      dd.querySelectorAll('.filter-option').forEach(el => {
+        el.addEventListener('click', () => {
+          masjidFilterStatus = el.dataset.value;
+          document.getElementById('lblFilterStatusMasjid').textContent = el.dataset.label;
+          document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('open'));
+          document.querySelectorAll('.filter-select-btn').forEach(b => b.classList.remove('open'));
+          filterMasjid();
+        });
+      });
+    }
+
+    function filterMasjid() {
+      const q = document.getElementById('searchMasjid').value.toLowerCase();
+      const filtered = allMasjid.filter(m => {
+        const statusMatch = !masjidFilterStatus || m.status === masjidFilterStatus;
+        const searchMatch = !q ||
+          (m.nama_masjid || '').toLowerCase().includes(q) ||
+          (m.kecamatan || '').toLowerCase().includes(q) ||
+          (m.kabupaten || '').toLowerCase().includes(q);
+        return statusMatch && searchMatch;
+      });
+      renderMasjidTable(filtered);
+    }
+
+    // ==================== RENDER TABEL MASJID ====================
+    function getMasjidStatusBadge(status) {
+      const map = {
+        draft:           { bg: '#dbeafe', color: '#1d4ed8' },
+        menunggu_review: { bg: '#fef9c3', color: '#a16207' },
+        disetujui:       { bg: '#dcfce7', color: '#16a34a' },
+        ditolak:         { bg: '#fee2e2', color: '#dc2626' },
+        diblokir:        { bg: '#f1f5f9', color: '#64748b' }
+      };
+      const s = map[status] || { bg: '#f1f5f9', color: '#64748b' };
+      const label = { draft: 'Draft', menunggu_review: 'Menunggu Review', disetujui: 'Disetujui', ditolak: 'Ditolak', diblokir: 'Diblokir' }[status] || status;
+      return `<span class="status-badge" style="background:${s.bg};color:${s.color};">${esc(label)}</span>`;
+    }
+
+    function renderMasjidTable(data) {
+      const tbody = document.getElementById('masjidTableBody');
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Tidak ada data masjid</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(m => {
+        const tglDaftar = m.tgl_daftar ? new Date(m.tgl_daftar).toLocaleDateString('id-ID') : '-';
+        const isBlokir = m.status === 'diblokir';
+        const canHapus = m.status === 'draft' || m.status === 'ditolak';
+        const canJatah = m.status === 'menunggu_review' || m.status === 'disetujui';
+        const aksi = `
+          <button class="act-btn" title="Detail KK" onclick="openKKDetail('${esc(m.masjid_id)}')"><i class="icon icon-file-text"></i></button>
+          ${canJatah ? `<button class="act-btn" title="Tetapkan Jatah" onclick="openJatahModal('${esc(m.masjid_id)}')"><i class="icon icon-award"></i></button>` : ''}
+          <button class="act-btn" title="Revoke Token" onclick="confirmRevokeToken('${esc(m.masjid_id)}','${esc(m.nama_masjid)}')"><i class="icon icon-key"></i></button>
+          <button class="act-btn" title="Update WA" onclick="openUpdateNomorWAModal('${esc(m.masjid_id)}','${esc(m.nama_masjid)}')"><i class="icon icon-phone"></i></button>
+          ${!isBlokir ? `<button class="act-btn" title="Blokir" style="color:#E05050;" onclick="openBlokirMasjidModal('${esc(m.masjid_id)}','${esc(m.nama_masjid)}')"><i class="icon icon-shield-off"></i></button>` : ''}
+          ${isBlokir ? `<button class="act-btn" title="Buka Blokir" style="color:#16a34a;" onclick="submitBukaBlokirMasjid('${esc(m.masjid_id)}')"><i class="icon icon-shield"></i></button>` : ''}
+          ${canHapus ? `<button class="act-btn" title="Hapus" style="color:#E05050;" onclick="confirmHapusMasjid('${esc(m.masjid_id)}','${esc(m.nama_masjid)}')"><i class="icon icon-trash-2"></i></button>` : ''}
+        `;
+        return `<tr>
+          <td data-label="Nama Masjid">${esc(m.nama_masjid)}</td>
+          <td data-label="Kecamatan">${esc(m.kecamatan)}</td>
+          <td data-label="Status">${getMasjidStatusBadge(m.status)}</td>
+          <td data-label="KK Valid">${m.jumlah_kk_valid ?? 0}</td>
+          <td data-label="Tgl Daftar">${tglDaftar}</td>
+          <td data-label="Aksi" style="white-space:nowrap;">${aksi}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ==================== DETAIL KK ====================
+    async function openKKDetail(masjidId) {
+      const modal = document.getElementById('kkDetailModal');
+      const content = document.getElementById('kkDetailContent');
+      const title = document.getElementById('kkDetailTitle');
+      modal.classList.add('active');
+      content.innerHTML = '<p style="color:#64748b;text-align:center;padding:20px;">Memuat data KK...</p>';
+
+      const masjid = allMasjid.find(m => m.masjid_id === masjidId);
+      title.textContent = 'Detail KK — ' + (masjid ? masjid.nama_masjid : masjidId);
+
+      const res = await callApi('getKKDetail', { email, masjid_id: masjidId });
+      if (!res.success) {
+        content.innerHTML = `<p style="color:#E05050;text-align:center;padding:20px;">Gagal memuat: ${esc(res.error)}</p>`;
+        return;
+      }
+      const data = res.data || [];
+      if (data.length === 0) {
+        content.innerHTML = '<p style="color:#64748b;text-align:center;padding:20px;">Belum ada KK yang diupload.</p>';
+        return;
+      }
+      const ocrBadge = (s) => {
+        const map = { valid: ['#dcfce7','#16a34a'], duplikat: ['#fee2e2','#dc2626'], gagal_ocr: ['#fee2e2','#dc2626'], manual: ['#dcfce7','#16a34a'], perlu_verifikasi: ['#fef9c3','#a16207'], perlu_konfirmasi_anggota: ['#fef9c3','#a16207'] };
+        const c = map[s] || ['#f1f5f9','#64748b'];
+        return `<span style="display:inline-block;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:700;background:${c[0]};color:${c[1]};">${esc(s)}</span>`;
+      };
+      content.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="border-bottom:2px solid #e2e8f0;">
+          <th style="padding:8px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;">Nomor KK</th>
+          <th style="padding:8px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;">Status OCR</th>
+          <th style="padding:8px;text-align:center;color:#64748b;font-size:11px;text-transform:uppercase;">Tertera</th>
+          <th style="padding:8px;text-align:center;color:#64748b;font-size:11px;text-transform:uppercase;">Parsed</th>
+          <th style="padding:8px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;">Catatan</th>
+        </tr></thead>
+        <tbody>${data.map(kk => `<tr style="border-bottom:1px solid #f1f5f9;">
+          <td style="padding:8px;font-family:monospace;">${esc(kk.nomor_kk || '-')}</td>
+          <td style="padding:8px;">${ocrBadge(kk.status_ocr)}</td>
+          <td style="padding:8px;text-align:center;">${kk.jumlah_anggota_tertera ?? '-'}</td>
+          <td style="padding:8px;text-align:center;">${kk.jumlah_anggota_parsed ?? '-'}</td>
+          <td style="padding:8px;font-size:12px;color:#64748b;">${esc(kk.discrepancy_note || '-')}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    }
+
+    // ==================== KK PERLU VERIFIKASI ====================
+    async function loadKKPerluVerifikasi() {
+      const res = await callApi('getKKPerluVerifikasi', { email });
+      const card = document.getElementById('kkVerifikasiCard');
+      const tbody = document.getElementById('kkVerifikasiBody');
+      if (!res.success || !res.data || res.data.length === 0) {
+        card.style.display = 'none';
+        return;
+      }
+      card.style.display = '';
+      tbody.innerHTML = res.data.map(kk => {
+        const masjid = allMasjid.find(m => m.masjid_id === kk.masjid_id);
+        const namaMasjid = masjid ? masjid.nama_masjid : kk.masjid_id;
+        return `<tr>
+          <td data-label="Masjid">${esc(namaMasjid)}</td>
+          <td data-label="Nomor KK" style="font-family:monospace;">${esc(kk.nomor_kk || '-')}</td>
+          <td data-label="Anggota Tertera" style="text-align:center;">${kk.jumlah_anggota_tertera ?? '-'}</td>
+          <td data-label="Anggota Parsed" style="text-align:center;">${kk.jumlah_anggota_parsed ?? '-'}</td>
+          <td data-label="Catatan" style="font-size:12px;">${esc(kk.discrepancy_note || '-')}</td>
+          <td data-label="Aksi">
+            <button class="act-btn" onclick="openResolveKKModal('${esc(kk.kk_id)}','${esc(kk.nomor_kk)}','${esc(namaMasjid)}')">
+              <i class="icon icon-check-square"></i> Resolusi
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function openResolveKKModal(kkId, nomorKK, namaMasjid) {
+      currentResolveKKId = kkId;
+      document.getElementById('resolveKKInfo').textContent = `KK ${nomorKK} — ${namaMasjid}`;
+      document.getElementById('resolveKKKoreksiForm').style.display = 'none';
+      document.getElementById('resolveKKNomor').value = '';
+      document.getElementById('resolveKKModal').classList.add('active');
+    }
+
+    function toggleKoreksiForm() {
+      const form = document.getElementById('resolveKKKoreksiForm');
+      form.style.display = form.style.display === 'none' ? '' : 'none';
+    }
+
+    async function submitResolveKK(action) {
+      if (!currentResolveKKId) return;
+      let koreksi_data = null;
+      if (action === 'koreksi') {
+        const nomor = document.getElementById('resolveKKNomor').value.trim();
+        if (!/^\d{16}$/.test(nomor)) {
+          showToast('Nomor KK harus tepat 16 digit angka', 'error');
+          return;
+        }
+        koreksi_data = { nomor_kk: nomor };
+      }
+      const res = await callApi('resolveKKVerifikasi', { email, kk_id: currentResolveKKId, action, koreksi_data });
+      if (res.success) {
+        closeModal('resolveKKModal');
+        showToast('KK berhasil di-resolve', 'success');
+        await loadKuponMasjid();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    // ==================== TETAPKAN JATAH ====================
+    function openJatahModal(masjidId) {
+      currentJatahMasjidId = masjidId;
+      const masjid = allMasjid.find(m => m.masjid_id === masjidId);
+      document.getElementById('jatahMasjidName').textContent = masjid ? masjid.nama_masjid : masjidId;
+      document.getElementById('inputJumlahSapi').value = '';
+      document.getElementById('jatahKuponPreview').style.display = 'none';
+      document.getElementById('jatahModal').classList.add('active');
+    }
+
+    async function submitJatah() {
+      const jumlah_sapi = parseInt(document.getElementById('inputJumlahSapi').value, 10);
+      if (!jumlah_sapi || jumlah_sapi < 1) {
+        showToast('Jumlah sapi harus lebih dari 0', 'error');
+        return;
+      }
+      const overlay = document.getElementById('adminOverlay');
+      document.getElementById('adminOverlayText').textContent = 'Menerbitkan kupon...';
+      overlay.classList.add('active');
+
+      const res = await callApi('setJatah', { email, masjid_id: currentJatahMasjidId, jumlah_sapi });
+      overlay.classList.remove('active');
+
+      if (res.success && res.kupon) {
+        const kupon = res.kupon;
+        const masjid = allMasjid.find(m => m.masjid_id === currentJatahMasjidId);
+        _kuponState = { kode: kupon.kode, qr_base64: kupon.qr_base64, jumlah_sapi, masjid };
+
+        // Tampilkan preview
+        const preview = document.getElementById('jatahKuponPreview');
+        const qrEl = document.getElementById('jatahQRPreview');
+        document.getElementById('jatahKodePreview').textContent = kupon.kode || '';
+        document.getElementById('jatahSapiPreview').textContent = jumlah_sapi;
+        if (kupon.qr_base64) {
+          qrEl.innerHTML = `<img src="data:image/png;base64,${kupon.qr_base64}" style="width:100%;height:100%;object-fit:contain;" alt="QR Code">`;
+        } else {
+          qrEl.innerHTML = `<span style="font-size:11px;color:#64748b;">${esc(kupon.kode)}</span>`;
+        }
+        preview.style.display = '';
+        showToast('Kupon berhasil diterbitkan', 'success');
+        await loadKuponMasjid();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    // ==================== CETAK KUPON ====================
+    function cetakKuponAdmin() {
+      if (!_kuponState) { showToast('Tidak ada data kupon untuk dicetak', 'error'); return; }
+      const { kode, qr_base64, jumlah_sapi, masjid } = _kuponState;
+      const namaMasjid = masjid ? esc(masjid.nama_masjid) : '';
+      const alamat = masjid ? esc(masjid.alamat) : '';
+      const kecamatan = masjid ? esc(masjid.kecamatan) : '';
+      const namaPIC = masjid ? esc(masjid.nama_pic) : '';
+      const nomorWA = masjid ? esc(masjid.telepon_pic) : '';
+      const qrSrc = qr_base64 ? `data:image/png;base64,${qr_base64}` : '';
+
+      const kuponHTML = `
+        <div class="kupon">
+          <div class="kupon-header">
+            <div class="kupon-masjid">${namaMasjid}</div>
+            <div class="kupon-info">${alamat}</div>
+            <div class="kupon-info">${kecamatan}</div>
+            <div class="kupon-info">${namaPIC} · ${nomorWA}</div>
+          </div>
+          <div class="kupon-qr">
+            ${qrSrc ? `<img src="${qrSrc}" alt="QR Code">` : `<div class="kupon-kode-fallback">${esc(kode)}</div>`}
+          </div>
+          <div class="kupon-kode">${esc(kode)}</div>
+          <div class="kupon-strip-amber">
+            Wajib foto penerima berdiri di samping mobil pengambilan sebagai bukti. Kupon berlaku 1x — jika jatuh ke tangan yang tidak bertanggung jawab, sepenuhnya menjadi tanggung jawab masjid.
+          </div>
+          <div class="kupon-footer-red">
+            Kupon yang sudah di-scan tidak dapat digunakan kembali.
+          </div>
+          <div class="kupon-divider">- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
+          <div class="kupon-disclaimer">
+            Yayasan Bhakti Nusa Tenggara tidak bertanggung jawab atas kehilangan atau penyalahgunaan kupon ini.
+          </div>
+        </div>
+      `;
+
+      const printHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>Cetak Kupon — ${esc(kode)}</title>
+        <style>
+          @page { size: A4; margin: 10mm; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Arial, sans-serif; background: white; }
+          .page { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; }
+          .kupon {
+            border: 1.5px solid #ccc; border-radius: 8px; overflow: hidden;
+            page-break-inside: avoid; break-inside: avoid;
+          }
+          .kupon-header {
+            background: #1A4A85; color: white; padding: 10px 12px;
+          }
+          .kupon-masjid { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+          .kupon-info { font-size: 10px; opacity: 0.85; line-height: 1.4; }
+          .kupon-qr {
+            display: flex; justify-content: center; align-items: center;
+            padding: 10px; background: white;
+          }
+          .kupon-qr img { width: 100px; height: 100px; object-fit: contain; }
+          .kupon-kode-fallback { font-size: 10px; font-family: monospace; color: #1A4A85; }
+          .kupon-kode {
+            text-align: center; font-size: 13px; font-weight: 800;
+            letter-spacing: 2px; color: #1A4A85; padding: 4px 12px 8px;
+          }
+          .kupon-strip-amber {
+            background: #EFAC15; color: #0D1E35; font-size: 9px;
+            padding: 6px 10px; line-height: 1.4; font-weight: 600;
+          }
+          .kupon-footer-red {
+            background: #E05050; color: white; font-size: 9px;
+            padding: 5px 10px; font-weight: 700; text-align: center;
+          }
+          .kupon-divider {
+            font-size: 8px; color: #aaa; padding: 4px 10px;
+            letter-spacing: 1px; text-align: center;
+          }
+          .kupon-disclaimer {
+            font-size: 8px; color: #64748b; padding: 4px 10px 8px;
+            text-align: center; line-height: 1.4;
+          }
+        </style>
+      </head><body>
+        <div class="page">
+          ${Array(6).fill(kuponHTML).join('')}
+        </div>
+        <script>window.onload = function() { window.print(); }<\/script>
+      </body></html>`;
+
+      const w = window.open('', '_blank');
+      if (w) { w.document.write(printHTML); w.document.close(); }
+      else { showToast('Popup diblokir browser. Izinkan popup untuk mencetak.', 'error'); }
+    }
+
+    // ==================== REVOKE TOKEN ====================
+    async function confirmRevokeToken(masjidId, namaMasjid) {
+      if (!confirm(`Revoke token sesi "${namaMasjid}"? Masjid harus login ulang dengan OTP.`)) return;
+      const res = await callApi('revokeTokenMasjid', { email, masjid_id: masjidId });
+      if (res.success) {
+        showToast('Token berhasil di-revoke. Masjid harus login ulang.', 'success');
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    // ==================== UPDATE NOMOR WA ====================
+    function openUpdateNomorWAModal(masjidId, namaMasjid) {
+      currentUpdateNomorMasjidId = masjidId;
+      document.getElementById('updateNomorMasjidName').textContent = namaMasjid;
+      document.getElementById('inputNomorWABaru').value = '';
+      document.getElementById('updateNomorWAModal').classList.add('active');
+    }
+
+    async function submitUpdateNomorWA() {
+      const nomor = document.getElementById('inputNomorWABaru').value.trim();
+      if (!/^(08\d{8,11}|\+628\d{8,11})$/.test(nomor)) {
+        showToast('Format nomor tidak valid. Gunakan 08xx atau +628xx', 'error');
+        return;
+      }
+      const res = await callApi('updateNomorWAMasjid', { email, masjid_id: currentUpdateNomorMasjidId, nomor_wa_baru: nomor });
+      if (res.success) {
+        closeModal('updateNomorWAModal');
+        showToast('Nomor WA berhasil diperbarui', 'success');
+        await loadKuponMasjid();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    // ==================== BLOKIR MASJID ====================
+    function openBlokirMasjidModal(masjidId, namaMasjid) {
+      currentBlokirMasjidId = masjidId;
+      document.getElementById('blokirMasjidName').textContent = namaMasjid;
+      document.getElementById('inputAlasanBlokir').value = '';
+      document.getElementById('blokirMasjidModal').classList.add('active');
+    }
+
+    async function submitBlokirMasjid() {
+      const alasan = document.getElementById('inputAlasanBlokir').value.trim();
+      if (!alasan) {
+        showToast('Alasan pemblokiran tidak boleh kosong', 'error');
+        return;
+      }
+      const res = await callApi('blokirMasjid', { email, masjid_id: currentBlokirMasjidId, alasan });
+      if (res.success) {
+        closeModal('blokirMasjidModal');
+        showToast('Masjid berhasil diblokir', 'success');
+        await loadKuponMasjid();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    async function submitBukaBlokirMasjid(masjidId) {
+      const masjid = allMasjid.find(m => m.masjid_id === masjidId);
+      const nama = masjid ? masjid.nama_masjid : masjidId;
+      if (!confirm(`Buka blokir masjid "${nama}"?`)) return;
+      const res = await callApi('bukaBlokirMasjid', { email, masjid_id: masjidId });
+      if (res.success) {
+        showToast('Blokir masjid berhasil dibuka', 'success');
+        await loadKuponMasjid();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    // ==================== HAPUS MASJID ====================
+    async function confirmHapusMasjid(masjidId, namaMasjid) {
+      if (!confirm(`Hapus masjid "${namaMasjid}"? Semua data KK miliknya akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.`)) return;
+      const res = await callApi('hapusMasjid', { email, masjid_id: masjidId });
+      if (res.success) {
+        showToast('Masjid berhasil dihapus', 'success');
+        await loadKuponMasjid();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    // ==================== NOMOR WA DIBLOKIR ====================
+    async function loadNomorDiblokir() {
+      const res = await callApi('getNomorDiblokir', { email });
+      const container = document.getElementById('nomorDiblokirList');
+      if (!res.success || !res.data || res.data.length === 0) {
+        container.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:13px;">Belum ada nomor yang diblokir.</p>';
+        return;
+      }
+      container.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;">
+        ${res.data.map(nomor => `
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.25);border-radius:100px;padding:6px 12px;">
+            <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);">${esc(nomor)}</span>
+            <button class="act-btn" title="Buka Blokir" style="color:#16a34a;padding:2px 6px;font-size:11px;" onclick="submitBukaBlokirNomor('${esc(nomor)}')">
+              <i class="icon icon-shield"></i> Buka
+            </button>
+          </div>
+        `).join('')}
+      </div>`;
+    }
+
+    function openBlokirNomorModal() {
+      document.getElementById('inputNomorWABlokir').value = '';
+      document.getElementById('blokirNomorModal').classList.add('active');
+    }
+
+    async function submitBlokirNomor() {
+      const nomor = document.getElementById('inputNomorWABlokir').value.trim();
+      if (!/^(08\d{8,11}|\+628\d{8,11})$/.test(nomor)) {
+        showToast('Format nomor tidak valid. Gunakan 08xx atau +628xx', 'error');
+        return;
+      }
+      const res = await callApi('blokirNomorWA', { email, nomor_wa: nomor });
+      if (res.success) {
+        closeModal('blokirNomorModal');
+        showToast('Nomor WA berhasil diblokir', 'success');
+        await loadNomorDiblokir();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    async function submitBukaBlokirNomor(nomorWA) {
+      if (!confirm(`Buka blokir nomor ${nomorWA}?`)) return;
+      const res = await callApi('bukaBlokirNomorWA', { email, nomor_wa: nomorWA });
+      if (res.success) {
+        showToast('Blokir nomor berhasil dibuka', 'success');
+        await loadNomorDiblokir();
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    // ==================== SEARCH DEBOUNCE ====================
+    document.getElementById('searchMasjid').addEventListener('input', debounce(filterMasjid, 300));
+
   </script>
 </body>
 </html>

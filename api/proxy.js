@@ -21,12 +21,19 @@ const PUBLIC_ACTIONS = new Set([
   'searchPekurban',
   'getPekurbanDetail',
   'getDokumentasiWilayah',
+  // Kupon Masjid — public (no JWT required)
+  'checkNomorWA', 'registerMasjid', 'verifyOTP', 'requestOTP', 'getKonfigSistem',
 ]);
 
 const ADMIN_ONLY_ACTIONS = new Set([
   'getAdminData',
   'addHewan', 'updateHewan', 'deleteHewan',
   'addUser',  'updateUser',  'deleteUser',
+  // Kupon Masjid — admin only
+  'getRegistrations', 'getKKDetail', 'getKKPerluVerifikasi', 'resolveKKVerifikasi',
+  'setJatah', 'togglePeriodePendaftaran', 'revokeTokenMasjid', 'updateNomorWAMasjid',
+  'hapusMasjid', 'blokirMasjid', 'bukaBlokirMasjid', 'blokirNomorWA', 'bukaBlokirNomorWA',
+  'getNomorDiblokir', 'rejectRegistration',
 ]);
 
 const USER_ACTIONS = new Set([
@@ -35,6 +42,9 @@ const USER_ACTIONS = new Set([
   'getDokumentasi',
   'uploadDokumentasi',
   'getFileById',
+  // Kupon Masjid — user/panitia (JWT required)
+  'uploadKK', 'konfirmasiAnggota', 'konfirmasiSelesaiUpload', 'getKuponMasjid',
+  'validateKupon', 'konfirmasiPengambilan',
 ]);
 
 const ALLOWED_ACTIONS = new Set([
@@ -137,6 +147,14 @@ function validateUserData(u) {
   if (!str(u.email, 200))                   return 'email tidak valid';
   if (!str(u.username, 100))                return 'username tidak valid';
   if (!['admin','user'].includes(u.role))   return 'role tidak valid';
+  return null;
+}
+
+function validateUploadKK(body) {
+  const mimeType = String(body.mime_type || '');
+  if (!ALLOWED_IMAGE_MIMES.has(mimeType)) return 'Tipe file tidak diizinkan. Gunakan JPEG, PNG, atau WEBP.';
+  const base64 = String(body.file_base64 || '');
+  if (Math.ceil(base64.length * 0.75) > MAX_IMAGE_BYTES) return 'Ukuran file melebihi 5 MB';
   return null;
 }
 
@@ -260,6 +278,7 @@ export default async function handler(req, res) {
   if (action === 'addUser')           err = validateUserData(body.newUser);
   if (action === 'updateUser')        err = validateUserData(body.user);
   if (action === 'getFileById' && !str(body.fileId, 100)) err = 'fileId tidak valid';
+  if (action === 'uploadKK')          err = validateUploadKK(body);
 
   if (err) return res.status(400).json({ success: false, error: err });
 
@@ -284,6 +303,19 @@ function sanitizePublicData(action, body) {
     instansi:    String(body.instansi    || '').slice(0, 200),
   };
   if (action === 'getDokumentasiWilayah') return { wilayah: String(body.wilayah || '').slice(0, 200) };
+  // Kupon Masjid public actions
+  if (action === 'checkNomorWA')    return { telepon_pic: String(body.telepon_pic || '').slice(0, 20) };
+  if (action === 'requestOTP')      return { telepon_pic: String(body.telepon_pic || '').slice(0, 20) };
+  if (action === 'getKonfigSistem') return {};
+  if (action === 'verifyOTP')       return { masjid_id: String(body.masjid_id || '').slice(0, 20), otp_code: String(body.otp_code || '').slice(0, 6) };
+  if (action === 'registerMasjid')  return {
+    nama_masjid: String(body.nama_masjid || '').slice(0, 200),
+    alamat:      String(body.alamat      || '').slice(0, 500),
+    kecamatan:   String(body.kecamatan   || '').slice(0, 100),
+    kabupaten:   String(body.kabupaten   || '').slice(0, 100),
+    nama_pic:    String(body.nama_pic    || '').slice(0, 200),
+    telepon_pic: String(body.telepon_pic || '').slice(0, 20),
+  };
   return {};
 }
 
@@ -335,6 +367,52 @@ function buildSafeData(action, body) {
 
     case 'getFileById':
       return { fileId: String(body.fileId || '').slice(0, 100) };
+
+    // ── Kupon Masjid — Masjid ────────────────────────────────
+    case 'uploadKK': {
+      const mimeType = String(body.mime_type || '').slice(0, 50);
+      if (!ALLOWED_IMAGE_MIMES.has(mimeType)) return {};
+      const base64 = String(body.file_base64 || '');
+      if (Math.ceil(base64.length * 0.75) > MAX_IMAGE_BYTES) return {};
+      return { masjid_id: String(body.masjid_id || '').slice(0, 20), file_base64: base64, mime_type: mimeType, file_name: String(body.file_name || '').slice(0, 200) };
+    }
+    case 'konfirmasiAnggota':
+      return {
+        masjid_id: String(body.masjid_id || '').slice(0, 20),
+        kk_id:     String(body.kk_id     || '').slice(0, 30),
+        anggota_data: Array.isArray(body.anggota_data) ? body.anggota_data.slice(0, 50).map(a => ({ nama: String(a.nama || '').slice(0, 200), jk: String(a.jk || '').slice(0, 1), umur: Number(a.umur) || 0 })) : [],
+      };
+    case 'konfirmasiSelesaiUpload':
+      return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+    case 'getKuponMasjid':
+      return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+
+    // ── Kupon Masjid — Admin ─────────────────────────────────
+    case 'getRegistrations': return {};
+    case 'getKKDetail':          return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+    case 'getKKPerluVerifikasi': return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+    case 'resolveKKVerifikasi':  return { kk_id: String(body.kk_id || '').slice(0, 30), action: String(body.action || '').slice(0, 10), koreksi_data: body.koreksi_data || undefined };
+    case 'setJatah':             return { masjid_id: String(body.masjid_id || '').slice(0, 20), jumlah_sapi: Number(body.jumlah_sapi) || 0 };
+    case 'togglePeriodePendaftaran': return { buka: body.buka === true || body.buka === 'true' };
+    case 'revokeTokenMasjid':    return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+    case 'updateNomorWAMasjid':  return { masjid_id: String(body.masjid_id || '').slice(0, 20), nomor_wa_baru: String(body.nomor_wa_baru || '').slice(0, 20) };
+    case 'hapusMasjid':          return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+    case 'blokirMasjid':         return { masjid_id: String(body.masjid_id || '').slice(0, 20), alasan: String(body.alasan || '').slice(0, 500) };
+    case 'bukaBlokirMasjid':     return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
+    case 'blokirNomorWA':        return { nomor_wa: String(body.nomor_wa || '').slice(0, 20) };
+    case 'bukaBlokirNomorWA':    return { nomor_wa: String(body.nomor_wa || '').slice(0, 20) };
+    case 'getNomorDiblokir':     return {};
+    case 'rejectRegistration':   return { masjid_id: String(body.masjid_id || '').slice(0, 20), alasan: String(body.alasan || '').slice(0, 500) };
+
+    // ── Kupon Masjid — Panitia Lokasi ────────────────────────
+    case 'validateKupon':        return { kode_kupon: String(body.kode_kupon || '').slice(0, 50) };
+    case 'konfirmasiPengambilan': {
+      const fotoMime = String(body.mime_type || '').slice(0, 50);
+      if (!ALLOWED_IMAGE_MIMES.has(fotoMime)) return {};
+      const fotoBase64 = String(body.foto_bukti_base64 || '');
+      if (Math.ceil(fotoBase64.length * 0.75) > 10 * 1024 * 1024) return {};
+      return { kupon_id: String(body.kupon_id || '').slice(0, 30), foto_bukti_base64: fotoBase64, mime_type: fotoMime };
+    }
 
     default:
       return {};
