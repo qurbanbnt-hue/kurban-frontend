@@ -57,7 +57,7 @@
       .m-header { grid-column: 1 / -1; }
       .m-left {
         grid-column: 1; grid-row: 2;
-        overflow-y: auto; height: calc(100vh - 140px);
+        overflow-y: auto; overflow-x: hidden; height: calc(100vh - 140px);
         border-right: 1px solid rgba(255,255,255,0.08);
       }
       .m-right {
@@ -115,7 +115,7 @@
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255,255,255,0.15);
       border-radius: 20px; padding: 24px 20px;
-      margin-bottom: 14px;
+      margin-bottom: 14px; overflow: hidden;
     }
     .m-auth-title {
       font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700;
@@ -177,9 +177,9 @@
     .m-banner-closed.show { display: flex; }
 
     /* OTP input */
-    .otp-input-wrap { display: flex; gap: 8px; margin-bottom: 14px; }
+    .otp-input-wrap { display: flex; gap: 6px; margin-bottom: 14px; overflow: hidden; }
     .otp-digit {
-      flex: 1; padding: 14px 0; text-align: center;
+      flex: 1; min-width: 0; padding: 14px 0; text-align: center;
       background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.2);
       border-radius: 12px; color: white; font-size: 22px; font-weight: 700;
       font-family: 'Sora', sans-serif; outline: none; transition: all 0.2s;
