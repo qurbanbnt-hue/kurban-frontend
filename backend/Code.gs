@@ -2597,19 +2597,32 @@ function getAllKKPerluVerifikasi() {
 //  TASK 10: PENETAPAN JATAH DAN PENERBITAN KUPON
 // ============================================================
 
-// 10.1 generateKuponKode — format BNT-YYYY-MASJIDID-JUMLAHSAPI dengan collision check
+// 10.1 generateKuponKode — format BNT-YYYY-SEQ-TOKEN8 (token acak 8 karakter untuk keamanan)
 function generateKuponKode(masjidId, jumlahSapi) {
-  const year     = new Date().getFullYear();
-  const masjidSeq = String(masjidId).replace('MSJ-' + year + '-', '').replace(/MSJ-\d+-/, '');
-  let kodeKupon  = 'BNT-' + year + '-' + masjidSeq + '-' + jumlahSapi + 'S';
+  const year = new Date().getFullYear();
 
-  // Collision check — tambah suffix acak jika sudah ada
-  let attempts = 0;
-  while (isKodeKuponExists(kodeKupon) && attempts < 10) {
-    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    kodeKupon = 'BNT-' + year + '-' + masjidSeq + '-' + jumlahSapi + 'S-' + suffix;
-    attempts++;
+  // Ambil sequence number masjid (3 digit)
+  const masjidSeq = String(masjidId).replace('MSJ-' + year + '-', '').replace(/MSJ-\d+-/, '');
+
+  // Generate token acak 8 karakter — ini yang membuat kode tidak bisa ditebak
+  function randomToken(len) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // tanpa 0,O,1,I agar tidak ambigu
+    let token = '';
+    for (let i = 0; i < len; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
   }
+
+  // Format: BNT-YYYY-NNN-JUMLAH-TOKEN8
+  // Contoh: BNT-2026-001-3S-X7K2M9QP
+  let kodeKupon;
+  let attempts = 0;
+  do {
+    const token = randomToken(8);
+    kodeKupon = 'BNT-' + year + '-' + masjidSeq + '-' + jumlahSapi + 'S-' + token;
+    attempts++;
+  } while (isKodeKuponExists(kodeKupon) && attempts < 10);
 
   if (attempts >= 10) return null;
   return kodeKupon;
