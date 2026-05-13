@@ -692,6 +692,39 @@ let resendTimer = null;
 let kkUploadCount = 0;
 let kkValidCount = 0;
 
+function hasPendingKKNeedingAction() {
+  return document.querySelector('#kkResultsList .kk-result-item.gagal_ocr, #kkResultsList .kk-result-item.perlu_konfirmasi') !== null;
+}
+
+function updateKKUploadBlockingState() {
+  const uploadSection = document.getElementById('uploadSection');
+  const uploadArea = document.getElementById('uploadArea');
+  const kkFileInput = document.getElementById('kkFileInput');
+  if (!uploadSection || !uploadArea || !kkFileInput) return;
+  if (uploadSection.style.display === 'none') return;
+  if (typeof _periodeTutup !== 'undefined' && _periodeTutup) return;
+
+  const pending = hasPendingKKNeedingAction();
+  let banner = document.getElementById('uploadPendingManualMsg');
+  if (pending) {
+    uploadArea.classList.add('disabled');
+    kkFileInput.disabled = true;
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'uploadPendingManualMsg';
+      banner.style.cssText = 'background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#ffb8b8;line-height:1.45;display:flex;align-items:flex-start;gap:10px;';
+      banner.innerHTML = '<i class="icon icon-alert-circle" style="font-size:18px;flex-shrink:0;margin-top:2px;"></i><span><strong>Lengkapi data KK dari foto di bawah.</strong> Unggah foto KK baru dinonaktifkan sampai entri ini selesai (satu foto, satu proses).</span>';
+      uploadSection.insertBefore(banner, uploadArea);
+    } else {
+      banner.style.display = 'flex';
+    }
+  } else {
+    uploadArea.classList.remove('disabled');
+    kkFileInput.disabled = false;
+    if (banner) banner.style.display = 'none';
+  }
+}
+
 // ═══════════════════════════════════════════
 // UI HELPERS
 // ═══════════════════════════════════════════
@@ -1122,6 +1155,7 @@ function updateStatusUI(status, kkValid) {
       }
     }
     updateSelesaiButton();
+    if (!_periodeTutup) updateKKUploadBlockingState();
   } else if (status === 'menunggu_review') {
     menungguSection.style.display = 'block';
   } else if (status === 'ditolak') {
@@ -1164,6 +1198,13 @@ async function handleKKFileSelected(input) {
   const file = input.files[0];
   if (!file) return;
   input.value = '';
+
+  if (typeof _periodeTutup === 'undefined' || !_periodeTutup) {
+    if (hasPendingKKNeedingAction()) {
+      showToast('Selesaikan pengisian atau konfirmasi data KK dari foto sebelumnya terlebih dahulu.', 'error');
+      return;
+    }
+  }
 
   // Client-side validation
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -1250,12 +1291,20 @@ function renderKKResult(res, fileName) {
   };
   const cfg = statusConfig[status] || statusConfig.gagal_ocr;
 
-  const subText = {
+  const subTextMap = {
     valid: 'KK berhasil diverifikasi dan dihitung.',
     duplikat: 'Nomor KK ini sudah terdaftar di sistem.',
     gagal_ocr: 'OCR tidak dapat membaca foto KK. Silakan isi data secara manual.',
     perlu_konfirmasi_anggota: 'Data anggota perlu dikonfirmasi manual.'
-  }[status] || '';
+  };
+  let subText = subTextMap[status] || '';
+  if (status === 'gagal_ocr' && res.ocr_prefill) {
+    const p = res.ocr_prefill;
+    const hasPartial = (p.alamat_kk && String(p.alamat_kk).trim()) || (p.anggota_parsial && p.anggota_parsial.length > 0);
+    if (hasPartial) {
+      subText = 'Nomor KK tidak terbaca otomatis. Bagian alamat/anggota yang berhasil dibaca OCR sudah diisi di bawah — cocokkan dengan foto KK, lalu lengkapi.';
+    }
+  }
 
   const kkId = res.kk_id || '';
   const fotoUrl = res.foto_url || '';
@@ -1263,10 +1312,9 @@ function renderKKResult(res, fileName) {
 
   let extraHtml = '';
   if (status === 'perlu_konfirmasi_anggota') {
-    extraHtml = buildKonfirmasiForm(itemId, kkId, fotoUrl, anggotaParsial);
+    extraHtml = buildKonfirmasiForm(itemId, kkId, res.file_id || '', fotoUrl, anggotaParsial, res.alamat_kk || '');
   } else if (status === 'gagal_ocr') {
-    // Tampilkan form input manual langsung
-    extraHtml = buildManualKKForm(itemId, kkId, fotoUrl);
+    extraHtml = buildManualKKForm(itemId, kkId, res.file_id || '', fotoUrl, res.ocr_prefill || {});
   }
 
   const html = '<div class="kk-result-item ' + cfg.cls + '" id="' + itemId + '">' +
@@ -1280,39 +1328,68 @@ function renderKKResult(res, fileName) {
     '</div>';
 
   list.insertAdjacentHTML('beforeend', html);
+  updateKKUploadBlockingState();
 }
 
-// Form input manual untuk KK yang gagal OCR
-function buildManualKKForm(itemId, kkId, fotoUrl) {
-  const fotoHtml = fotoUrl
-    ? '<img src="' + esc(fotoUrl) + '" alt="Foto KK" style="width:100%;border-radius:10px;margin-bottom:12px;max-height:200px;object-fit:contain;background:rgba(0,0,0,0.3);" onerror="this.style.display=\'none\'">'
+// Pratinjau foto KK (file_id Drive) di atas form — tidak perlu unggah ulang.
+function kkMasjidFotoBlock(fileId, fotoUrl) {
+  const id = (fileId && String(fileId).trim()) || '';
+  if (id) {
+    const thumb = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w800';
+    const view = 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
+    return '<div style="margin-bottom:14px;text-align:center;">' +
+      '<a href="' + view + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;max-width:100%;">' +
+      '<img src="' + thumb + '" alt="Foto KK yang diunggah" loading="lazy" referrerpolicy="no-referrer" ' +
+      'style="max-width:100%;width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.15);">' +
+      '</a>' +
+      '<div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:8px;">Gambar ini terikat dengan entri ini. Tap foto untuk membuka di Google Drive.</div>' +
+      '</div>';
+  }
+  if (fotoUrl) {
+    return '<div style="margin-bottom:14px;text-align:center;"><a href="' + esc(fotoUrl) + '" target="_blank" rel="noopener noreferrer" style="font-size:13px;color:#5dd87a;">Buka foto KK di Google Drive</a></div>';
+  }
+  return '';
+}
+
+// Form input manual untuk KK yang gagal OCR (prefill dari OCR parsial bila ada)
+function buildManualKKForm(itemId, kkId, fileId, fotoUrl, prefill) {
+  prefill = prefill || {};
+  const nomorVal = esc(String(prefill.nomor_kk || ''));
+  const alamatBody = esc(String(prefill.alamat_kk || ''));
+  const angg = Array.isArray(prefill.anggota_parsial) ? prefill.anggota_parsial : [];
+  let rowsHtml = '';
+  if (angg.length > 0) {
+    angg.forEach(function(a, i) {
+      rowsHtml += buildAnggotaRow(i, a.nama || '', a.jk || 'L', a.umur !== undefined && a.umur !== null ? a.umur : '');
+    });
+  } else {
+    rowsHtml = buildAnggotaRow(0, '', 'L', '');
+  }
+  const ocrHint = prefill.ocr_error
+    ? '<div style="font-size:11px;color:rgba(255,255,255,0.45);margin-bottom:10px;line-height:1.4;">Info OCR: ' + esc(String(prefill.ocr_error)).slice(0, 220) + '</div>'
     : '';
 
   return '<div class="konfirmasi-box" id="manual-' + itemId + '" style="border-color:rgba(224,80,80,0.3);background:rgba(224,80,80,0.05);">' +
-    fotoHtml +
+    kkMasjidFotoBlock(fileId, fotoUrl) +
+    ocrHint +
     '<div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:12px;display:flex;align-items:flex-start;gap:6px;">' +
     '<i class="icon icon-edit" style="font-size:14px;color:#ff8080;flex-shrink:0;margin-top:1px;"></i>' +
-    '<span>Isi data KK secara manual. Pastikan data sesuai dengan Kartu Keluarga asli.</span>' +
+    '<span>Data disimpan pada KK yang sama dengan foto di atas. Isi manual sesuai Kartu Keluarga.</span>' +
     '</div>' +
-    // Nomor KK
     '<div style="margin-bottom:10px;">' +
     '<label style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:5px;">Nomor KK <span style="color:#ff8080;">*</span></label>' +
-    '<input type="text" id="manual-nomor-' + itemId + '" maxlength="16" inputmode="numeric" placeholder="16 digit nomor KK" ' +
+    '<input type="text" id="manual-nomor-' + itemId + '" maxlength="16" inputmode="numeric" placeholder="16 digit nomor KK" value="' + nomorVal + '" ' +
     'style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:white;font-family:monospace;font-size:15px;letter-spacing:2px;outline:none;">' +
     '</div>' +
-    // Alamat KK (wajib jika OCR gagal)
     '<div style="margin-bottom:10px;">' +
     '<label style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:5px;">Alamat KK <span style="color:#ff8080;">*</span></label>' +
     '<textarea id="manual-alamat-' + itemId + '" rows="3" maxlength="500" placeholder="Alamat sesuai Kartu Keluarga (RT/RW, Desa/Kelurahan, Kecamatan, dll.)" ' +
-    'style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:white;font-size:14px;line-height:1.4;outline:none;resize:vertical;box-sizing:border-box;"></textarea>' +
+    'style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:white;font-size:14px;line-height:1.4;outline:none;resize:vertical;box-sizing:border-box;">' + alamatBody + '</textarea>' +
     '</div>' +
-    // Tabel anggota
     '<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Data Anggota Keluarga <span style="color:#ff8080;">*</span></div>' +
     '<table class="anggota-table" id="manual-tbl-' + itemId + '">' +
     '<thead><tr><th>Nama Lengkap</th><th>JK</th><th>Umur</th><th></th></tr></thead>' +
-    '<tbody id="tbody-manual-' + itemId + '">' +
-    buildAnggotaRow(0, '', 'L', '') +
-    '</tbody>' +
+    '<tbody id="tbody-manual-' + itemId + '">' + rowsHtml + '</tbody>' +
     '</table>' +
     '<button class="btn-add-row" onclick="addAnggotaRow(\'manual-' + itemId + '\')" style="margin-bottom:12px;">' +
     '<i class="icon icon-plus" style="font-size:13px;vertical-align:middle;margin-right:4px;"></i>Tambah Anggota' +
@@ -1405,6 +1482,7 @@ async function handleManualKKSubmit(itemId, kkId) {
     kkValidCount++;
     document.getElementById('kkValidCount').textContent = kkValidCount;
     updateSelesaiButton();
+    updateKKUploadBlockingState();
     showToast('Data KK berhasil disimpan!', 'success');
     refreshToken(session);
   } catch (e) {
@@ -1413,23 +1491,27 @@ async function handleManualKKSubmit(itemId, kkId) {
   }
 }
 
-function buildKonfirmasiForm(itemId, kkId, fotoUrl, anggotaParsial) {
-  const fotoHtml = fotoUrl
-    ? '<img src="' + esc(fotoUrl) + '" alt="Foto KK" onerror="this.style.display=\'none\'">'
-    : '';
+function buildKonfirmasiForm(itemId, kkId, fileId, fotoUrl, anggotaParsial, alamatKk) {
+  const fotoBlock = kkMasjidFotoBlock(fileId, fotoUrl);
+  const alamatBody = esc(String(alamatKk || ''));
 
   let rowsHtml = '';
   if (anggotaParsial && anggotaParsial.length > 0) {
-    anggotaParsial.forEach((a, i) => {
-      rowsHtml += buildAnggotaRow(i, a.nama || '', a.jk || 'L', a.umur || '');
+    anggotaParsial.forEach(function(a, i) {
+      rowsHtml += buildAnggotaRow(i, a.nama || '', a.jk || 'L', a.umur !== undefined && a.umur !== null ? a.umur : '');
     });
   } else {
     rowsHtml = buildAnggotaRow(0, '', 'L', '');
   }
 
   return '<div class="konfirmasi-box" id="konfirmasi-' + itemId + '">' +
-    fotoHtml +
-    '<div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:10px;">Periksa dan lengkapi data anggota keluarga:</div>' +
+    fotoBlock +
+    '<div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:10px;">Periksa dengan foto KK di atas. Lengkapi alamat dan data anggota keluarga:</div>' +
+    '<div style="margin-bottom:12px;">' +
+    '<label style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:5px;">Alamat KK <span style="color:#ff8080;">*</span></label>' +
+    '<textarea id="konfirmasi-alamat-' + itemId + '" rows="2" maxlength="500" placeholder="Alamat sesuai Kartu Keluarga" ' +
+    'style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:white;font-size:14px;line-height:1.4;outline:none;resize:vertical;box-sizing:border-box;">' + alamatBody + '</textarea>' +
+    '</div>' +
     '<table class="anggota-table" id="tbl-' + itemId + '">' +
     '<thead><tr><th>Nama</th><th>JK</th><th>Umur</th><th></th></tr></thead>' +
     '<tbody id="tbody-' + itemId + '">' + rowsHtml + '</tbody>' +
@@ -1473,6 +1555,17 @@ async function handleKonfirmasiAnggota(itemId, kkId) {
   const session = getSessionToken();
   if (!session) { handleTokenRevoked(); return; }
 
+  const alamatEl = document.getElementById('konfirmasi-alamat-' + itemId);
+  const alamatKK = alamatEl ? alamatEl.value.trim() : '';
+  if (alamatKK.length < 5) {
+    showToast('Alamat KK wajib diisi (minimal 5 karakter).', 'error');
+    return;
+  }
+  if (alamatKK.length > 500) {
+    showToast('Alamat KK maksimal 500 karakter.', 'error');
+    return;
+  }
+
   const tbody = document.getElementById('tbody-' + itemId);
   if (!tbody) return;
 
@@ -1502,6 +1595,7 @@ async function handleKonfirmasiAnggota(itemId, kkId) {
       masjid_id:     session.masjid_id,
       session_token: session.session_token || '',
       kk_id:         kkId,
+      alamat_kk:     alamatKK,
       anggota_data:  anggotaData
     });
 
@@ -1529,6 +1623,7 @@ async function handleKonfirmasiAnggota(itemId, kkId) {
     kkValidCount++;
     document.getElementById('kkValidCount').textContent = kkValidCount;
     updateSelesaiButton();
+    updateKKUploadBlockingState();
     showToast('Data anggota berhasil dikonfirmasi!', 'success');
     refreshToken(session);
   } catch (e) {

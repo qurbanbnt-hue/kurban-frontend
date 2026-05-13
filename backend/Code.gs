@@ -78,7 +78,7 @@ function handleApiRequest(e) {
 
       // Kupon Masjid — Masjid (token sesi)
       case 'uploadKK': result = processUploadKK(data.masjid_id, { base64Data: data.file_base64, mimeType: data.mime_type, fileName: data.file_name }, data.session_token); break;
-      case 'konfirmasiAnggota': result = konfirmasiAnggota(data.masjid_id, data.kk_id, data.anggota_data, data.session_token); break;
+      case 'konfirmasiAnggota': result = konfirmasiAnggota(data.masjid_id, data.kk_id, data.anggota_data, data.session_token, data.alamat_kk); break;
       case 'konfirmasiAnggotaManual': result = konfirmasiAnggotaManual(data.masjid_id, data.kk_id, data.nomor_kk, data.anggota_data, data.session_token, data.alamat_kk); break;
       case 'konfirmasiSelesaiUpload': result = konfirmasiSelesaiUpload(data.masjid_id, data.session_token); break;
       case 'getKuponMasjid': result = getKuponMasjidByMasjidId(data.masjid_id, data.session_token); break;
@@ -2414,10 +2414,40 @@ function processUploadKK(masjidId, fileData, sessionToken) {
     // OCR
     const ocrResult = extractNomorKK(fileId);
     if (!ocrResult.success) {
-      // Kasus C: OCR gagal total
-      const kkIdGagal = saveKKRecord(masjidId, fileId, null, 'gagal_ocr', null, null, 0, null, false, null);
+      // Kasus C: OCR gagal — tetap satu record + file upload; simpan teks parsial bila ada
+      let anggotaData = null;
+      let alamatKK = '';
+      let jumlahTertera = null;
+      let jumlahParsed = 0;
+      let discNote = null;
+      if (ocrResult.raw_text) {
+        const raw = ocrResult.raw_text;
+        const parsed = parseAnggotaKeluarga(raw);
+        if (parsed && parsed.length > 0) {
+          anggotaData = parsed;
+          jumlahParsed = parsed.length;
+        }
+        alamatKK = parseAlamatKK(raw) || '';
+        jumlahTertera = parseJumlahAnggotaTertera(raw);
+        discNote = ocrResult.error ? String(ocrResult.error).slice(0, 300) : null;
+      }
+      const kkIdGagal = saveKKRecord(masjidId, fileId, null, 'gagal_ocr', anggotaData, jumlahTertera, jumlahParsed, discNote, false, alamatKK || null);
       const fotoUrlGagal = 'https://drive.google.com/file/d/' + fileId + '/view';
-      return { success: true, status_ocr: 'gagal_ocr', kk_id: kkIdGagal, foto_url: fotoUrlGagal };
+      const prefillAnggota = anggotaData && anggotaData.length ? anggotaData : [];
+      return {
+        success:     true,
+        status_ocr:  'gagal_ocr',
+        kk_id:       kkIdGagal,
+        file_id:     fileId,
+        foto_url:    fotoUrlGagal,
+        ocr_prefill: {
+          nomor_kk:                 '',
+          alamat_kk:                alamatKK || '',
+          anggota_parsial:          prefillAnggota,
+          jumlah_anggota_tertera:   jumlahTertera,
+          ocr_error:                ocrResult.error || ''
+        }
+      };
     }
 
     const nomorKK = ocrResult.nomor_kk;
@@ -2427,7 +2457,14 @@ function processUploadKK(masjidId, fileData, sessionToken) {
       // Double-check duplikat di dalam lock
       if (checkDuplicateNomorKK(nomorKK)) {
         const kkIdDup = saveKKRecord(masjidId, fileId, nomorKK, 'duplikat', null, null, 0, null, false, null);
-        return { success: true, status_ocr: 'duplikat', nomor_kk: nomorKK, kk_id: kkIdDup };
+        return {
+          success:    true,
+          status_ocr: 'duplikat',
+          nomor_kk:   nomorKK,
+          kk_id:      kkIdDup,
+          file_id:    fileId,
+          foto_url:   'https://drive.google.com/file/d/' + fileId + '/view'
+        };
       }
 
       // Parse anggota dan alamat
@@ -2446,6 +2483,7 @@ function processUploadKK(masjidId, fileData, sessionToken) {
           success:          true,
           status_ocr:       'perlu_konfirmasi_anggota',
           kk_id:            kkIdKonf,
+          file_id:          fileId,
           nomor_kk:         nomorKK,
           anggota_parsial:  anggotaData,
           foto_url:         fotoUrl,
@@ -2458,7 +2496,14 @@ function processUploadKK(masjidId, fileData, sessionToken) {
       const kkIdValid = saveKKRecord(masjidId, fileId, nomorKK, 'valid',
                    anggotaData, jumlahTertera, jumlahParsed, null, false, alamatKK);
       incrementJumlahKKValid(masjidId, 1);
-      return { success: true, status_ocr: 'valid', kk_id: kkIdValid, nomor_kk: nomorKK, alamat_kk: alamatKK };
+      return {
+        success:     true,
+        status_ocr:  'valid',
+        kk_id:       kkIdValid,
+        file_id:     fileId,
+        nomor_kk:    nomorKK,
+        alamat_kk:   alamatKK
+      };
     });
 
     return result;
@@ -2472,8 +2517,8 @@ function processUploadKK(masjidId, fileData, sessionToken) {
 //  TASK 6: KONFIRMASI ANGGOTA DAN SELESAI UPLOAD
 // ============================================================
 
-// 6.1 + 6.2 konfirmasiAnggota — validasi data anggota, update status KK
-function konfirmasiAnggota(masjidId, kkId, anggotaData, sessionToken) {
+// 6.1 + 6.2 konfirmasiAnggota — validasi data anggota, update status KK (alamat_kk opsional = koreksi dari form)
+function konfirmasiAnggota(masjidId, kkId, anggotaData, sessionToken, alamatKK) {
   try {
     if (!masjidId || !kkId) return { success: false, error: 'Parameter tidak lengkap' };
 
@@ -2521,13 +2566,17 @@ function konfirmasiAnggota(masjidId, kkId, anggotaData, sessionToken) {
       umur: Number(a.umur)
     }));
 
-    // Update record KK
-    updateKKRecord(kkId, {
-      status_ocr:                 'valid',
-      anggota_json:               JSON.stringify(anggotaNorm),
-      jumlah_anggota_parsed:      anggotaNorm.length,
+    const updateFields = {
+      status_ocr:                  'valid',
+      anggota_json:                JSON.stringify(anggotaNorm),
+      jumlah_anggota_parsed:       anggotaNorm.length,
       anggota_dikonfirmasi_manual: true
-    });
+    };
+    const alamatStr = String(alamatKK || '').trim();
+    if (alamatStr.length >= 5) {
+      updateFields.alamat_kk = alamatStr.slice(0, 500);
+    }
+    updateKKRecord(kkId, updateFields);
 
     // Tambah jumlah_kk_valid
     incrementJumlahKKValid(masjidId, 1);
