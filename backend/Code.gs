@@ -79,7 +79,7 @@ function handleApiRequest(e) {
       // Kupon Masjid — Masjid (token sesi)
       case 'uploadKK': result = processUploadKK(data.masjid_id, { base64Data: data.file_base64, mimeType: data.mime_type, fileName: data.file_name }, data.session_token); break;
       case 'konfirmasiAnggota': result = konfirmasiAnggota(data.masjid_id, data.kk_id, data.anggota_data, data.session_token); break;
-      case 'konfirmasiAnggotaManual': result = konfirmasiAnggotaManual(data.masjid_id, data.kk_id, data.nomor_kk, data.anggota_data, data.session_token); break;
+      case 'konfirmasiAnggotaManual': result = konfirmasiAnggotaManual(data.masjid_id, data.kk_id, data.nomor_kk, data.anggota_data, data.session_token, data.alamat_kk); break;
       case 'konfirmasiSelesaiUpload': result = konfirmasiSelesaiUpload(data.masjid_id, data.session_token); break;
       case 'getKuponMasjid': result = getKuponMasjidByMasjidId(data.masjid_id, data.session_token); break;
       case 'getDashboardMasjid': result = getDashboardMasjid(data.masjid_id, data.session_token); break;
@@ -2287,6 +2287,23 @@ function validateAnggotaCount(jumlahTertera, jumlahParsed) {
   return { has_discrepancy: true, note: note };
 }
 
+// Plain text dari Google Doc via Drive v3 export (hindari DocumentApp / scope documents).
+function getGoogleDocPlainTextViaDriveExport_(docId) {
+  const url = 'https://www.googleapis.com/drive/v3/files/' +
+    encodeURIComponent(docId) +
+    '/export?mimeType=' + encodeURIComponent('text/plain');
+  const resp = UrlFetchApp.fetch(url, {
+    method: 'get',
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
+  const code = resp.getResponseCode();
+  if (code !== 200) {
+    throw new Error('Drive export gagal (' + code + '): ' + resp.getContentText());
+  }
+  return resp.getContentText();
+}
+
 // 5.1 extractNomorKK — OCR via Google Drive API
 function extractNomorKK(fileId) {
   let ocrDocId = null;
@@ -2325,7 +2342,7 @@ function extractNomorKK(fileId) {
     }
 
     ocrDocId = ocrDoc.id;
-    const rawText = DocumentApp.openById(ocrDocId).getBody().getText();
+    const rawText = getGoogleDocPlainTextViaDriveExport_(ocrDocId);
     Logger.log('OCR raw text (300 chars): ' + rawText.substring(0, 300));
 
     const nomorKK = parseNomorKK(rawText);
@@ -2398,8 +2415,9 @@ function processUploadKK(masjidId, fileData, sessionToken) {
     const ocrResult = extractNomorKK(fileId);
     if (!ocrResult.success) {
       // Kasus C: OCR gagal total
-      saveKKRecord(masjidId, fileId, null, 'gagal_ocr', null, null, 0, null, false, null);
-      return { success: true, status_ocr: 'gagal_ocr' };
+      const kkIdGagal = saveKKRecord(masjidId, fileId, null, 'gagal_ocr', null, null, 0, null, false, null);
+      const fotoUrlGagal = 'https://drive.google.com/file/d/' + fileId + '/view';
+      return { success: true, status_ocr: 'gagal_ocr', kk_id: kkIdGagal, foto_url: fotoUrlGagal };
     }
 
     const nomorKK = ocrResult.nomor_kk;
@@ -2408,8 +2426,8 @@ function processUploadKK(masjidId, fileData, sessionToken) {
     const result = processWithLock(function() {
       // Double-check duplikat di dalam lock
       if (checkDuplicateNomorKK(nomorKK)) {
-        const kkId = saveKKRecord(masjidId, fileId, nomorKK, 'duplikat', null, null, 0, null, false, null);
-        return { success: true, status_ocr: 'duplikat', nomor_kk: nomorKK };
+        const kkIdDup = saveKKRecord(masjidId, fileId, nomorKK, 'duplikat', null, null, 0, null, false, null);
+        return { success: true, status_ocr: 'duplikat', nomor_kk: nomorKK, kk_id: kkIdDup };
       }
 
       // Parse anggota dan alamat
@@ -2422,11 +2440,12 @@ function processUploadKK(masjidId, fileData, sessionToken) {
       if (validasiResult.has_discrepancy || jumlahParsed === 0) {
         // Kasus B: perlu konfirmasi anggota
         const fotoUrl = 'https://drive.google.com/file/d/' + fileId + '/view';
-        saveKKRecord(masjidId, fileId, nomorKK, 'perlu_konfirmasi_anggota',
+        const kkIdKonf = saveKKRecord(masjidId, fileId, nomorKK, 'perlu_konfirmasi_anggota',
                      anggotaData, jumlahTertera, jumlahParsed, validasiResult.note, false, alamatKK);
         return {
           success:          true,
           status_ocr:       'perlu_konfirmasi_anggota',
+          kk_id:            kkIdKonf,
           nomor_kk:         nomorKK,
           anggota_parsial:  anggotaData,
           foto_url:         fotoUrl,
@@ -2436,10 +2455,10 @@ function processUploadKK(masjidId, fileData, sessionToken) {
       }
 
       // Kasus A: valid
-      saveKKRecord(masjidId, fileId, nomorKK, 'valid',
+      const kkIdValid = saveKKRecord(masjidId, fileId, nomorKK, 'valid',
                    anggotaData, jumlahTertera, jumlahParsed, null, false, alamatKK);
       incrementJumlahKKValid(masjidId, 1);
-      return { success: true, status_ocr: 'valid', nomor_kk: nomorKK, alamat_kk: alamatKK };
+      return { success: true, status_ocr: 'valid', kk_id: kkIdValid, nomor_kk: nomorKK, alamat_kk: alamatKK };
     });
 
     return result;
@@ -2521,8 +2540,8 @@ function konfirmasiAnggota(masjidId, kkId, anggotaData, sessionToken) {
 }
 
 // konfirmasiAnggotaManual — input manual untuk KK yang gagal OCR
-// Menerima nomor_kk manual + data anggota, update record dari gagal_ocr ke valid
-function konfirmasiAnggotaManual(masjidId, kkId, nomorKK, anggotaData, sessionToken) {
+// Menerima nomor_kk manual + alamat KK + data anggota, update record dari gagal_ocr ke valid
+function konfirmasiAnggotaManual(masjidId, kkId, nomorKK, anggotaData, sessionToken, alamatKK) {
   try {
     if (!masjidId || !kkId) return { success: false, error: 'Parameter tidak lengkap' };
 
@@ -2537,6 +2556,14 @@ function konfirmasiAnggotaManual(masjidId, kkId, nomorKK, anggotaData, sessionTo
     const nomorKKStr = String(nomorKK).trim();
     if (!isValidNomorKK(nomorKKStr)) {
       return { success: false, error: 'Nomor KK tidak valid (kode wilayah tidak dikenal)' };
+    }
+
+    const alamatStr = String(alamatKK || '').trim();
+    if (alamatStr.length < 5) {
+      return { success: false, error: 'Alamat KK wajib diisi (minimal 5 karakter)' };
+    }
+    if (alamatStr.length > 500) {
+      return { success: false, error: 'Alamat KK maksimal 500 karakter' };
     }
 
     // Cek duplikat nomor KK
@@ -2578,9 +2605,10 @@ function konfirmasiAnggotaManual(masjidId, kkId, nomorKK, anggotaData, sessionTo
       umur: Number(a.umur)
     }));
 
-    // Update record KK dengan nomor KK manual dan data anggota
+    // Update record KK dengan nomor KK manual, alamat, dan data anggota
     updateKKRecord(kkId, {
       nomor_kk:                   nomorKKStr,
+      alamat_kk:                  alamatStr,
       status_ocr:                 'valid',
       anggota_json:               JSON.stringify(anggotaNorm),
       jumlah_anggota_parsed:      anggotaNorm.length,

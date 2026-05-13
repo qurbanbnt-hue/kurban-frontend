@@ -410,6 +410,7 @@ function buildSafeData(action, body) {
         session_token: String(body.session_token || '').slice(0, 40),
         kk_id:         String(body.kk_id         || '').slice(0, 30),
         nomor_kk:      String(body.nomor_kk      || '').replace(/\D/g, '').slice(0, 16),
+        alamat_kk:     String(body.alamat_kk     || '').trim().slice(0, 500),
         anggota_data:  Array.isArray(body.anggota_data) ? body.anggota_data.slice(0, 50).map(a => ({ nama: String(a.nama || '').slice(0, 200), jk: String(a.jk || '').slice(0, 1), umur: Number(a.umur) || 0 })) : [],
       };
     case 'konfirmasiSelesaiUpload':

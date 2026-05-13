@@ -1300,11 +1300,17 @@ function buildManualKKForm(itemId, kkId, fotoUrl) {
     '<input type="text" id="manual-nomor-' + itemId + '" maxlength="16" inputmode="numeric" placeholder="16 digit nomor KK" ' +
     'style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:white;font-family:monospace;font-size:15px;letter-spacing:2px;outline:none;">' +
     '</div>' +
+    // Alamat KK (wajib jika OCR gagal)
+    '<div style="margin-bottom:10px;">' +
+    '<label style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:5px;">Alamat KK <span style="color:#ff8080;">*</span></label>' +
+    '<textarea id="manual-alamat-' + itemId + '" rows="3" maxlength="500" placeholder="Alamat sesuai Kartu Keluarga (RT/RW, Desa/Kelurahan, Kecamatan, dll.)" ' +
+    'style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:white;font-size:14px;line-height:1.4;outline:none;resize:vertical;box-sizing:border-box;"></textarea>' +
+    '</div>' +
     // Tabel anggota
     '<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Data Anggota Keluarga <span style="color:#ff8080;">*</span></div>' +
     '<table class="anggota-table" id="manual-tbl-' + itemId + '">' +
     '<thead><tr><th>Nama Lengkap</th><th>JK</th><th>Umur</th><th></th></tr></thead>' +
-    '<tbody id="manual-tbody-' + itemId + '">' +
+    '<tbody id="tbody-manual-' + itemId + '">' +
     buildAnggotaRow(0, '', 'L', '') +
     '</tbody>' +
     '</table>' +
@@ -1329,8 +1335,19 @@ async function handleManualKKSubmit(itemId, kkId) {
     return;
   }
 
+  const alamatEl = document.getElementById('manual-alamat-' + itemId);
+  const alamatKK = alamatEl ? alamatEl.value.trim() : '';
+  if (alamatKK.length < 5) {
+    showToast('Alamat KK wajib diisi (minimal 5 karakter).', 'error');
+    return;
+  }
+  if (alamatKK.length > 500) {
+    showToast('Alamat KK maksimal 500 karakter.', 'error');
+    return;
+  }
+
   // Ambil data anggota
-  const tbody = document.getElementById('manual-tbody-' + itemId);
+  const tbody = document.getElementById('tbody-manual-' + itemId);
   if (!tbody) return;
   const rows = tbody.querySelectorAll('tr');
   const anggotaData = [];
@@ -1360,6 +1377,7 @@ async function handleManualKKSubmit(itemId, kkId) {
       session_token: session.session_token || '',
       kk_id:         kkId,
       nomor_kk:      nomorKK,
+      alamat_kk:     alamatKK,
       anggota_data:  anggotaData
     });
 
