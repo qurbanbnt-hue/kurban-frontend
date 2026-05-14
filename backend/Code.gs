@@ -1634,6 +1634,17 @@ function debugOCRKK() {
     Logger.log('=== SEMUA ANGKA 16 DIGIT DITEMUKAN ===');
     const allSixteen = result.raw_text.match(/\d{16}/g);
     Logger.log(JSON.stringify(allSixteen));
+    
+    Logger.log('=== PARSING TESTS ===');
+    const jumlahTertera = parseJumlahAnggotaTertera(result.raw_text);
+    Logger.log('Jumlah Anggota Tertera: ' + jumlahTertera);
+    
+    const anggota = parseAnggotaKeluarga(result.raw_text);
+    Logger.log('Anggota Parsed (' + anggota.length + '): ' + JSON.stringify(anggota));
+    
+    const alamat = parseAlamatKK(result.raw_text);
+    Logger.log('Alamat Parsed: ' + alamat);
+    Logger.log('=== END DEBUG ===');
   }
 }
 
@@ -2264,6 +2275,8 @@ function parseNomorKK(rawText) {
 // 5.3 parseJumlahAnggotaTertera — ekstrak jumlah anggota dari teks KK
 function parseJumlahAnggotaTertera(rawText) {
   if (!rawText) return null;
+  
+  // Pattern 1-2: Cari "Jumlah Anggota Keluarga: X" atau "Jml Anggota: X"
   const patterns = [
     /(?:Jumlah\s*Anggota\s*Keluarga|Jumlah\s*Anggota)[:\s]*(\d{1,3})/i,
     /(?:Jml\.?\s*Anggota)[:\s]*(\d{1,3})/i
@@ -2275,6 +2288,39 @@ function parseJumlahAnggotaTertera(rawText) {
       if (angka >= 1 && angka <= 30) return angka;
     }
   }
+  
+  // Pattern 3: Jika tidak ditemukan, coba hitung dari tabel anggota
+  // Cari baris "No Nama Lengkap" yang menandai awal tabel, lalu hitung nomor urut
+  const tableMatch = rawText.match(/No\s+Nama\s+Lengkap/i);
+  if (tableMatch) {
+    const tableStart = rawText.indexOf(tableMatch[0]);
+    const tableText = rawText.substring(tableStart);
+    // Cari nomor urut: format "1SULASTRI" atau "2 TATANG" (nomor + optional spasi + huruf)
+    const anggotaLines = tableText.match(/^\s*(\d{1,2})\s*[A-Z]/gm);
+    if (anggotaLines && anggotaLines.length > 0) {
+      // Extract nomor dari setiap baris
+      const nomors = [];
+      for (const line of anggotaLines) {
+        const num = parseInt(line.match(/\d+/)[0], 10);
+        if (num >= 1 && num <= 30) nomors.push(num);
+      }
+      
+      // Ambil nomor tertinggi yang valid (skip junk angka di akhir seperti 71, 91)
+      if (nomors.length > 0) {
+        nomors.sort((a, b) => a - b);
+        // Cari sequence kontinyu dari 1: 1,2,3,...
+        for (let i = nomors.length - 1; i >= 0; i--) {
+          if (nomors[i] === i + 1 || i === 0) {
+            return nomors[i];
+          }
+        }
+        // Fallback: return max yang valid
+        const maxValid = Math.max(...nomors.filter(n => n <= 20));
+        if (maxValid >= 1) return maxValid;
+      }
+    }
+  }
+  
   return null;
 }
 
@@ -2282,73 +2328,121 @@ function parseJumlahAnggotaTertera(rawText) {
 function parseAnggotaKeluarga(rawText) {
   if (!rawText) return [];
   const anggota = [];
-  // Pola baris anggota KK: nama, jenis kelamin (L/P), umur
+  
+  // Strategy 1: Cari tabel anggota dari header "No Nama Lengkap"
+  const tableMatch = rawText.match(/No\s+Nama\s+Lengkap/i);
+  if (tableMatch) {
+    const tableStart = rawText.indexOf(tableMatch[0]);
+    const tableText = rawText.substring(tableStart);
+    const lines = tableText.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      // Stop di bagian footer (signature, status perkawinan, dll)
+      if (/Dikeluarkan|Ditandatangani|Status Perkawinan|Kepala Dinas|NIP\.|Tanda Tangan/i.test(line)) break;
+      
+      // Parse format: "1SULASTRI SUHANDA" atau "2 TATANG SUMANDA"
+      // Regex: nomor (1-2 digit) + optional spasi + nama (huruf besar, minimal 3 karakter)
+      const match = line.match(/^(\d{1,2})\s*([A-Z][A-Z\s]{2,60}?)\s*$/);
+      if (match) {
+        const nomor = parseInt(match[1], 10);
+        let nama = match[2].trim();
+        
+        // Validasi
+        if (nomor >= 1 && nomor <= 30 && nama.length > 2 && !/^\d+$/.test(nama)) {
+          // Default jk=L (belum ada jenis kelamin di baris ini)
+          let jk = 'L';
+          let umur = 0;
+          
+          // Coba cari jenis kelamin dari baris berikutnya
+          if (i + 1 < lines.length) {
+            const nextLine = lines[i + 1].trim();
+            // Cari L atau P
+            const jkMatch = nextLine.match(/([LP])/);
+            if (jkMatch) jk = jkMatch[1].toUpperCase();
+            // Cari angka (umur)
+            const ageMatch = nextLine.match(/(\d{1,3})/);
+            if (ageMatch) {
+              const age = parseInt(ageMatch[1], 10);
+              if (age >= 0 && age <= 150) umur = age;
+            }
+          }
+          
+          anggota.push({ nama, jk, umur });
+        }
+      }
+    }
+    
+    if (anggota.length > 0) return anggota;
+  }
+  
+  // Strategy 2: Jika tabel tidak ketemu, cari pattern "NO NAMA" di awal baris
   const lines = rawText.split('\n');
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    // Coba parse baris dengan format: nama ... L/P ... angka
-    const match = trimmed.match(/^(.+?)\s+(L|P|Laki-laki|Perempuan)\s+(\d{1,3})\s*$/i);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line.length < 3) continue;
+    
+    // Stop di footer
+    if (/Dikeluarkan|Ditandatangani|Kepala Dinas|NIP\.|Tanda Tangan|REPUBLIK INDONESIA|Status Perkawinan/i.test(line)) break;
+    
+    // Pattern: "NO NAMA" (nomor + spasi/merge + nama)
+    const match = line.match(/^(\d{1,2})\s*([A-Z][A-Z\s]{2,60}?)\s*$/);
     if (match) {
-      const nama = match[1].trim();
-      const jk   = match[2].toUpperCase().startsWith('L') ? 'L' : 'P';
-      const umur = parseInt(match[3], 10);
-      if (nama.length > 1 && umur >= 0 && umur <= 150) {
-        anggota.push({ nama, jk, umur });
+      const nomor = parseInt(match[1], 10);
+      const nama = match[2].trim();
+      
+      if (nomor >= 1 && nomor <= 30 && nama.length > 2 && !/^\d+$/.test(nama)) {
+        anggota.push({ nama, jk: 'L', umur: 0 });
       }
     }
   }
+  
   return anggota;
-}
 
 // 5.4b parseAlamatKK — ekstrak alamat dari teks OCR KK
 function parseAlamatKK(rawText) {
   if (!rawText) return null;
 
-  // Format KK Indonesia: "Alamat" atau "Alamat :" diikuti nilai alamat
-  // Bisa multi-baris (RT/RW, Desa/Kelurahan, Kecamatan, dst)
-  const patterns = [
-    // Format: "Alamat : Jl. Merdeka No. 1"
-    /(?:Alamat|ALAMAT)\s*[:\s]+([^\n]{5,200})/i,
-    // Format: "Jalan / Nomor : Jl. Merdeka"
-    /(?:Jalan\s*\/?\s*Nomor|JALAN)\s*[:\s]+([^\n]{3,200})/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = rawText.match(pattern);
-    if (match) {
-      let alamat = match[1].trim();
-
-      // Coba ambil baris lanjutan (RT/RW, Desa, Kecamatan)
-      // Cari posisi match dalam teks dan ambil beberapa baris berikutnya
-      const matchIndex = rawText.indexOf(match[0]);
-      if (matchIndex !== -1) {
-        const afterMatch = rawText.substring(matchIndex + match[0].length);
-        const nextLines  = afterMatch.split('\n').slice(0, 3);
-
-        for (const nextLine of nextLines) {
-          const trimmed = nextLine.trim();
-          // Tambahkan baris jika mengandung info alamat (RT/RW, Desa, Kel, Kec)
-          if (trimmed && /^(RT|RW|Desa|Kel|Kec|Kecamatan|Kelurahan|Dusun|Blok|\d{3}\/\d{3})/i.test(trimmed)) {
-            alamat += ', ' + trimmed;
-          } else {
-            break; // berhenti jika bukan lanjutan alamat
+  // Format KK standar:
+  // Nama Kepala Keluarga
+  // (nama di baris terpisah)
+  // Alamat
+  // (alamat di baris terpisah)
+  
+  // Strategy 1: Cari keyword "Alamat" lalu ambil baris berikutnya yang mulai dengan "JL/JLN/JALAN/KOMP"
+  const lines = rawText.split('\n');
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i].trim();
+    if (/^Alamat/i.test(line)) {
+      // Ambil baris berikutnya
+      const nextLine = lines[i + 1].trim();
+      if (nextLine && /^(JL|JLN|JALAN|KP|KOMP|KOMPLEK|JEMBATAN|GANG|DESA|KELURAHAN|JL\.)/i.test(nextLine)) {
+        // Ini adalah alamat yang valid
+        let alamat = nextLine;
+        // Coba ambil baris berikutnya jika masih RT/RW, Desa, Kecamatan, dll
+        if (i + 2 < lines.length) {
+          const line3 = lines[i + 2].trim();
+          if (line3 && /^(RT|RW|No|Nomor|Blok|Dusun|\d{3}\/\d{3})/i.test(line3)) {
+            alamat += ', ' + line3;
           }
         }
+        return alamat;
       }
-
-      // Bersihkan hasil
-      alamat = alamat
-        .replace(/\s+/g, ' ')
-        .replace(/,\s*,/g, ',')
-        .trim();
-
-      if (alamat.length >= 5) return alamat;
+    }
+  
+  // Strategy 2: Jika tidak ada keyword "Alamat", cari baris yang mulai dengan pola jalan
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && /^(JL|JLN|JALAN|KP|KOMP|KOMPLEK|JEMBATAN|GANG)/i.test(trimmed)) {
+      if (trimmed.length >= 5 && !/kepala|nama|jenis/i.test(trimmed)) {
+        return trimmed;
+      }
     }
   }
 
   return null;
-}
 
 // 5.5 validateAnggotaCount — deteksi discrepancy
 function validateAnggotaCount(jumlahTertera, jumlahParsed) {
@@ -2578,6 +2672,16 @@ function processUploadKK(masjidId, fileData, sessionToken) {
       const alamatKK       = parseAlamatKK(ocrResult.raw_text);
       const jumlahTertera  = ocrResult.jumlah_anggota_tertera;
       const jumlahParsed   = anggotaData.length;
+      
+      // DEBUG: Log parsing results
+      Logger.log('=== PARSING DEBUG ===');
+      Logger.log('Raw text length: ' + (ocrResult.raw_text ? ocrResult.raw_text.length : 0));
+      Logger.log('Jumlah tertera: ' + jumlahTertera);
+      Logger.log('Jumlah parsed: ' + jumlahParsed);
+      Logger.log('Alamat parsed: ' + alamatKK);
+      Logger.log('Anggota parsed: ' + JSON.stringify(anggotaData));
+      Logger.log('=== END DEBUG ===');
+      
       const validasiResult = validateAnggotaCount(jumlahTertera, jumlahParsed);
 
       if (validasiResult.has_discrepancy || jumlahParsed === 0) {
