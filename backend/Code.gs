@@ -416,6 +416,7 @@ function updateMasjidField(masjidId, fieldName, value) {
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]).trim() === String(masjidId).trim()) {
       sheet.getRange(i + 1, colIdx + 1).setValue(value);
+      SpreadsheetApp.flush();
       return true;
     }
   }
@@ -433,6 +434,8 @@ function updateMasjidFields(masjidId, fieldsObj) {
         const colIdx = headers.indexOf(field);
         if (colIdx !== -1) sheet.getRange(i + 1, colIdx + 1).setValue(fieldsObj[field]);
       });
+      // Flush to ensure all updates are committed
+      SpreadsheetApp.flush();
       return true;
     }
   }
@@ -449,6 +452,7 @@ function incrementJumlahKKValid(masjidId, delta) {
     if (String(data[i][0]).trim() === String(masjidId).trim()) {
       const current = Number(data[i][colIdx]) || 0;
       sheet.getRange(i + 1, colIdx + 1).setValue(current + delta);
+      SpreadsheetApp.flush();
       return true;
     }
   }
@@ -552,6 +556,7 @@ function updateKKRecord(kkId, fieldsObj) {
         const colIdx = headers.indexOf(field);
         if (colIdx !== -1) sheet.getRange(i + 1, colIdx + 1).setValue(fieldsObj[field]);
       });
+      SpreadsheetApp.flush();
       return true;
     }
   }
@@ -708,6 +713,7 @@ function incrementOTPAttempt(masjidId) {
     if (String(data[i][0]).trim() === String(masjidId).trim()) {
       const newCount = (Number(data[i][4]) || 0) + 1;
       sheet.getRange(i + 1, 5).setValue(newCount);
+      SpreadsheetApp.flush();
       return newCount;
     }
   }
@@ -1939,6 +1945,8 @@ function verifyOTP(masjidId, otpCode) {
       token_revoked_at: '',
       session_token:    sessionToken
     });
+    // Flush to ensure sheet is updated before next operations
+    SpreadsheetApp.flush();
 
     const masjid = getMasjidById(masjidId);
     return {
