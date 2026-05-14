@@ -315,6 +315,18 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── MASJID_ACTIONS — tidak perlu JWT, hanya session_token ────
+  if (MASJID_ACTIONS.has(action)) {
+    const safeData = buildSafeData(action, body);
+    try {
+      const result = await callGas(action, safeData, null);
+      return res.status(200).json(result);
+    } catch (err) {
+      logSecure(requestId, `MASJID_ACTION error for ${action}: ${err.message}`);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  }
+
   // ── PROTECTED — wajib JWT ────────────────────────────────────
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Bearer ')) {

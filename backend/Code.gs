@@ -430,12 +430,38 @@ function updateMasjidFields(masjidId, fieldsObj) {
   const headers = data[0];
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]).trim() === String(masjidId).trim()) {
+      // Use batch update instead of individual setValue calls
+      const updates = [];
+      const updateCols = [];
       Object.keys(fieldsObj).forEach(field => {
         const colIdx = headers.indexOf(field);
-        if (colIdx !== -1) sheet.getRange(i + 1, colIdx + 1).setValue(fieldsObj[field]);
+        if (colIdx !== -1) {
+          updates.push([fieldsObj[field]]);
+          updateCols.push(colIdx + 1);
+        }
       });
-      // Flush to ensure all updates are committed
+      
+      if (updates.length > 0) {
+        // Set all values in the row at once
+        const row = i + 1;
+        updates.forEach((val, idx) => {
+          sheet.getRange(row, updateCols[idx]).setValue(val[0]);
+        });
+      }
+      
+      // Critical: flush and verify the update
       SpreadsheetApp.flush();
+      // Double-check: read back the data to ensure it was written
+      Utilities.sleep(100);
+      const verifyData = sheet.getDataRange().getValues();
+      for (const field in fieldsObj) {
+        const colIdx = headers.indexOf(field);
+        if (colIdx !== -1 && String(verifyData[i][colIdx]) !== String(fieldsObj[field])) {
+          // If value doesn't match, try again
+          sheet.getRange(i + 1, colIdx + 1).setValue(fieldsObj[field]);
+          SpreadsheetApp.flush();
+        }
+      }
       return true;
     }
   }
@@ -1940,6 +1966,7 @@ function verifyOTP(masjidId, otpCode) {
     const now = new Date().toISOString();
     // Generate session token kriptografis
     const sessionToken = Utilities.getUuid();
+    Logger.log('verifyOTP: Generating token for ' + masjidId + ', token=' + sessionToken);
     updateMasjidFields(masjidId, {
       token_issued_at:  now,
       token_revoked_at: '',
@@ -1947,8 +1974,17 @@ function verifyOTP(masjidId, otpCode) {
     });
     // Flush to ensure sheet is updated before next operations
     SpreadsheetApp.flush();
+    Utilities.sleep(200);
 
-    const masjid = getMasjidById(masjidId);
+    // Verify the token was actually saved
+    const masjidAfterUpdate = getMasjidById(masjidId);
+    if (!masjidAfterUpdate || !masjidAfterUpdate.session_token) {
+      Logger.log('verifyOTP: ERROR - Token not saved for ' + masjidId);
+      return { success: false, error: 'Gagal menyimpan token. Coba login ulang.' };
+    }
+    Logger.log('verifyOTP: Token verified saved for ' + masjidId + ', stored=' + masjidAfterUpdate.session_token);
+
+    const masjid = masjidAfterUpdate;
     return {
       success:       true,
       masjid_id:     masjidId,
@@ -2001,15 +2037,27 @@ function checkTokenRevoked(masjidId, tokenIssuedAt) {
 // validateMasjidSession — validasi session token kriptografis masjid
 function validateMasjidSession(masjidId, sessionToken) {
   if (!masjidId || !sessionToken) {
+    Logger.log('validateMasjidSession: missing masjidId or sessionToken. masjidId=[' + masjidId + '] sessionToken=[' + sessionToken + '] type(masjidId)=' + typeof masjidId + ' type(sessionToken)=' + typeof sessionToken);
     return { valid: false, error: 'TOKEN_REVOKED' };
   }
   const masjid = getMasjidById(masjidId);
-  if (!masjid) return { valid: false, error: 'Masjid tidak ditemukan' };
+  if (!masjid) {
+    Logger.log('validateMasjidSession: masjid not found: ' + masjidId);
+    return { valid: false, error: 'Masjid tidak ditemukan' };
+  }
   if (masjid.status === 'diblokir') {
+    Logger.log('validateMasjidSession: masjid is blocked: ' + masjidId);
     return { valid: false, error: 'Akun masjid Anda telah diblokir. Hubungi admin untuk informasi lebih lanjut.' };
   }
   // Cek session token
-  if (!masjid.session_token || String(masjid.session_token).trim() !== String(sessionToken).trim()) {
+  const storedToken = String(masjid.session_token || '').trim();
+  const incomingToken = String(sessionToken || '').trim();
+  if (!storedToken) {
+    Logger.log('validateMasjidSession: stored token is empty for ' + masjidId);
+    return { valid: false, error: 'TOKEN_REVOKED' };
+  }
+  if (storedToken !== incomingToken) {
+    Logger.log('validateMasjidSession: token mismatch for ' + masjidId + '. stored=[' + storedToken + '] incoming=[' + incomingToken + ']');
     return { valid: false, error: 'TOKEN_REVOKED' };
   }
   // Cek token revoked
@@ -2017,6 +2065,7 @@ function validateMasjidSession(masjidId, sessionToken) {
     const revokedAt = new Date(masjid.token_revoked_at);
     const issuedAt  = new Date(masjid.token_issued_at);
     if (!isNaN(revokedAt) && !isNaN(issuedAt) && revokedAt > issuedAt) {
+      Logger.log('validateMasjidSession: token was revoked for ' + masjidId);
       return { valid: false, error: 'TOKEN_REVOKED' };
     }
   }
