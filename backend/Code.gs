@@ -5,7 +5,7 @@ const NAMA_SHEET_DB          = "Database";
 const NAMA_SHEET_LAPORAN     = "Laporan";
 const NAMA_SHEET_AKUN        = "Akun";
 const NAMA_SHEET_DOKUMENTASI = "DokumentasiInstansi";
-const ROOT_FOLDER_ID         = "GANTI_DENGAN_ID_FOLDER_DRIVE_KAMU";
+const ROOT_FOLDER_ID         = "1RPDv3Jj9srfMvV0Wvv5wkD182klzSWNA";
 
 const SCRIPT_SECRET = PropertiesService.getScriptProperties().getProperty('SCRIPT_SECRET') || '';
 
@@ -1621,7 +1621,7 @@ function testSearchPekurban() {
 // ── DEBUG: Test OCR pada file KK tertentu ─────────────────────
 // Cara pakai: isi FILE_ID dengan ID file di Google Drive, lalu Run
 function debugOCRKK() {
-  const FILE_ID = 'GANTI_DENGAN_FILE_ID_KK'; // Ganti dengan ID file KK di Drive
+  const FILE_ID = '1Ftevenpk2f7hfjC9BFXcV3xPrRdwK9ji'; // Ganti dengan ID file KK di Drive
   Logger.log('=== DEBUG OCR KK ===');
   Logger.log('File ID: ' + FILE_ID);
 
@@ -2351,78 +2351,99 @@ function parseJumlahAnggotaTertera(rawText) {
 function parseAnggotaKeluarga(rawText) {
   if (!rawText) return [];
   const anggota = [];
-  
-  // Strategy 1: Cari tabel anggota dari header "No Nama Lengkap"
-  const tableMatch = rawText.match(/No\s+Nama\s+Lengkap/i);
-  if (tableMatch) {
-    const tableStart = rawText.indexOf(tableMatch[0]);
-    const tableText = rawText.substring(tableStart);
-    const lines = tableText.split('\n');
-    
+ 
+  // Normalisasi line endings (\r\n → \n)
+  const text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = text.split('\n');
+ 
+  // ── Cari posisi "Nama Lengkap" sebagai anchor daftar anggota ──
+  // Pada KK standar Indonesia, daftar anggota selalu muncul
+  // SETELAH header kolom "Nama Lengkap"
+  let startIdx = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (/Nama\s+Lengkap/i.test(lines[i].trim())) {
+      startIdx = i + 1; // mulai dari baris setelah "Nama Lengkap"
+      break;
+    }
+  }
+ 
+  // ── Regex pengenal baris anggota ──
+  // Format KK: "1SULASTRI SUHANDA" atau "2 TATANG SUMANDA"
+  // (nomor 1-2 digit, optional spasi, nama huruf kapital)
+  const nameRegex = /^(\d{1,2})\s*([A-Z][A-Z\s]{2,60}?)$/;
+ 
+  // ── Kondisi stop: HANYA footer dokumen ──
+  // CATATAN: "REPUBLIK INDONESIA" sengaja TIDAK dimasukkan karena
+  // watermark ini muncul SEBELUM daftar nama pada banyak format KK
+  const stopPattern = /Dikeluarkan|Ditandatangani|Status\s+Perkawinan|Kepala\s+Dinas|NIP\.|Tanda\s+Tangan/i;
+ 
+  for (let i = startIdx; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+ 
+    // Berhenti saat menemukan bagian footer
+    if (stopPattern.test(line)) break;
+ 
+    const match = line.match(nameRegex);
+    if (!match) continue;
+ 
+    const nomor = parseInt(match[1], 10);
+    const nama  = match[2].trim();
+ 
+    // Validasi: nomor masuk akal, nama bukan angka murni, minimal 3 karakter
+    if (nomor < 1 || nomor > 30) continue;
+    if (nama.length < 3) continue;
+    if (/^\d+$/.test(nama)) continue;
+ 
+    // Default gender L, coba baca dari baris berikutnya
+    let jk   = 'L';
+    let umur = 0;
+ 
+    if (i + 1 < lines.length) {
+      const nextLine = lines[i + 1].trim();
+ 
+      // Deteksi gender: cari LAKI-LAKI atau PEREMPUAN (atau L/P singkat)
+      if (/PEREMPUAN|^P$/i.test(nextLine)) {
+        jk = 'P';
+      } else if (/LAKI|^L$/i.test(nextLine)) {
+        jk = 'L';
+      }
+ 
+      // Deteksi umur: angka 1-3 digit yang masuk akal (0-120)
+      const ageMatch = nextLine.match(/\b(\d{1,3})\b/);
+      if (ageMatch) {
+        const age = parseInt(ageMatch[1], 10);
+        if (age >= 0 && age <= 120) umur = age;
+      }
+    }
+ 
+    anggota.push({ nama, jk, umur });
+  }
+ 
+  // ── Fallback: jika startIdx=0 (Nama Lengkap tidak ketemu),
+  //    coba scan seluruh dokumen tapi skip baris sebelum nomor urut 1 ──
+  if (anggota.length === 0 && startIdx === 0) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line) continue;
-      
-      // Stop di bagian footer (signature, status perkawinan, dll)
-      if (/Dikeluarkan|Ditandatangani|Status Perkawinan|Kepala Dinas|NIP\.|Tanda Tangan/i.test(line)) break;
-      
-      // Parse format: "1SULASTRI SUHANDA" atau "2 TATANG SUMANDA"
-      // Regex: nomor (1-2 digit) + optional spasi + nama (huruf besar, minimal 3 karakter)
-      const match = line.match(/^(\d{1,2})\s*([A-Z][A-Z\s]{2,60}?)\s*$/);
-      if (match) {
-        const nomor = parseInt(match[1], 10);
-        let nama = match[2].trim();
-        
-        // Validasi
-        if (nomor >= 1 && nomor <= 30 && nama.length > 2 && !/^\d+$/.test(nama)) {
-          // Default jk=L (belum ada jenis kelamin di baris ini)
-          let jk = 'L';
-          let umur = 0;
-          
-          // Coba cari jenis kelamin dari baris berikutnya
-          if (i + 1 < lines.length) {
-            const nextLine = lines[i + 1].trim();
-            // Cari L atau P
-            const jkMatch = nextLine.match(/([LP])/);
-            if (jkMatch) jk = jkMatch[1].toUpperCase();
-            // Cari angka (umur)
-            const ageMatch = nextLine.match(/(\d{1,3})/);
-            if (ageMatch) {
-              const age = parseInt(ageMatch[1], 10);
-              if (age >= 0 && age <= 150) umur = age;
-            }
-          }
-          
-          anggota.push({ nama, jk, umur });
-        }
-      }
-    }
-    
-    if (anggota.length > 0) return anggota;
-  }
-  
-  // Strategy 2: Jika tabel tidak ketemu, cari pattern "NO NAMA" di awal baris
-  const lines = rawText.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || line.length < 3) continue;
-    
-    // Stop di footer
-    if (/Dikeluarkan|Ditandatangani|Kepala Dinas|NIP\.|Tanda Tangan|REPUBLIK INDONESIA|Status Perkawinan/i.test(line)) break;
-    
-    // Pattern: "NO NAMA" (nomor + spasi/merge + nama)
-    const match = line.match(/^(\d{1,2})\s*([A-Z][A-Z\s]{2,60}?)\s*$/);
-    if (match) {
+      if (!line || line.length < 3) continue;
+ 
+      // Stop di footer (tetap tidak stop di REPUBLIK INDONESIA)
+      if (stopPattern.test(line)) break;
+ 
+      const match = line.match(nameRegex);
+      if (!match) continue;
+ 
       const nomor = parseInt(match[1], 10);
-      const nama = match[2].trim();
-      
-      if (nomor >= 1 && nomor <= 30 && nama.length > 2 && !/^\d+$/.test(nama)) {
-        anggota.push({ nama, jk: 'L', umur: 0 });
-      }
+      const nama  = match[2].trim();
+ 
+      if (nomor < 1 || nomor > 30 || nama.length < 3 || /^\d+$/.test(nama)) continue;
+ 
+      anggota.push({ nama, jk: 'L', umur: 0 });
     }
   }
-  
+ 
   return anggota;
+}
 
 // 5.4b parseAlamatKK — ekstrak alamat dari teks OCR KK
 function parseAlamatKK(rawText) {
@@ -2466,7 +2487,8 @@ function parseAlamatKK(rawText) {
   }
 
   return null;
-
+  }
+}
 // 5.5 validateAnggotaCount — deteksi discrepancy
 function validateAnggotaCount(jumlahTertera, jumlahParsed) {
   if (jumlahTertera === null || jumlahTertera === undefined) {
