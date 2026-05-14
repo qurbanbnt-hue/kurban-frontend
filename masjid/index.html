@@ -450,7 +450,7 @@
           <div class="m-brand-sub">Portal Masjid · BNT 1447 H</div>
         </div>
       </div>
-      <button id="btnLogout" onclick="handleLogout()" style="display:none;background:rgba(255,80,80,0.15);border:1px solid rgba(255,80,80,0.25);color:#ff8080;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button id="btnLogout" onclick="handleLogout()" style="display:none;background:rgba(255,80,80,0.15);border:1px solid rgba(255,80,80,0.25);color:#ff8080;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;margin-left:auto;">
         <i class="icon icon-log-out" style="font-size:14px;vertical-align:middle;margin-right:4px;"></i>Keluar
       </button>
     </div>
@@ -576,9 +576,11 @@
         <div id="kkResultsList"></div>
 
         <!-- Konfirmasi selesai upload -->
-        <button class="m-btn m-btn-primary" id="btnSelesaiUpload" onclick="showSelesaiDialog()" style="margin-top:8px;display:none;">
-          <i class="icon icon-check-square" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Konfirmasi Selesai Upload
-        </button>
+        <div id="selesaiUploadSection" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
+          <button class="m-btn m-btn-primary" id="btnSelesaiUpload" onclick="showSelesaiDialog()" style="width:100%;">
+            <i class="icon icon-check-square" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Konfirmasi Selesai Upload
+          </button>
+        </div>
       </div>
 
       <!-- Menunggu review state -->
@@ -1755,12 +1757,12 @@ async function handleKonfirmasiAnggota(itemId, kkId) {
 }
 
 function updateSelesaiButton() {
-  const btn = document.getElementById('btnSelesaiUpload');
-  if (!btn) return;
+  const section = document.getElementById('selesaiUploadSection');
+  if (!section) return;
   if (kkValidCount > 0) {
-    btn.style.display = 'block';
+    section.style.display = 'block';
   } else {
-    btn.style.display = 'none';
+    section.style.display = 'none';
   }
 }
 
