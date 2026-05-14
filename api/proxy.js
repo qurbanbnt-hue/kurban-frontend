@@ -4,11 +4,13 @@
 // ============================================================
 
 import { SignJWT, jwtVerify } from 'jose';
+import crypto from 'crypto';
 
 // ── Konfigurasi ──────────────────────────────────────────────
 const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
 const GAS_SECRET      = process.env.GAS_SECRET;
 const JWT_SECRET_RAW  = process.env.JWT_SECRET;
+const CSRF_SECRET     = process.env.CSRF_SECRET || 'default-csrf-secret-change-in-prod';
 const JWT_EXPIRY      = '8h';
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
@@ -85,6 +87,34 @@ setInterval(() => {
   const cutoff = Date.now() - RATE_WINDOW_MS * 2;
   for (const [k, v] of rateMap) if (v.start < cutoff) rateMap.delete(k);
 }, RATE_WINDOW_MS * 5);
+
+// ── CSRF Token Generation ────────────────────────────────────
+function generateCsrfToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function validateCsrfToken(token, expectedToken) {
+  if (!token || !expectedToken) return false;
+  return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expectedToken));
+}
+
+// ── Request ID Tracking (for audit logging) ──────────────────
+function generateRequestId() {
+  return crypto.randomBytes(12).toString('hex');
+}
+
+// ── Sanitized Logging (no sensitive data) ────────────────────
+function logSecure(requestId, message, sensitiveData = null) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] [${requestId}] ${message}`;
+  if (process.env.NODE_ENV === 'development') {
+    console.log(logMessage);
+    if (sensitiveData) console.log('DEBUG:', sensitiveData);
+  } else {
+    // Production: send to logging service without sensitive data
+    console.log(logMessage);
+  }
+}
 
 // ── JWT ──────────────────────────────────────────────────────
 function jwtKey() {
@@ -163,6 +193,14 @@ function validateUploadKK(body) {
   return null;
 }
 
+function validatePagination(body) {
+  const page = Number(body.page) || 1;
+  const limit = Number(body.limit) || 50;
+  if (page < 1) return 'page harus >= 1';
+  if (limit < 1 || limit > 500) return 'limit harus antara 1-500';
+  return null;
+}
+
 async function callGas(action, data, user = null) {
   if (!APPS_SCRIPT_URL || !GAS_SECRET) throw new Error('Konfigurasi server tidak lengkap');
   const res  = await fetch(`${APPS_SCRIPT_URL}?action=${encodeURIComponent(action)}`, {
@@ -175,19 +213,24 @@ async function callGas(action, data, user = null) {
 
 // ── Main handler ──────────────────────────────────────────────
 export default async function handler(req, res) {
+  const requestId = generateRequestId();
+  
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Request-ID', requestId);
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('Content-Security-Policy', "default-src 'none'");
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'");
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
 
   const origin = req.headers.origin || '';
   const allowedOrigin = ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)
     ? origin || '*' : 'null';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -196,25 +239,29 @@ export default async function handler(req, res) {
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
   if (!checkRate(`ip:${ip}`, RATE_LIMIT_IP)) {
     res.setHeader('Retry-After', '60');
+    logSecure(requestId, `RATE_LIMIT_IP exceeded for IP: ${ip}`);
     return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan' });
   }
 
   const { action } = req.query;
   if (!action || !ALLOWED_ACTIONS.has(action)) {
+    logSecure(requestId, `Invalid action attempted: ${action}`);
     return res.status(400).json({ success: false, error: 'Action tidak valid' });
   }
 
   const body = req.body || {};
 
-  // ── Validasi ukuran body dari konten aktual (bukan header Content-Length yang bisa dipalsukan) ──
+  // ── Validasi ukuran body dari konten aktual ──
   const bodySize = Buffer.byteLength(JSON.stringify(body), 'utf8');
   if (bodySize > 25 * 1024 * 1024) {
+    logSecure(requestId, `Payload too large: ${bodySize} bytes`);
     return res.status(413).json({ success: false, error: 'Payload terlalu besar' });
   }
 
   if (action === 'login') {
     const { email, password } = body;
     if (!str(email, 200) || !str(password, 200)) {
+      logSecure(requestId, 'Login: Missing email or password');
       return res.status(400).json({ success: false, error: 'Email dan password harus diisi' });
     }
     try {
@@ -224,6 +271,9 @@ export default async function handler(req, res) {
       }, null);
 
       if (!result.success) {
+        logSecure(requestId, `Login failed: invalid credentials for email ${email.split('@')[0]}@***`);
+        // Add 2s delay on failed login to slow down brute force
+        await new Promise(r => setTimeout(r, 2000));
         return res.status(401).json({ success: false, error: 'Email atau password salah' });
       }
 
@@ -233,6 +283,15 @@ export default async function handler(req, res) {
         username: result.username,
       });
 
+      logSecure(requestId, `Login success: ${result.email.split('@')[0]}@***, role: ${result.role}`);
+
+      // Set httpOnly, Secure, SameSite cookie (recommended for production)
+      // Note: SPA should use localStorage + Bearer token, OR use this secure cookie approach
+      res.setHeader('Set-Cookie', [
+        `authToken=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=28800`,
+        `userEmail=${encodeURIComponent(result.email)}; Path=/; Secure; SameSite=Strict; Max-Age=28800`,
+      ]);
+
       return res.status(200).json({
         success:  true,
         token,
@@ -240,7 +299,8 @@ export default async function handler(req, res) {
         username: result.username,
         role:     result.role,
       });
-    } catch {
+    } catch (err) {
+      logSecure(requestId, `Login error: ${err.message}`);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }
@@ -258,22 +318,26 @@ export default async function handler(req, res) {
   // ── PROTECTED — wajib JWT ────────────────────────────────────
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Bearer ')) {
+    logSecure(requestId, `Missing or invalid auth header for action: ${action}`);
     return res.status(401).json({ success: false, error: 'Token tidak ditemukan' });
   }
 
   let user;
   try {
     user = await verifyJwt(authHeader.slice(7));
-  } catch {
+  } catch (err) {
+    logSecure(requestId, `JWT verification failed: ${err.message}`);
     return res.status(401).json({ success: false, error: 'Token tidak valid atau expired' });
   }
 
   if (!checkRate(`user:${user.email}`, RATE_LIMIT_USER)) {
     res.setHeader('Retry-After', '60');
+    logSecure(requestId, `RATE_LIMIT_USER exceeded for user: ${user.email.split('@')[0]}@***`);
     return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan' });
   }
 
   if (ADMIN_ONLY_ACTIONS.has(action) && user.role !== 'admin') {
+    logSecure(requestId, `Unauthorized access attempt: user ${user.email.split('@')[0]}@*** tried ${action}`);
     return res.status(403).json({ success: false, error: 'Akses ditolak' });
   }
 
@@ -286,18 +350,27 @@ export default async function handler(req, res) {
   if (action === 'updateUser')        err = validateUserData(body.user);
   if (action === 'getFileById' && !str(body.fileId, 100)) err = 'fileId tidak valid';
   if (action === 'uploadKK')          err = validateUploadKK(body);
+  // Add pagination validation for list endpoints
+  if (['getRegistrations', 'getKKDetail', 'getKKPerluVerifikasi'].includes(action)) {
+    err = validatePagination(body);
+  }
 
-  if (err) return res.status(400).json({ success: false, error: err });
+  if (err) {
+    logSecure(requestId, `Validation error for ${action}: ${err}`);
+    return res.status(400).json({ success: false, error: err });
+  }
 
   const safeData = buildSafeData(action, body);
 
   try {
+    logSecure(requestId, `Processing ${action} for ${user.email.split('@')[0]}@***`);
     const result = await callGas(action, safeData, {
       email: user.email,
       role:  user.role,
     });
     return res.status(200).json(result);
-  } catch {
+  } catch (err) {
+    logSecure(requestId, `GAS call error for ${action}: ${err.message}`);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

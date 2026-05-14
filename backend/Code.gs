@@ -84,10 +84,10 @@ function handleApiRequest(e) {
       case 'getKuponMasjid': result = getKuponMasjidByMasjidId(data.masjid_id, data.session_token); break;
       case 'getDashboardMasjid': result = getDashboardMasjid(data.masjid_id, data.session_token); break;
 
-      // Kupon Masjid — Admin
-      case 'getRegistrations': result = requireAdmin(user) || getRegistrations(); break;
-      case 'getKKDetail': result = requireAdmin(user) || getKKDetailByMasjid(data.masjid_id); break;
-      case 'getKKPerluVerifikasi': result = requireAdmin(user) || getKKPerluVerifikasiByMasjid(data.masjid_id); break;
+      // Kupon Masjid — Admin (dengan pagination)
+      case 'getRegistrations': result = requireAdmin(user) || getRegistrations(data.page, data.limit); break;
+      case 'getKKDetail': result = requireAdmin(user) || getKKDetailByMasjid(data.masjid_id, data.page, data.limit); break;
+      case 'getKKPerluVerifikasi': result = requireAdmin(user) || getKKPerluVerifikasiByMasjid(data.masjid_id, data.page, data.limit); break;
       case 'resolveKKVerifikasi': result = requireAdmin(user) || resolveKKVerifikasi(data.kk_id, data.action, data.koreksi_data, user.email); break;
       case 'setJatah': result = requireAdmin(user) || setJatah(data.masjid_id, data.jumlah_sapi, user.email); break;
       case 'togglePeriodePendaftaran': result = requireAdmin(user) || togglePeriodePendaftaran(data.buka, user.email); break;
@@ -111,7 +111,7 @@ function handleApiRequest(e) {
     return jsonResponse(result);
 
   } catch (err) {
-    Logger.log('GAS Error: ' + err.toString());
+    logSecure('API Error', err.toString());
     return jsonResponse({ success: false, error: 'Internal server error' });
   }
 }
@@ -123,9 +123,17 @@ function jsonResponse(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// ── Sanitized logging (no sensitive data) ─────────────────────
+function logSecure(action, message) {
+  const timestamp = new Date().toISOString();
+  Logger.log(`[${timestamp}] ${action}: ${message}`);
+  // Note: Avoid logging passwords, tokens, or personal data
+}
+
 // ── Helper: cek user terverifikasi ────────────────────────────
 function requireUser(user) {
   if (!user || !user.email || !user.role) {
+    logSecure('requireUser', 'User auth required but not provided');
     return { success: false, error: 'Autentikasi diperlukan' };
   }
   return null;
@@ -135,7 +143,10 @@ function requireUser(user) {
 function requireAdmin(user) {
   const check = requireUser(user);
   if (check) return check;
-  if (user.role !== 'admin') return { success: false, error: 'Akses ditolak' };
+  if (user.role !== 'admin') {
+    logSecure('requireAdmin', `Non-admin user ${user.email.split('@')[0]}@*** tried admin action`);
+    return { success: false, error: 'Akses ditolak' };
+  }
   return null;
 }
 
@@ -2885,37 +2896,71 @@ function rejectRegistration(masjidId, alasan) {
   }
 }
 
-// 9.4 getRegistrations — ambil semua pendaftaran masjid
-function getRegistrations() {
+// 9.4 getRegistrations — ambil semua pendaftaran masjid (dengan pagination)
+function getRegistrations(page, limit) {
   try {
+    page = Math.max(1, Number(page) || 1);
+    limit = Math.min(500, Math.max(1, Number(limit) || 50)); // Max 500 per page
+    
     const allMasjid = getAllMasjid();
-    return { success: true, data: allMasjid };
+    const total = allMasjid.length;
+    const offset = (page - 1) * limit;
+    const paginatedData = allMasjid.slice(offset, offset + limit);
+    
+    return { 
+      success: true, 
+      data: paginatedData, 
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    };
   } catch (err) {
-    Logger.log('getRegistrations error: ' + err.toString());
+    logSecure('getRegistrations', 'Error: ' + err.toString());
     return { success: false, error: 'Internal server error' };
   }
 }
 
-// 9.4 getKKDetailByMasjid — detail KK per masjid
-function getKKDetailByMasjid(masjidId) {
+// 9.4 getKKDetailByMasjid — detail KK per masjid (dengan pagination)
+function getKKDetailByMasjid(masjidId, page, limit) {
   try {
     if (!masjidId) return { success: false, error: 'masjid_id diperlukan' };
+    
+    page = Math.max(1, Number(page) || 1);
+    limit = Math.min(500, Math.max(1, Number(limit) || 50)); // Max 500 per page
+    
     const kkList = getKKByMasjid(masjidId);
-    return { success: true, data: kkList };
+    const total = kkList.length;
+    const offset = (page - 1) * limit;
+    const paginatedData = kkList.slice(offset, offset + limit);
+    
+    return { 
+      success: true, 
+      data: paginatedData, 
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    };
   } catch (err) {
-    Logger.log('getKKDetailByMasjid error: ' + err.toString());
+    logSecure('getKKDetailByMasjid', 'Error: ' + err.toString());
     return { success: false, error: 'Internal server error' };
   }
 }
 
-// 9.4 getKKPerluVerifikasiByMasjid — KK dengan status perlu_verifikasi
-function getKKPerluVerifikasiByMasjid(masjidId) {
+// 9.4 getKKPerluVerifikasiByMasjid — KK dengan status perlu_verifikasi (dengan pagination)
+function getKKPerluVerifikasiByMasjid(masjidId, page, limit) {
   try {
+    page = Math.max(1, Number(page) || 1);
+    limit = Math.min(500, Math.max(1, Number(limit) || 50)); // Max 500 per page
+    
     const kkList = masjidId ? getKKByMasjid(masjidId) : getAllKKPerluVerifikasi();
     const filtered = kkList.filter(kk => kk.status_ocr === 'perlu_verifikasi');
-    return { success: true, data: filtered };
+    const total = filtered.length;
+    const offset = (page - 1) * limit;
+    const paginatedData = filtered.slice(offset, offset + limit);
+    
+    return { 
+      success: true, 
+      data: paginatedData, 
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    };
   } catch (err) {
-    Logger.log('getKKPerluVerifikasiByMasjid error: ' + err.toString());
+    logSecure('getKKPerluVerifikasiByMasjid', 'Error: ' + err.toString());
     return { success: false, error: 'Internal server error' };
   }
 }
