@@ -2289,36 +2289,59 @@ function parseJumlahAnggotaTertera(rawText) {
     }
   }
   
-  // Pattern 3: Jika tidak ditemukan, coba hitung dari tabel anggota
-  // Cari baris "No Nama Lengkap" yang menandai awal tabel, lalu hitung nomor urut
+  // Pattern 3: Coba hitung dari tabel yang dimulai dengan "No Nama Lengkap"
   const tableMatch = rawText.match(/No\s+Nama\s+Lengkap/i);
   if (tableMatch) {
     const tableStart = rawText.indexOf(tableMatch[0]);
     const tableText = rawText.substring(tableStart);
-    // Cari nomor urut: format "1SULASTRI" atau "2 TATANG" (nomor + optional spasi + huruf)
     const anggotaLines = tableText.match(/^\s*(\d{1,2})\s*[A-Z]/gm);
     if (anggotaLines && anggotaLines.length > 0) {
-      // Extract nomor dari setiap baris
       const nomors = [];
       for (const line of anggotaLines) {
         const num = parseInt(line.match(/\d+/)[0], 10);
         if (num >= 1 && num <= 30) nomors.push(num);
       }
-      
-      // Ambil nomor tertinggi yang valid (skip junk angka di akhir seperti 71, 91)
       if (nomors.length > 0) {
         nomors.sort((a, b) => a - b);
-        // Cari sequence kontinyu dari 1: 1,2,3,...
         for (let i = nomors.length - 1; i >= 0; i--) {
           if (nomors[i] === i + 1 || i === 0) {
             return nomors[i];
           }
         }
-        // Fallback: return max yang valid
         const maxValid = Math.max(...nomors.filter(n => n <= 20));
         if (maxValid >= 1) return maxValid;
       }
     }
+  }
+  
+  // Pattern 4: Jika tidak ada tabel header, coba cari family member listings di seluruh text
+  const footerKeywords = /Dikeluarkan|Ditandatangani|Kepala Dinas|NIP\.|Tanda Tangan|Status Perkawinan|REPUBLIK INDONESIA|Golongan Darah/i;
+  const footerPos = rawText.search(footerKeywords);
+  const textToSearch = footerPos > 0 ? rawText.substring(0, footerPos) : rawText;
+  
+  const lines = textToSearch.split('\n');
+  const nomors = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const match = trimmed.match(/^(\d{1,2})\s*([A-Z][A-Z\s]{2,})/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      const nama = match[2].trim();
+      if (num >= 1 && num <= 30 && nama.length >= 3 && !/^\d+$/.test(nama)) {
+        nomors.push(num);
+      }
+    }
+  }
+  
+  if (nomors.length > 0) {
+    nomors.sort((a, b) => a - b);
+    const unique = [...new Set(nomors)];
+    let count = 0;
+    for (let i = 1; i <= 30; i++) {
+      if (unique.includes(i)) count = i;
+      else break;
+    }
+    if (count >= 1) return count;
   }
   
   return null;
