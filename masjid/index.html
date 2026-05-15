@@ -594,6 +594,56 @@
       background: linear-gradient(90deg, var(--blue), var(--sky));
       transition: width 0.3s ease;
     }
+
+    /* ── Card petunjuk scan (di atas dropzone) ── */
+    .kk-scan-tips {
+      background: linear-gradient(135deg, rgba(0,162,234,0.08) 0%, rgba(26,74,133,0.12) 100%);
+      border: 1px solid rgba(0,162,234,0.22);
+      border-radius: 16px; padding: 14px 16px; margin-bottom: 14px;
+    }
+    .kk-scan-tips-title {
+      font-size: 12px; font-weight: 700; color: rgba(0,162,234,0.9);
+      display: flex; align-items: center; gap: 7px; margin-bottom: 10px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .kk-scan-tips-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px;
+    }
+    .kk-scan-tip-item {
+      display: flex; align-items: flex-start; gap: 7px;
+      font-size: 11px; color: rgba(255,255,255,0.65); line-height: 1.45;
+    }
+    .kk-scan-tip-item i { font-size: 13px; color: rgba(0,162,234,0.7); flex-shrink: 0; margin-top: 1px; }
+    @media (max-width: 480px) {
+      .kk-scan-tips-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Preview foto KK lokal ── */
+    .kk-local-preview {
+      margin-bottom: 16px; border-radius: 14px; overflow: hidden;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+    }
+    .kk-local-preview-label {
+      position: absolute; top: 10px; left: 10px; z-index: 2;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+      border-radius: 8px; padding: 4px 10px;
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.8);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .kk-local-preview img {
+      width: 100%; display: block;
+      max-height: 300px; object-fit: contain;
+      background: rgba(0,0,0,0.25);
+      transition: transform 0.3s ease;
+    }
+    .kk-local-preview:hover img { transform: scale(1.02); }
+    .kk-local-preview-hint {
+      padding: 8px 12px; font-size: 11px; color: rgba(255,255,255,0.38);
+      background: rgba(0,0,0,0.2); text-align: center; line-height: 1.4;
+    }
   </style>
 </head>
 <body class="masjid-frame" style="padding:16px;display:flex;justify-content:center;">
@@ -745,13 +795,47 @@
 
       <!-- Upload section (only when status = draft) -->
       <div id="uploadSection" class="section-card section-card-upload">
-        <h3 class="section-card-title"><i class="icon icon-upload-cloud" style="font-size:16px;color:var(--sky);"></i> Dokumen</h3>
+        <h3 class="section-card-title"><i class="icon icon-upload-cloud" style="font-size:16px;color:var(--sky);"></i> Dokumen KK</h3>
         <p class="section-card-desc">Unggah foto Kartu Keluarga calon penerima. Satu foto = satu KK.</p>
+
+        <!-- Card petunjuk scan — tampil SEBELUM dropzone -->
+        <div class="kk-scan-tips">
+          <div class="kk-scan-tips-title">
+            <i class="icon icon-camera" style="font-size:14px;"></i>
+            Tips foto KK yang baik
+          </div>
+          <div class="kk-scan-tips-grid">
+            <div class="kk-scan-tip-item">
+              <i class="icon icon-smartphone"></i>
+              <span>Gunakan CamScanner, Adobe Scan, atau Microsoft Lens</span>
+            </div>
+            <div class="kk-scan-tip-item">
+              <i class="icon icon-hash"></i>
+              <span>Pastikan nomor KK 16 digit terbaca penuh</span>
+            </div>
+            <div class="kk-scan-tip-item">
+              <i class="icon icon-users"></i>
+              <span>Semua nama anggota harus terlihat jelas</span>
+            </div>
+            <div class="kk-scan-tip-item">
+              <i class="icon icon-sun"></i>
+              <span>Hindari foto blur, gelap, atau terpotong</span>
+            </div>
+            <div class="kk-scan-tip-item">
+              <i class="icon icon-file-text"></i>
+              <span>1 foto = 1 KK, jangan gabungkan beberapa KK</span>
+            </div>
+            <div class="kk-scan-tip-item">
+              <i class="icon icon-check-circle"></i>
+              <span>Format: JPEG, PNG, atau WEBP · Maks. 5 MB</span>
+            </div>
+          </div>
+        </div>
+
         <div class="m-upload-area" id="uploadArea" onclick="document.getElementById('kkFileInput').click()">
           <i class="icon icon-file-plus"></i>
           <div class="ua-title">Pilih foto KK</div>
-          <div class="ua-sub">JPEG, PNG, WEBP · Maks. 5 MB</div>
-          <p class="m-upload-helper">Pastikan nomor KK dan daftar anggota terbaca jelas.</p>
+          <div class="ua-sub">Tap untuk memilih file dari galeri atau kamera</div>
         </div>
         <input type="file" id="kkFileInput" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleKKFileSelected(this)">
         <div class="upload-progress-bar" id="uploadProgressBar">
@@ -978,6 +1062,9 @@ let currentOTPMasjidId = null;
 let resendTimer = null;
 let kkUploadCount = 0;
 let kkValidCount = 0;
+
+// Map itemId → objectURL untuk preview lokal (tidak pernah ke Drive)
+const _kkLocalPreviewMap = new Map();
 
 function hasPendingKKNeedingAction() {
   // Cek apakah ada item KK yang belum dikonfirmasi (form masih ada)
@@ -1524,6 +1611,9 @@ function handleLogout() {
   kkUploadCount = 0;
   kkValidCount = 0;
   document.getElementById('kkResultsList').innerHTML = '';
+  // Revoke semua object URL untuk mencegah memory leak
+  _kkLocalPreviewMap.forEach(url => URL.revokeObjectURL(url));
+  _kkLocalPreviewMap.clear();
   // Reset sidebar KK list
   const spList = document.getElementById('spKkList');
   if (spList) spList.querySelectorAll('.sp-kk-item').forEach(el => el.remove());
@@ -1567,6 +1657,9 @@ async function handleKKFileSelected(input) {
   const session = getSessionToken();
   if (!session) { handleTokenRevoked(); return; }
 
+  // Buat local object URL untuk preview — tidak pernah request ke Drive
+  const localObjectUrl = URL.createObjectURL(file);
+
   // Show progress
   const progressBar = document.getElementById('uploadProgressBar');
   const progressFill = document.getElementById('uploadProgressFill');
@@ -1580,6 +1673,7 @@ async function handleKKFileSelected(input) {
     progressFill.style.width = '60%';
   } catch (e) {
     progressBar.classList.remove('show');
+    URL.revokeObjectURL(localObjectUrl);
     showToast('Gagal membaca file.', 'error');
     return;
   }
@@ -1597,23 +1691,26 @@ async function handleKKFileSelected(input) {
 
     if (!res.success) {
       if (res.error === 'TOKEN_REVOKED') { handleTokenRevoked(); return; }
+      URL.revokeObjectURL(localObjectUrl);
       showToast(res.error || 'Upload gagal.', 'error');
       return;
     }
 
     // Jika nomor KK OCR gagal terbaca → tolak upload, jangan tampilkan form
     if (res.status_ocr === 'gagal_ocr') {
+      URL.revokeObjectURL(localObjectUrl);
       showToast('Nomor KK tidak terbaca. Upload ulang foto KK dengan nomor KK terlihat jelas.', 'error');
       return;
     }
 
     kkUploadCount++;
-    renderKKResult(res, file.name);
-    // Status valid dihitung setelah konfirmasi anggota, bukan langsung dari status_ocr
+    // Teruskan localObjectUrl ke renderKKResult — preview dari lokal, bukan Drive
+    renderKKResult(res, file.name, localObjectUrl);
     updateSelesaiButton();
     refreshToken(session);
   } catch (e) {
     progressBar.classList.remove('show');
+    URL.revokeObjectURL(localObjectUrl);
     showToast('Gagal terhubung ke server.', 'error');
   }
 }
@@ -1694,10 +1791,15 @@ function refreshMasjidKkSummary() {
   });
 }
 
-function renderKKResult(res, fileName) {
+function renderKKResult(res, fileName, localObjectUrl) {
   const list = document.getElementById('kkResultsList');
   const status = res.status_ocr;
   const itemId = 'kk-' + Date.now();
+
+  // Simpan local preview URL di map — akan dipakai buildKKInputForm
+  if (localObjectUrl) {
+    _kkLocalPreviewMap.set(itemId, localObjectUrl);
+  }
 
   const statusConfig = {
     valid: { cls: 'valid', icon: 'icon-check-circle', badge: 'badge-valid', label: 'Valid', color: '#5dd87a' },
@@ -1772,33 +1874,21 @@ function renderKKResult(res, fileName) {
   updateSideProgress();
 }
 
-// Pratinjau foto KK (file_id Drive) di atas form — tidak perlu unggah ulang.
-function kkMasjidFotoBlock(fileId, fotoUrl) {
-  const id = (fileId && String(fileId).trim()) || '';
-  if (id) {
-    const thumb = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w800';
-    const view = 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
-    return '<div style="margin-bottom:14px;text-align:center;">' +
-      '<a href="' + view + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;max-width:100%;">' +
-      '<img src="' + thumb + '" alt="Foto KK yang diunggah" loading="lazy" referrerpolicy="no-referrer" ' +
-      'style="max-width:100%;width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.15);">' +
-      '</a>' +
-      '<div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:8px;">Gambar ini terikat dengan entri ini. Tap foto untuk membuka di Google Drive.</div>' +
-      '</div>';
-  }
-  if (fotoUrl) {
-    return '<div style="margin-bottom:14px;text-align:center;"><a href="' + esc(fotoUrl) + '" target="_blank" rel="noopener noreferrer" style="font-size:13px;color:#5dd87a;">Buka foto KK di Google Drive</a></div>';
-  }
-  return '';
-}
-
-function kkPetunjukBlock() {
-  return '<div style="margin-bottom:14px;padding:12px 14px;border-radius:10px;background:rgba(0,162,234,0.1);border:1px solid rgba(0,162,234,0.35);">' +
-    '<div style="font-size:13px;font-weight:700;color:#00A2EA;margin-bottom:8px;">📋 Petunjuk Pengisian</div>' +
-    '<div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.5;">' +
-    'Foto KK sebaiknya diambil menggunakan aplikasi scan dokumen (CamScanner, Adobe Scan, Microsoft Lens) agar teks dapat terbaca lebih akurat.<br>' +
-    'Periksa dan lengkapi data di bawah sesuai KK asli.' +
-    '</div></div>';
+// Pratinjau foto KK — HANYA dari local object URL, tidak pernah ke Drive
+function kkLocalPreviewBlock(itemId) {
+  const objectUrl = _kkLocalPreviewMap.get(itemId);
+  if (!objectUrl) return '';
+  return '<div class="kk-local-preview">' +
+    '<div class="kk-local-preview-label">' +
+      '<i class="icon icon-image" style="font-size:11px;"></i>Preview KK' +
+    '</div>' +
+    '<img src="' + objectUrl + '" alt="Preview foto KK" ' +
+      'style="width:100%;display:block;max-height:300px;object-fit:contain;background:rgba(0,0,0,0.25);">' +
+    '<div class="kk-local-preview-hint">' +
+      '<i class="icon icon-check-circle" style="font-size:11px;color:rgba(93,216,122,0.7);vertical-align:middle;margin-right:4px;"></i>' +
+      'Preview dari file lokal — tidak dikirim ke Google Drive untuk ditampilkan' +
+    '</div>' +
+  '</div>';
 }
 
 // Form konfirmasi KK — selalu ditampilkan setelah upload (OCR sukses/gagal)
@@ -1827,8 +1917,7 @@ function buildKKInputForm(itemId, kkId, fileId, fotoUrl, prefill, needsManualNom
     : 'width:100%;padding:10px 12px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:white;font-family:monospace;font-size:15px;letter-spacing:2px;outline:none;';
 
   return '<div class="konfirmasi-box" id="kkform-' + itemId + '">' +
-    kkPetunjukBlock() +
-    kkMasjidFotoBlock(fileId, fotoUrl) +
+    kkLocalPreviewBlock(itemId) +
     autoNote +
     '<div style="margin-bottom:10px;">' +
     '<label style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:5px;">Nomor KK ' + nomorStar + '</label>' +
@@ -1962,6 +2051,9 @@ async function handleKKInputSubmit(itemId, kkId, needsManualNomor) {
       item.setAttribute('data-jumlah-anggota', String(anggotaData.length));
       const formBox = document.getElementById('kkform-' + itemId);
       if (formBox) formBox.remove();
+      // Revoke object URL untuk mencegah memory leak
+      const objUrl = _kkLocalPreviewMap.get(itemId);
+      if (objUrl) { URL.revokeObjectURL(objUrl); _kkLocalPreviewMap.delete(itemId); }
       // Update tombol Edit: disable setelah konfirmasi selesai
       const editBtn = item.querySelector('.btn-edit-kk');
       if (editBtn) {

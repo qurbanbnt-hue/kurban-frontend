@@ -1667,6 +1667,102 @@ function migrasiTambahKolomAlamatKK() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// sinkronisasiJumlahKKValid
+// ─────────────────────────────────────────────────────────────
+// Masalah: kolom jumlah_kk_valid di sheet PendaftaranMasjid
+// adalah counter yang di-increment manual. Jika baris di sheet
+// DataKK dihapus secara manual, counter tidak ikut berubah.
+//
+// Fungsi ini menghitung ulang jumlah_kk_valid untuk SETIAP
+// masjid berdasarkan data aktual di sheet DataKK
+// (status_ocr = 'valid' atau 'manual').
+//
+// Cara pakai: buka Apps Script editor → pilih fungsi ini → Run
+// Aman dijalankan berulang kali — hanya update nilai, tidak
+// menghapus data apapun.
+// ─────────────────────────────────────────────────────────────
+function sinkronisasiJumlahKKValid() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const masjidSheet = ss.getSheetByName(NAMA_SHEET_PENDAFTARAN_MASJID);
+  const kkSheet     = ss.getSheetByName(NAMA_SHEET_DATA_KK);
+
+  if (!masjidSheet) { Logger.log('❌ Sheet PendaftaranMasjid tidak ditemukan.'); return; }
+  if (!kkSheet)     { Logger.log('❌ Sheet DataKK tidak ditemukan.'); return; }
+
+  // ── 1. Hitung jumlah KK valid per masjid dari DataKK ──────
+  const kkData    = kkSheet.getDataRange().getValues();
+  const kkHeaders = kkData[0];
+  const colMasjidId  = kkHeaders.indexOf('masjid_id');
+  const colStatusOcr = kkHeaders.indexOf('status_ocr');
+
+  if (colMasjidId === -1 || colStatusOcr === -1) {
+    Logger.log('❌ Kolom masjid_id atau status_ocr tidak ditemukan di sheet DataKK.');
+    Logger.log('Header DataKK: ' + JSON.stringify(kkHeaders));
+    return;
+  }
+
+  // Hitung: status valid = 'valid' atau 'manual'
+  const countMap = {}; // { masjid_id: jumlah }
+  for (let i = 1; i < kkData.length; i++) {
+    const row      = kkData[i];
+    const masjidId = String(row[colMasjidId] || '').trim();
+    const status   = String(row[colStatusOcr] || '').trim();
+    if (!masjidId) continue;
+    if (status === 'valid' || status === 'manual') {
+      countMap[masjidId] = (countMap[masjidId] || 0) + 1;
+    }
+  }
+
+  // ── 2. Update kolom jumlah_kk_valid di PendaftaranMasjid ──
+  const masjidData    = masjidSheet.getDataRange().getValues();
+  const masjidHeaders = masjidData[0];
+  const colMasjidIdM  = masjidHeaders.indexOf('masjid_id');
+  const colKKValid    = masjidHeaders.indexOf('jumlah_kk_valid');
+
+  if (colMasjidIdM === -1 || colKKValid === -1) {
+    Logger.log('❌ Kolom masjid_id atau jumlah_kk_valid tidak ditemukan di sheet PendaftaranMasjid.');
+    Logger.log('Header PendaftaranMasjid: ' + JSON.stringify(masjidHeaders));
+    return;
+  }
+
+  let updated = 0;
+  let unchanged = 0;
+
+  for (let i = 1; i < masjidData.length; i++) {
+    const row      = masjidData[i];
+    const masjidId = String(row[colMasjidIdM] || '').trim();
+    if (!masjidId) continue;
+
+    const nilaiLama = Number(row[colKKValid]) || 0;
+    const nilaiBaru = countMap[masjidId] || 0;
+
+    if (nilaiLama !== nilaiBaru) {
+      masjidSheet.getRange(i + 1, colKKValid + 1).setValue(nilaiBaru);
+      Logger.log('✏️  ' + masjidId + ': ' + nilaiLama + ' → ' + nilaiBaru);
+      updated++;
+    } else {
+      unchanged++;
+    }
+  }
+
+  SpreadsheetApp.flush();
+
+  Logger.log('');
+  Logger.log('✅ Sinkronisasi selesai.');
+  Logger.log('   Diupdate : ' + updated + ' masjid');
+  Logger.log('   Tidak berubah: ' + unchanged + ' masjid');
+  Logger.log('');
+  Logger.log('Ringkasan hitungan dari DataKK:');
+  Object.keys(countMap).forEach(id => {
+    Logger.log('   ' + id + ' → ' + countMap[id] + ' KK valid');
+  });
+  if (Object.keys(countMap).length === 0) {
+    Logger.log('   (tidak ada KK valid di DataKK)');
+  }
+}
+
 function syncLaporanFromDatabase() {
   const ss           = SpreadsheetApp.getActiveSpreadsheet();
   const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);
