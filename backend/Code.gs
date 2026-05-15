@@ -1574,6 +1574,99 @@ function deleteUser(adminEmail, targetEmail) {
 //  MIGRASI / UTILITAS — Jalankan SATU KALI dari editor
 // ============================================================
 
+// migrasiTambahKolomAlamatKK
+// ─────────────────────────────────────────────────────────────
+// Sheet DataKK lama punya 13 kolom (tanpa alamat_kk):
+//   kk_id | masjid_id | nomor_kk | file_id | status_ocr |
+//   nama_kepala | anggota_json | jumlah_anggota_tertera |
+//   jumlah_anggota_parsed | discrepancy_note |
+//   anggota_dikonfirmasi_manual | tgl_upload | uploader
+//
+// Code.gs mengharapkan 14 kolom dengan alamat_kk di kolom 7
+// (index 6), antara nama_kepala dan anggota_json:
+//   kk_id | masjid_id | nomor_kk | file_id | status_ocr |
+//   nama_kepala | alamat_kk | anggota_json | jumlah_anggota_tertera |
+//   jumlah_anggota_parsed | discrepancy_note |
+//   anggota_dikonfirmasi_manual | tgl_upload | uploader
+//
+// Cara pakai: buka Apps Script editor → pilih fungsi ini → Run
+// ─────────────────────────────────────────────────────────────
+function migrasiTambahKolomAlamatKK() {
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NAMA_SHEET_DATA_KK);
+
+  if (!sheet) {
+    Logger.log('❌ Sheet DataKK tidak ditemukan. Jalankan setupKuponSheets() terlebih dahulu.');
+    return;
+  }
+
+  const data    = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  // Cek apakah kolom alamat_kk sudah ada
+  if (headers.includes('alamat_kk')) {
+    Logger.log('✅ Kolom alamat_kk sudah ada di posisi ' + (headers.indexOf('alamat_kk') + 1) + '. Tidak perlu migrasi.');
+    return;
+  }
+
+  // Validasi header lama sesuai ekspektasi (13 kolom tanpa alamat_kk)
+  const expectedOld = [
+    'kk_id', 'masjid_id', 'nomor_kk', 'file_id', 'status_ocr',
+    'nama_kepala', 'anggota_json', 'jumlah_anggota_tertera',
+    'jumlah_anggota_parsed', 'discrepancy_note',
+    'anggota_dikonfirmasi_manual', 'tgl_upload', 'uploader'
+  ];
+
+  const isOldFormat = expectedOld.every((col, i) => headers[i] === col);
+  if (!isOldFormat) {
+    Logger.log('⚠️  Header sheet tidak sesuai format lama yang diharapkan.');
+    Logger.log('Header saat ini: ' + JSON.stringify(headers));
+    Logger.log('Header yang diharapkan: ' + JSON.stringify(expectedOld));
+    Logger.log('Periksa sheet secara manual sebelum menjalankan migrasi.');
+    return;
+  }
+
+  Logger.log('🔄 Memulai migrasi DataKK: menambah kolom alamat_kk di posisi 7...');
+  Logger.log('Total baris data (tidak termasuk header): ' + (data.length - 1));
+
+  // Sisipkan kolom baru di posisi 7 (kolom G, index 6 = antara nama_kepala dan anggota_json)
+  // insertColumnAfter(columnPosition) — posisi 1-based
+  // nama_kepala ada di kolom 6, jadi sisipkan setelah kolom 6
+  sheet.insertColumnAfter(6);
+
+  // Set header kolom baru
+  sheet.getRange(1, 7).setValue('alamat_kk');
+
+  // Isi semua baris data dengan string kosong (nilai default)
+  const totalRows = data.length - 1; // tidak termasuk header
+  if (totalRows > 0) {
+    sheet.getRange(2, 7, totalRows, 1).setValue('');
+  }
+
+  SpreadsheetApp.flush();
+
+  // Verifikasi hasil
+  const newHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  Logger.log('✅ Migrasi selesai!');
+  Logger.log('Header baru: ' + JSON.stringify(newHeaders));
+  Logger.log('Total kolom sekarang: ' + newHeaders.length);
+
+  // Validasi urutan akhir
+  const expectedNew = [
+    'kk_id', 'masjid_id', 'nomor_kk', 'file_id', 'status_ocr',
+    'nama_kepala', 'alamat_kk', 'anggota_json', 'jumlah_anggota_tertera',
+    'jumlah_anggota_parsed', 'discrepancy_note',
+    'anggota_dikonfirmasi_manual', 'tgl_upload', 'uploader'
+  ];
+  const isValid = expectedNew.every((col, i) => newHeaders[i] === col);
+  if (isValid) {
+    Logger.log('✅ Urutan kolom sudah benar dan sesuai dengan yang diharapkan Code.gs.');
+  } else {
+    Logger.log('⚠️  Urutan kolom tidak sesuai ekspektasi. Periksa sheet secara manual.');
+    Logger.log('Yang diharapkan: ' + JSON.stringify(expectedNew));
+  }
+}
+
 function syncLaporanFromDatabase() {
   const ss           = SpreadsheetApp.getActiveSpreadsheet();
   const dbSheet      = ss.getSheetByName(NAMA_SHEET_DB);

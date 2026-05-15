@@ -116,23 +116,25 @@
 
     /* ── SECTION CARDS & FORM GRID ── */
     .section-card {
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 20px; padding: 20px 18px;
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 22px; padding: 22px 20px;
       margin-bottom: 16px;
+      transition: border-color 0.2s;
     }
-    .section-card-compact { padding: 16px 18px; margin-bottom: 14px; }
+    .section-card:hover { border-color: rgba(255,255,255,0.18); }
+    .section-card-compact { padding: 18px 20px; margin-bottom: 14px; }
     .section-card-upload {
-      border-style: dashed; border-color: rgba(0,162,234,0.35);
-      background: rgba(0,162,234,0.04);
+      border-style: dashed; border-color: rgba(0,162,234,0.3);
+      background: rgba(0,162,234,0.03);
     }
     .section-card-title {
       font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700;
-      color: white; margin: 0 0 4px; display: flex; align-items: center; gap: 8px;
+      color: white; margin: 0 0 6px; display: flex; align-items: center; gap: 9px;
     }
     .section-card-desc {
-      font-size: 12px; color: rgba(255,255,255,0.45); margin: 0 0 16px; line-height: 1.45;
+      font-size: 12px; color: rgba(255,255,255,0.4); margin: 0 0 18px; line-height: 1.5;
     }
     .form-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px;
@@ -145,49 +147,138 @@
     }
     .m-field-textarea { min-height: 88px; resize: vertical; line-height: 1.5; }
     .submit-area {
-      margin-top: 4px; padding-top: 4px;
+      margin-top: 6px; padding-top: 6px;
       display: flex; flex-direction: column; gap: 10px;
     }
     .submit-area .m-btn-ghost { margin-top: 0; }
 
     /* ── SIDE PANEL ── */
     .side-panel-block {
-      display: none; flex-direction: column; gap: 14px;
+      display: none; flex-direction: column; gap: 12px;
     }
     .side-panel-card {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 18px; padding: 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.11);
+      border-radius: 20px; padding: 18px 16px;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s;
     }
+    .side-panel-card:hover { border-color: rgba(255,255,255,0.18); }
     .side-panel-card h4 {
-      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700;
-      color: white; margin: 0 0 10px; display: flex; align-items: center; gap: 6px;
+      font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700;
+      color: rgba(255,255,255,0.9); margin: 0 0 12px;
+      display: flex; align-items: center; gap: 7px;
+      text-transform: uppercase; letter-spacing: 0.7px;
     }
+    .side-panel-card h4 i { font-size: 15px; }
     .side-checklist { list-style: none; margin: 0; padding: 0; }
     .side-checklist li {
-      font-size: 12px; color: rgba(255,255,255,0.5); padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;
+      font-size: 12px; color: rgba(255,255,255,0.45); padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex; align-items: center; gap: 9px; line-height: 1.4;
+      transition: color 0.2s;
     }
     .side-checklist li:last-child { border-bottom: none; padding-bottom: 0; }
     .side-checklist li.done { color: rgba(255,255,255,0.85); }
     .side-checklist .chk {
-      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
-      border: 1.5px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center;
-      font-size: 10px; margin-top: 1px;
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; transition: all 0.2s;
     }
     .side-checklist li.done .chk {
-      background: rgba(62,170,92,0.25); border-color: rgba(62,170,92,0.5); color: #5dd87a;
+      background: rgba(62,170,92,0.2); border-color: rgba(62,170,92,0.6);
+      color: #5dd87a; box-shadow: 0 0 8px rgba(62,170,92,0.25);
     }
+    /* Progress bar */
+    .side-progress-wrap { margin-top: 4px; }
+    .side-progress-stats {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .side-progress-num {
+      font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 800;
+      color: var(--sky); line-height: 1;
+    }
+    .side-progress-num span { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.5); margin-left: 4px; }
     .side-progress-bar {
-      height: 6px; background: rgba(255,255,255,0.1); border-radius: 100px; overflow: hidden; margin-top: 8px;
+      height: 8px; background: rgba(255,255,255,0.08); border-radius: 100px;
+      overflow: hidden; margin-bottom: 6px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
     }
     .side-progress-fill {
       height: 100%; border-radius: 100px;
-      background: linear-gradient(90deg, var(--blue), var(--sky));
-      transition: width 0.3s ease;
+      background: linear-gradient(90deg, #1A4A85, var(--sky), #00d4ff);
+      transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 0 10px rgba(0,162,234,0.4);
     }
-    .side-progress-lbl { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 6px; }
+    .side-progress-lbl { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.4; }
+
+    /* ── KK LIST di sidebar ── */
+    .sp-kk-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .sp-kk-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: all 0.2s; cursor: default;
+    }
+    .sp-kk-item:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.14); }
+    .sp-kk-item.sp-kk-valid { border-color: rgba(62,170,92,0.25); background: rgba(62,170,92,0.06); }
+    .sp-kk-item.sp-kk-duplikat { border-color: rgba(239,172,21,0.25); background: rgba(239,172,21,0.06); }
+    .sp-kk-item.sp-kk-perlu { border-color: rgba(0,162,234,0.25); background: rgba(0,162,234,0.06); }
+    .sp-kk-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .sp-kk-valid .sp-kk-dot { background: #5dd87a; box-shadow: 0 0 6px rgba(93,216,122,0.5); }
+    .sp-kk-duplikat .sp-kk-dot { background: #f5c842; box-shadow: 0 0 6px rgba(245,200,66,0.5); }
+    .sp-kk-perlu .sp-kk-dot { background: #00A2EA; box-shadow: 0 0 6px rgba(0,162,234,0.5); }
+    .sp-kk-info { flex: 1; min-width: 0; }
+    .sp-kk-nama {
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.9);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+    .sp-kk-meta { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .sp-kk-badge {
+      font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 100px;
+      flex-shrink: 0; letter-spacing: 0.3px;
+    }
+    .sp-kk-badge.bv { background: rgba(62,170,92,0.2); color: #5dd87a; border: 1px solid rgba(62,170,92,0.3); }
+    .sp-kk-badge.bd { background: rgba(239,172,21,0.2); color: #f5c842; border: 1px solid rgba(239,172,21,0.3); }
+    .sp-kk-badge.bp { background: rgba(0,162,234,0.2); color: #00A2EA; border: 1px solid rgba(0,162,234,0.3); }
+    .sp-kk-empty {
+      text-align: center; padding: 20px 12px;
+      font-size: 12px; color: rgba(255,255,255,0.3);
+      border: 1px dashed rgba(255,255,255,0.1); border-radius: 14px;
+      line-height: 1.6;
+    }
+    .sp-kk-empty i { display: block; font-size: 28px; margin-bottom: 8px; opacity: 0.3; color: var(--sky); }
+
+    /* ── CTA Selesai Upload di sidebar ── */
+    .sp-cta-selesai {
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(26,74,133,0.6) 0%, rgba(0,162,234,0.2) 100%);
+      border: 1px solid rgba(0,162,234,0.3);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .sp-cta-selesai .sp-cta-hint {
+      font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 12px;
+      line-height: 1.5; text-align: center;
+    }
+    .btn-selesai-cta {
+      width: 100%; padding: 14px 16px; border: none; border-radius: 14px;
+      background: linear-gradient(135deg, #1A4A85 0%, var(--sky) 100%);
+      color: white; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      transition: all 0.25s; letter-spacing: 0.2px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 20px rgba(0,162,234,0.35);
+    }
+    .btn-selesai-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,162,234,0.5); }
+    .btn-selesai-cta:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-selesai-cta i { font-size: 16px; }
 
     /* ── AUTH / OTP / REGISTER VIEWS ── */
     .m-left { padding: 16px 0 0; }
@@ -296,41 +387,49 @@
       color: white; margin: 0 0 10px; display: flex; align-items: center; gap: 8px;
     }
     .m-upload-area {
-      border: 2px dashed rgba(0,162,234,0.45); border-radius: 18px;
-      padding: 32px 20px; text-align: center;
-      background: rgba(255,255,255,0.04); cursor: pointer;
-      transition: all 0.2s; margin-bottom: 12px;
+      border: 2px dashed rgba(0,162,234,0.4); border-radius: 20px;
+      padding: 36px 24px; text-align: center;
+      background: rgba(0,162,234,0.03); cursor: pointer;
+      transition: all 0.25s; margin-bottom: 14px;
+      position: relative; overflow: hidden;
     }
-    .m-upload-area:hover { border-color: var(--sky); background: rgba(0,162,234,0.08); }
-    .m-upload-area.disabled { opacity: 0.4; pointer-events: none; }
-    .m-upload-area i { font-size: 40px; color: var(--sky); display: block; margin-bottom: 10px; opacity: 0.85; }
-    .m-upload-area .ua-title { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.9); }
-    .m-upload-area .ua-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 6px; line-height: 1.45; }
+    .m-upload-area::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,162,234,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .m-upload-area:hover { border-color: var(--sky); background: rgba(0,162,234,0.07); transform: translateY(-1px); }
+    .m-upload-area.disabled { opacity: 0.35; pointer-events: none; }
+    .m-upload-area i { font-size: 44px; color: var(--sky); display: block; margin-bottom: 12px; opacity: 0.9; }
+    .m-upload-area .ua-title { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95); margin-bottom: 4px; }
+    .m-upload-area .ua-sub { font-size: 12px; color: rgba(255,255,255,0.38); margin-top: 4px; line-height: 1.5; }
     .m-upload-helper {
-      font-size: 11px; color: rgba(255,255,255,0.38); line-height: 1.5; margin: 0 0 12px;
+      font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.5; margin: 0 0 14px;
     }
 
     /* KK result items */
     .kk-result-item {
-      background: rgba(255,255,255,0.07); border-radius: 14px;
-      padding: 14px; margin-bottom: 10px;
-      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06); border-radius: 16px;
+      padding: 16px; margin-bottom: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: border-color 0.2s, background 0.2s;
     }
-    .kk-result-item.valid { border-color: rgba(62,170,92,0.4); background: rgba(62,170,92,0.08); }
-    .kk-result-item.duplikat { border-color: rgba(239,172,21,0.4); background: rgba(239,172,21,0.08); }
-    .kk-result-item.gagal_ocr { border-color: rgba(224,80,80,0.4); background: rgba(224,80,80,0.08); }
-    .kk-result-item.perlu_konfirmasi { border-color: rgba(0,162,234,0.4); background: rgba(0,162,234,0.08); }
-    .kk-result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .kk-result-icon { font-size: 18px; }
+    .kk-result-item.valid { border-color: rgba(62,170,92,0.35); background: rgba(62,170,92,0.07); }
+    .kk-result-item.duplikat { border-color: rgba(239,172,21,0.35); background: rgba(239,172,21,0.07); }
+    .kk-result-item.gagal_ocr { border-color: rgba(224,80,80,0.35); background: rgba(224,80,80,0.07); }
+    .kk-result-item.perlu_konfirmasi { border-color: rgba(0,162,234,0.35); background: rgba(0,162,234,0.07); }
+    .kk-result-header { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+    .kk-result-icon { font-size: 18px; flex-shrink: 0; }
     .kk-result-name { font-size: 13px; font-weight: 700; color: white; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .kk-result-badge {
       font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 100px;
+      letter-spacing: 0.3px; flex-shrink: 0;
     }
-    .badge-valid { background: rgba(62,170,92,0.25); color: #5dd87a; }
-    .badge-duplikat { background: rgba(239,172,21,0.25); color: #f5c842; }
-    .badge-gagal { background: rgba(224,80,80,0.25); color: #ff8080; }
-    .badge-konfirmasi { background: rgba(0,162,234,0.25); color: #00A2EA; }
-    .kk-result-sub { font-size: 12px; color: rgba(255,255,255,0.45); }
+    .badge-valid { background: rgba(62,170,92,0.2); color: #5dd87a; border: 1px solid rgba(62,170,92,0.35); }
+    .badge-duplikat { background: rgba(239,172,21,0.2); color: #f5c842; border: 1px solid rgba(239,172,21,0.35); }
+    .badge-gagal { background: rgba(224,80,80,0.2); color: #ff8080; border: 1px solid rgba(224,80,80,0.35); }
+    .badge-konfirmasi { background: rgba(0,162,234,0.2); color: #00A2EA; border: 1px solid rgba(0,162,234,0.35); }
+    .kk-result-sub { font-size: 12px; color: rgba(255,255,255,0.42); line-height: 1.45; }
 
     /* Konfirmasi anggota inline */
     .konfirmasi-box {
@@ -659,25 +758,8 @@
           <div class="upload-progress-fill" id="uploadProgressFill" style="width:0%"></div>
         </div>
 
-        <!-- List KK diupload (draft summary) -->
-        <div id="draftKkSummarySection" style="display:none;flex-direction:column;margin-bottom:14px;">
-          <div class="m-section-title" style="margin-bottom:4px;">
-            <i class="icon icon-list" style="font-size:18px;color:var(--sky);"></i>
-            List KK Diupload
-          </div>
-          <p style="font-size:12px;color:rgba(255,255,255,0.4);margin:0 0 10px 0;line-height:1.45;">Daftar upload pada sesi ini. Nama KK diambil dari anggota ke-1 (kepala keluarga).</p>
-          <div id="kkSummaryTableWrap" class="kk-summary-wrap"></div>
-        </div>
-
-        <!-- KK results list -->
+        <!-- KK results list (form konfirmasi tetap di panel kiri) -->
         <div id="kkResultsList"></div>
-
-        <!-- Konfirmasi selesai upload -->
-        <div id="selesaiUploadSection" class="submit-area" style="display:none;">
-          <button class="m-btn m-btn-primary" id="btnSelesaiUpload" onclick="showSelesaiDialog()" style="width:100%;">
-            <i class="icon icon-check-square" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Konfirmasi Selesai Upload
-          </button>
-        </div>
       </div>
 
       <!-- Menunggu review state -->
@@ -711,15 +793,17 @@
   </div><!-- end .m-left -->
 
   <!-- ═══════════════════════════════════════════
-       RIGHT PANEL (kupon / detail)
+       RIGHT PANEL
   ═══════════════════════════════════════════ -->
   <div class="m-right side-panel" id="mRight">
 
+    <!-- Auth hint -->
     <div id="sidePanelAuth" class="side-panel-block side-panel-card">
       <h4><i class="icon icon-smartphone" style="color:var(--sky);"></i> Cara masuk</h4>
-      <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:0;line-height:1.55;">Masukkan nomor WhatsApp PIC. Masjid terdaftar akan menerima OTP via WA.</p>
+      <p style="font-size:12px;color:rgba(255,255,255,0.45);margin:0;line-height:1.6;">Masukkan nomor WhatsApp PIC. Masjid terdaftar akan menerima OTP via WA untuk login.</p>
     </div>
 
+    <!-- Register checklist -->
     <div id="sidePanelRegister" class="side-panel-block side-panel-card">
       <h4><i class="icon icon-list" style="color:var(--sky);"></i> Checklist pendaftaran</h4>
       <ul class="side-checklist" id="regChecklist">
@@ -731,18 +815,58 @@
       </ul>
     </div>
 
-    <div id="sidePanelDash" class="side-panel-block" style="display:none;flex-direction:column;gap:14px;">
+    <!-- Dashboard sidebar (draft mode) -->
+    <div id="sidePanelDash" class="side-panel-block" style="display:none;flex-direction:column;gap:12px;">
+
+      <!-- 1. Progress pendaftaran -->
       <div class="side-panel-card" id="sidePanelProgress">
-        <h4><i class="icon icon-trending-up" style="color:var(--sky);"></i> Progres pendaftaran</h4>
-        <div class="side-progress-bar"><div class="side-progress-fill" id="sideProgressFill" style="width:0%"></div></div>
-        <p class="side-progress-lbl" id="sideProgressLbl">0 KK valid</p>
+        <h4><i class="icon icon-trending-up" style="color:var(--sky);"></i> Progres Pendaftaran</h4>
+        <div class="side-progress-wrap">
+          <div class="side-progress-stats">
+            <div>
+              <div class="side-progress-num" id="sideProgressNum">0 <span>KK valid</span></div>
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.35);text-align:right;" id="sideProgressTotal"></div>
+          </div>
+          <div class="side-progress-bar"><div class="side-progress-fill" id="sideProgressFill" style="width:5%"></div></div>
+          <div class="side-progress-lbl" id="sideProgressLbl">Upload KK dan konfirmasi data anggota</div>
+        </div>
       </div>
+
+      <!-- 2. List KK yang sudah diupload -->
+      <div class="side-panel-card" id="sidePanelKKList">
+        <h4><i class="icon icon-file-text" style="color:var(--sky);"></i> KK Diupload</h4>
+        <!-- hidden summary table (dipakai refreshMasjidKkSummary) -->
+        <div id="draftKkSummarySection" style="display:none;">
+          <div id="kkSummaryTableWrap" class="kk-summary-wrap"></div>
+        </div>
+        <!-- visual list di sidebar -->
+        <div class="sp-kk-list" id="spKkList">
+          <div class="sp-kk-empty" id="spKkEmpty">
+            <i class="icon icon-upload-cloud"></i>
+            Belum ada KK diunggah.<br>Gunakan area upload di kiri.
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. CTA Konfirmasi Selesai Upload -->
+      <div class="sp-cta-selesai" id="selesaiUploadSection" style="display:none;">
+        <div class="sp-cta-hint">
+          <i class="icon icon-info" style="font-size:13px;vertical-align:middle;margin-right:4px;color:rgba(0,162,234,0.7);"></i>
+          Semua KK sudah dikonfirmasi? Kunci data untuk direview admin.
+        </div>
+        <button class="btn-selesai-cta" id="btnSelesaiUpload" onclick="showSelesaiDialog()">
+          <i class="icon icon-check-square"></i>
+          Konfirmasi Selesai Upload
+        </button>
+      </div>
+
     </div>
 
-    <!-- Kupon section (shown when status = disetujui) -->
+    <!-- Kupon section (status = disetujui) -->
     <div id="kuponSection" style="display:none;">
-      <div class="m-section-title">
-        <i class="icon icon-award" style="font-size:18px;color:var(--amber);"></i>
+      <div class="m-section-title" style="margin-bottom:14px;">
+        <i class="icon icon-award" style="font-size:20px;color:var(--amber);"></i>
         Kupon Digital Anda
       </div>
       <div class="m-kupon-card" id="kuponCard">
@@ -758,17 +882,17 @@
           Unduh / Cetak Kupon
         </button>
       </div>
-      <div style="background:rgba(239,172,21,0.1);border:1px solid rgba(239,172,21,0.25);border-radius:14px;padding:14px;font-size:12px;color:rgba(255,255,255,0.6);line-height:1.6;">
-        <i class="icon icon-info" style="font-size:14px;color:var(--amber);vertical-align:middle;margin-right:6px;"></i>
-        Tunjukkan kupon ini saat pengambilan sapi di lokasi pemotongan. Kupon berlaku <strong style="color:var(--amber);">1 kali</strong> dan akan di-scan oleh petugas.
+      <div style="background:rgba(239,172,21,0.08);border:1px solid rgba(239,172,21,0.2);border-radius:16px;padding:14px 16px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.65;margin-top:4px;">
+        <i class="icon icon-info" style="font-size:13px;color:var(--amber);vertical-align:middle;margin-right:6px;"></i>
+        Tunjukkan kupon ini saat pengambilan sapi. Kupon berlaku <strong style="color:var(--amber);">1 kali</strong> dan akan di-scan petugas.
       </div>
     </div>
 
-    <!-- Right placeholder (menunggu / ditolak / mobile fallback) -->
+    <!-- Placeholder -->
     <div class="m-right-placeholder" id="rightPlaceholder">
       <i class="icon icon-mosque"></i>
       <span>Dashboard Masjid</span>
-      <span style="font-size:12px;opacity:0.6;text-align:center;max-width:200px;">Upload KK dan konfirmasi selesai untuk mendapatkan kupon kurban</span>
+      <span style="font-size:12px;opacity:0.6;text-align:center;max-width:200px;line-height:1.5;">Upload KK dan konfirmasi selesai untuk mendapatkan kupon kurban</span>
     </div>
   </div>
   </div><!-- end .masjid-layout -->
@@ -911,10 +1035,12 @@ function syncSidePanel(viewId) {
   if (auth) auth.style.display = (viewId === 'viewAuth' || viewId === 'viewOTP') ? 'flex' : 'none';
   if (reg) reg.style.display = viewId === 'viewRegister' ? 'flex' : 'none';
   if (dashWrap) {
-    if (viewId === 'viewDashboard' && document.getElementById('uploadSection')?.style.display !== 'none') {
+    if (viewId === 'viewDashboard') {
       dashWrap.style.display = 'flex';
       updateSideProgress();
-    } else dashWrap.style.display = 'none';
+    } else {
+      dashWrap.style.display = 'none';
+    }
   }
   if (viewId === 'viewRegister') updateRegChecklist();
 }
@@ -932,12 +1058,18 @@ function updateRegChecklist() {
 function updateSideProgress() {
   const fill = document.getElementById('sideProgressFill');
   const lbl = document.getElementById('sideProgressLbl');
+  const num = document.getElementById('sideProgressNum');
+  const totalEl = document.getElementById('sideProgressTotal');
   if (!fill || !lbl) return;
   const valid = kkValidCount || 0;
   const total = document.querySelectorAll('#kkResultsList .kk-result-item').length;
-  const pct = valid > 0 ? Math.min(100, 35 + valid * 20) : (total > 0 ? 15 : 5);
+  const pct = valid > 0 ? Math.min(100, 20 + valid * 18) : (total > 0 ? 10 : 5);
   fill.style.width = pct + '%';
-  lbl.textContent = valid + ' KK valid' + (total ? ' · ' + total + ' diunggah' : '') + ' · konfirmasi selesai untuk review';
+  if (num) num.innerHTML = valid + ' <span>KK valid</span>';
+  if (totalEl) totalEl.textContent = total ? total + ' diunggah' : '';
+  lbl.textContent = valid > 0
+    ? (valid === total && total > 0 ? 'Semua KK sudah dikonfirmasi ✓' : 'Konfirmasi sisa KK untuk melanjutkan')
+    : 'Upload KK dan konfirmasi data anggota';
 }
 
 function showError(elId, msg) {
@@ -1330,7 +1462,6 @@ function updateStatusUI(status, kkValid) {
   const diblokirSection = document.getElementById('diblokirSection');
   const kuponSection = document.getElementById('kuponSection');
   const rightPlaceholder = document.getElementById('rightPlaceholder');
-  const draftKkSummarySection = document.getElementById('draftKkSummarySection');
 
   uploadSection.style.display = 'none';
   menungguSection.style.display = 'none';
@@ -1338,31 +1469,23 @@ function updateStatusUI(status, kkValid) {
   diblokirSection.style.display = 'none';
   kuponSection.style.display = 'none';
   rightPlaceholder.style.display = 'flex';
-  if (draftKkSummarySection) draftKkSummarySection.style.display = 'none';
   const sideDash = document.getElementById('sidePanelDash');
   if (sideDash) sideDash.style.display = 'none';
 
   if (status === 'draft') {
     uploadSection.style.display = 'block';
-    if (draftKkSummarySection) {
-      draftKkSummarySection.style.display = 'flex';
-      rightPlaceholder.style.display = 'none';
-      if (sideDash) sideDash.style.display = 'flex';
-      refreshMasjidKkSummary();
-      updateSideProgress();
-    }
+    rightPlaceholder.style.display = 'none';
+    if (sideDash) sideDash.style.display = 'flex';
+    refreshMasjidKkSummary();
+    updateSideProgress();
     // Jika periode tutup, nonaktifkan upload KK
     if (_periodeTutup) {
       const uploadArea = document.getElementById('uploadArea');
       const kkFileInput = document.getElementById('kkFileInput');
       const btnSelesai = document.getElementById('btnSelesaiUpload');
-      if (uploadArea) {
-        uploadArea.classList.add('disabled');
-        uploadArea.onclick = null;
-      }
+      if (uploadArea) { uploadArea.classList.add('disabled'); uploadArea.onclick = null; }
       if (kkFileInput) kkFileInput.disabled = true;
       if (btnSelesai) btnSelesai.style.display = 'none';
-      // Tampilkan pesan periode tutup di atas upload area
       if (!document.getElementById('uploadPeriodeTutupMsg')) {
         const msg = document.createElement('div');
         msg.id = 'uploadPeriodeTutupMsg';
@@ -1401,6 +1524,11 @@ function handleLogout() {
   kkUploadCount = 0;
   kkValidCount = 0;
   document.getElementById('kkResultsList').innerHTML = '';
+  // Reset sidebar KK list
+  const spList = document.getElementById('spKkList');
+  if (spList) spList.querySelectorAll('.sp-kk-item').forEach(el => el.remove());
+  const spEmpty = document.getElementById('spKkEmpty');
+  if (spEmpty) spEmpty.style.display = 'block';
   refreshMasjidKkSummary();
   document.getElementById('btnLogout').style.display = 'none';
   document.getElementById('headerName').textContent = 'Selamat Datang';
@@ -1500,39 +1628,70 @@ function fileToBase64(file) {
 }
 
 function refreshMasjidKkSummary() {
+  // Update hidden summary table (dipakai kompatibilitas)
   const wrap = document.getElementById('kkSummaryTableWrap');
-  if (!wrap) return;
+  // Update visual sidebar list
+  const spList = document.getElementById('spKkList');
+  const spEmpty = document.getElementById('spKkEmpty');
   const items = document.querySelectorAll('#kkResultsList .kk-result-item');
+
+  if (wrap) {
+    if (!items.length) {
+      wrap.innerHTML = '';
+    } else {
+      const statusLbl = { valid: 'Valid', duplikat: 'Duplikat', perlu_konfirmasi: 'Perlu Konfirmasi' };
+      let rows = '';
+      items.forEach(function(el) {
+        const nama = el.getAttribute('data-nama-kepala') || '—';
+        const itemId = el.id;
+        let st = '';
+        if (itemId && isKKFormComplete(itemId)) st = 'valid';
+        else if (el.classList.contains('valid')) st = 'valid';
+        else if (el.classList.contains('duplikat')) st = 'duplikat';
+        else if (el.classList.contains('perlu_konfirmasi')) st = 'perlu_konfirmasi';
+        const nk = el.getAttribute('data-nomor-kk') || '—';
+        const jp = el.getAttribute('data-jumlah-anggota') || '—';
+        rows += '<tr><td data-lbl="Nama KK">' + esc(nama) + '</td><td data-lbl="Status">' + esc(statusLbl[st] || st || '—') + '</td><td data-lbl="No. KK">' + esc(nk) + '</td><td data-lbl="Anggota">' + esc(jp) + '</td></tr>';
+      });
+      wrap.innerHTML = '<table class="kk-summary-table"><thead><tr><th>Nama KK</th><th>Status</th><th>No. KK</th><th>Anggota</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+  }
+
+  // Rebuild sidebar visual list
+  if (!spList) return;
   if (!items.length) {
-    wrap.innerHTML = '<p class="kk-summary-empty">Belum ada KK diunggah. Gunakan kartu Dokumen di kiri untuk mengunggah foto KK.</p>';
+    if (spEmpty) spEmpty.style.display = 'block';
+    // Hapus semua sp-kk-item
+    spList.querySelectorAll('.sp-kk-item').forEach(el => el.remove());
     return;
   }
-  const statusLbl = {
-    valid: 'Valid',
-    duplikat: 'Duplikat',
-    perlu_konfirmasi: 'Perlu Konfirmasi'
-  };
-  let rows = '';
+  if (spEmpty) spEmpty.style.display = 'none';
+
+  // Rebuild dari scratch
+  spList.querySelectorAll('.sp-kk-item').forEach(el => el.remove());
   items.forEach(function(el) {
     const nama = el.getAttribute('data-nama-kepala') || '—';
-    const itemId = el.id;
-    // Gunakan isKKFormComplete untuk status realtime: jika form sudah dihapus = valid/selesai
-    let st = '';
-    if (itemId && isKKFormComplete(itemId)) {
-      st = 'valid'; // form sudah dikonfirmasi
-    } else if (el.classList.contains('valid')) st = 'valid';
-    else if (el.classList.contains('duplikat')) st = 'duplikat';
-    else if (el.classList.contains('perlu_konfirmasi')) st = 'perlu_konfirmasi';
-    const nk = el.getAttribute('data-nomor-kk') || '—';
     const jp = el.getAttribute('data-jumlah-anggota') || '—';
-    rows += '<tr>' +
-      '<td data-lbl="Nama KK">' + esc(nama) + '</td>' +
-      '<td data-lbl="Status">' + esc(statusLbl[st] || st || '—') + '</td>' +
-      '<td data-lbl="No. KK">' + esc(nk) + '</td>' +
-      '<td data-lbl="Anggota">' + esc(jp) + '</td>' +
-      '</tr>';
+    const itemId = el.id;
+    let stCls = 'sp-kk-perlu', badgeCls = 'bp', badgeTxt = 'Perlu Konfirmasi';
+    if (itemId && isKKFormComplete(itemId)) {
+      stCls = 'sp-kk-valid'; badgeCls = 'bv'; badgeTxt = 'Valid';
+    } else if (el.classList.contains('valid')) {
+      stCls = 'sp-kk-valid'; badgeCls = 'bv'; badgeTxt = 'Valid';
+    } else if (el.classList.contains('duplikat')) {
+      stCls = 'sp-kk-duplikat'; badgeCls = 'bd'; badgeTxt = 'Duplikat';
+    }
+    const div = document.createElement('div');
+    div.className = 'sp-kk-item ' + stCls;
+    div.innerHTML =
+      '<div class="sp-kk-dot"></div>' +
+      '<div class="sp-kk-info">' +
+        '<div class="sp-kk-nama">' + esc(nama) + '</div>' +
+        '<div class="sp-kk-meta">' + (jp !== '—' ? jp + ' anggota' : 'Belum dikonfirmasi') + '</div>' +
+      '</div>' +
+      '<span class="sp-kk-badge ' + badgeCls + '">' + badgeTxt + '</span>';
+    spList.appendChild(div);
   });
-  wrap.innerHTML = '<table class="kk-summary-table"><thead><tr><th>Nama KK</th><th>Status</th><th>No. KK</th><th>Anggota</th></tr></thead><tbody>' + rows + '</tbody></table>';
 }
 
 function renderKKResult(res, fileName) {
@@ -1896,11 +2055,8 @@ function updateAnggotaButtonStates(tbody) {
 function updateSelesaiButton() {
   const section = document.getElementById('selesaiUploadSection');
   if (!section) return;
-  if (kkValidCount > 0) {
-    section.style.display = 'block';
-  } else {
-    section.style.display = 'none';
-  }
+  // Tampilkan CTA selesai di sidebar jika ada KK valid
+  section.style.display = kkValidCount > 0 ? 'block' : 'none';
 }
 
 // isKKFormComplete — cek apakah item KK sudah dikonfirmasi (form sudah dihapus = konfirmasi selesai)
@@ -1941,9 +2097,10 @@ async function handleSelesaiUpload() {
     // Disable upload, show menunggu
     document.getElementById('uploadSection').style.display = 'none';
     document.getElementById('menungguSection').style.display = 'block';
-    const draftSum = document.getElementById('draftKkSummarySection');
+    // Sembunyikan sidebar dashboard, tampilkan placeholder
+    const sideDashEl = document.getElementById('sidePanelDash');
     const rightPh = document.getElementById('rightPlaceholder');
-    if (draftSum) draftSum.style.display = 'none';
+    if (sideDashEl) sideDashEl.style.display = 'none';
     if (rightPh) rightPh.style.display = 'flex';
     const pillEl = document.getElementById('dashStatusPill');
     pillEl.className = 'm-pill m-pill-menunggu';
