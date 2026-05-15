@@ -856,7 +856,13 @@ let kkUploadCount = 0;
 let kkValidCount = 0;
 
 function hasPendingKKNeedingAction() {
-  return document.querySelector('#kkResultsList .kk-result-item.perlu_konfirmasi') !== null;
+  // Cek apakah ada item KK yang belum dikonfirmasi (form masih ada)
+  const items = document.querySelectorAll('#kkResultsList .kk-result-item');
+  for (let i = 0; i < items.length; i++) {
+    const itemId = items[i].id;
+    if (itemId && !isKKFormComplete(itemId)) return true;
+  }
+  return false;
 }
 
 function updateKKUploadBlockingState() {
@@ -1467,12 +1473,15 @@ async function handleKKFileSelected(input) {
       return;
     }
 
+    // Jika nomor KK OCR gagal terbaca → tolak upload, jangan tampilkan form
+    if (res.status_ocr === 'gagal_ocr') {
+      showToast('Nomor KK tidak terbaca. Upload ulang foto KK dengan nomor KK terlihat jelas.', 'error');
+      return;
+    }
+
     kkUploadCount++;
     renderKKResult(res, file.name);
-    if (res.status_ocr === 'valid') {
-      kkValidCount++;
-      document.getElementById('kkValidCount').textContent = kkValidCount;
-    }
+    // Status valid dihitung setelah konfirmasi anggota, bukan langsung dari status_ocr
     updateSelesaiButton();
     refreshToken(session);
   } catch (e) {
@@ -1506,8 +1515,12 @@ function refreshMasjidKkSummary() {
   let rows = '';
   items.forEach(function(el) {
     const nama = el.getAttribute('data-nama-kepala') || '—';
+    const itemId = el.id;
+    // Gunakan isKKFormComplete untuk status realtime: jika form sudah dihapus = valid/selesai
     let st = '';
-    if (el.classList.contains('valid')) st = 'valid';
+    if (itemId && isKKFormComplete(itemId)) {
+      st = 'valid'; // form sudah dikonfirmasi
+    } else if (el.classList.contains('valid')) st = 'valid';
     else if (el.classList.contains('duplikat')) st = 'duplikat';
     else if (el.classList.contains('perlu_konfirmasi')) st = 'perlu_konfirmasi';
     const nk = el.getAttribute('data-nomor-kk') || '—';
@@ -1689,7 +1702,13 @@ async function handleKKInputSubmit(itemId, kkId, needsManualNomor) {
   if (!session) { handleTokenRevoked(); return; }
 
   const nomorKKEl = document.getElementById('kkform-nomor-' + itemId);
-  const nomorKK = nomorKKEl ? nomorKKEl.value.trim() : '';
+  const nomorKKOrigEl = document.getElementById('kkform-nomor-orig-' + itemId);
+  // Untuk kasus non-manual: selalu pakai nomor_kk_original dari hidden field (tidak bisa diubah user)
+  // Untuk kasus manual: pakai nilai input yang diisi user
+  const nomorKK = needsManualNomor
+    ? (nomorKKEl ? nomorKKEl.value.trim() : '')
+    : (nomorKKOrigEl ? nomorKKOrigEl.value.trim() : (nomorKKEl ? nomorKKEl.value.trim() : ''));
+
   if (needsManualNomor && !/^\d{16}$/.test(nomorKK)) {
     showToast('Nomor KK harus tepat 16 digit angka.', 'error');
     return;
@@ -1784,6 +1803,15 @@ async function handleKKInputSubmit(itemId, kkId, needsManualNomor) {
       item.setAttribute('data-jumlah-anggota', String(anggotaData.length));
       const formBox = document.getElementById('kkform-' + itemId);
       if (formBox) formBox.remove();
+      // Update tombol Edit: disable setelah konfirmasi selesai
+      const editBtn = item.querySelector('.btn-edit-kk');
+      if (editBtn) {
+        editBtn.style.background = 'rgba(93,216,122,0.1)';
+        editBtn.style.borderColor = 'rgba(93,216,122,0.2)';
+        editBtn.style.color = 'rgba(93,216,122,0.5)';
+        editBtn.style.cursor = 'not-allowed';
+        editBtn.title = 'Data sudah dikonfirmasi';
+      }
     }
 
     kkValidCount++;
@@ -1802,6 +1830,11 @@ async function handleKKInputSubmit(itemId, kkId, needsManualNomor) {
 function toggleKKForm(itemId) {
   const wrapper = document.getElementById('kkform-wrapper-' + itemId);
   if (!wrapper) return;
+  // Jika sudah dikonfirmasi (form dihapus), tombol edit tidak bisa expand
+  if (isKKFormComplete(itemId)) {
+    showToast('Data sudah dikonfirmasi dan tidak dapat diedit.', 'info');
+    return;
+  }
   const isHidden = wrapper.style.display === 'none';
   wrapper.style.display = isHidden ? 'block' : 'none';
   const editBtn = document.querySelector('#' + itemId + ' .btn-edit-kk');
@@ -1868,6 +1901,13 @@ function updateSelesaiButton() {
   } else {
     section.style.display = 'none';
   }
+}
+
+// isKKFormComplete — cek apakah item KK sudah dikonfirmasi (form sudah dihapus = konfirmasi selesai)
+function isKKFormComplete(itemId) {
+  const formBox = document.getElementById('kkform-' + itemId);
+  // Form dihapus setelah konfirmasi berhasil → item dianggap complete
+  return !formBox;
 }
 
 function showSelesaiDialog() {

@@ -423,10 +423,6 @@ function sanitizePublicData(action, body) {
   if (action === 'getKonfigSistem') return {};
   if (action === 'verifyOTP')       return { masjid_id: String(body.masjid_id || '').slice(0, 20), otp_code: String(body.otp_code || '').slice(0, 6) };
   if (action === 'registerMasjid')  return {
-    nama_masjid: String(body.nama_masjid || '').slice(0, 200),
-    alamat:      String(body.alamat      || '').slice(0, 500),
-    kecamatan:   String(body.kecamatan   || '').slice(0, 100),
-    kabupaten:   String(body.kabupaten   || '').slice(0, 100),
     nama_masjid: sanitizeFormula(String(body.nama_masjid || '').slice(0, 200)),
     alamat:      sanitizeFormula(String(body.alamat      || '').slice(0, 500)),
     kecamatan:   sanitizeFormula(String(body.kecamatan   || '').slice(0, 100)),

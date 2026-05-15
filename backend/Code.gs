@@ -2467,23 +2467,15 @@ function parseAnggotaKeluarga(rawText) {
 function parseAlamatKK(rawText) {
   if (!rawText) return null;
 
-  // Format KK standar:
-  // Nama Kepala Keluarga
-  // (nama di baris terpisah)
-  // Alamat
-  // (alamat di baris terpisah)
-  
-  // Strategy 1: Cari keyword "Alamat" lalu ambil baris berikutnya yang mulai dengan "JL/JLN/JALAN/KOMP"
   const lines = rawText.split('\n');
+
+  // Strategy 1: Cari keyword "Alamat" lalu ambil baris berikutnya yang mulai dengan pola jalan
   for (let i = 0; i < lines.length - 1; i++) {
     const line = lines[i].trim();
     if (/^Alamat/i.test(line)) {
-      // Ambil baris berikutnya
       const nextLine = lines[i + 1].trim();
       if (nextLine && /^(JL|JLN|JALAN|KP|KOMP|KOMPLEK|JEMBATAN|GANG|DESA|KELURAHAN|JL\.)/i.test(nextLine)) {
-        // Ini adalah alamat yang valid
         let alamat = nextLine;
-        // Coba ambil baris berikutnya jika masih RT/RW, Desa, Kecamatan, dll
         if (i + 2 < lines.length) {
           const line3 = lines[i + 2].trim();
           if (line3 && /^(RT|RW|No|Nomor|Blok|Dusun|\d{3}\/\d{3})/i.test(line3)) {
@@ -2493,7 +2485,8 @@ function parseAlamatKK(rawText) {
         return alamat;
       }
     }
-  
+  }
+
   // Strategy 2: Jika tidak ada keyword "Alamat", cari baris yang mulai dengan pola jalan
   for (const line of lines) {
     const trimmed = line.trim();
@@ -2505,7 +2498,6 @@ function parseAlamatKK(rawText) {
   }
 
   return null;
-  }
 }
 // 5.5 validateAnggotaCount — deteksi discrepancy
 function validateAnggotaCount(jumlahTertera, jumlahParsed) {
@@ -3686,6 +3678,3 @@ function getNomorDiblokir() {
     return { success: false, error: 'Internal server error' };
   }
 }
-
-// 12.6 Cek status diblokir sudah terintegrasi di validateMasjidToken (Task 8)
-// dan di checkNomorWA / requestOTP (Task 3)
