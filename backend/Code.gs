@@ -2967,6 +2967,7 @@ function processUploadKK(masjidId, fileData, sessionToken) {
         file_id:                 fileId,
         nomor_kk:                nomorKK,
         nama_kepala:             namaKepalaValid,
+        anggota_parsial:         anggotaData,
         alamat_kk:               alamatKK,
         jumlah_anggota_parsed:  jumlahParsed,
         jumlah_anggota_tertera: jumlahTertera

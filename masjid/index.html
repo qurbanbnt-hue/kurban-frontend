@@ -1835,14 +1835,27 @@ function renderKKResult(res, fileName, localObjectUrl) {
   if (!nomorDisp) nomorDisp = '—';
 
   let jumlahAngg = '—';
-  if (res.jumlah_anggota_parsed != null && res.jumlah_anggota_parsed !== '') jumlahAngg = String(res.jumlah_anggota_parsed);
-  else if (anggotaParsial.length) jumlahAngg = String(anggotaParsial.length);
-  else if (prefill.anggota_parsial && prefill.anggota_parsial.length) jumlahAngg = String(prefill.anggota_parsial.length);
+  if (res.jumlah_anggota_parsed != null && res.jumlah_anggota_parsed !== '' && res.jumlah_anggota_parsed > 0) {
+    jumlahAngg = String(res.jumlah_anggota_parsed);
+  } else if (Array.isArray(res.anggota_parsial) && res.anggota_parsial.length) {
+    jumlahAngg = String(res.anggota_parsial.length);
+  } else if (anggotaParsial.length) {
+    jumlahAngg = String(anggotaParsial.length);
+  } else if (prefill.anggota_parsial && prefill.anggota_parsial.length) {
+    jumlahAngg = String(prefill.anggota_parsial.length);
+  }
 
   const formPrefill = {
     nomor_kk: (res.nomor_kk && String(res.nomor_kk).trim()) || (prefill.nomor_kk && String(prefill.nomor_kk).trim()) || '',
     alamat_kk: (res.alamat_kk && String(res.alamat_kk).trim()) || (prefill.alamat_kk && String(prefill.alamat_kk).trim()) || '',
-    anggota_parsial: anggotaParsial.length ? anggotaParsial : (prefill.anggota_parsial || [])
+    // Prioritas: res.anggota_parsial (valid & perlu_konfirmasi) → prefill.anggota_parsial (ocr_prefill) → []
+    anggota_parsial: (Array.isArray(res.anggota_parsial) && res.anggota_parsial.length > 0)
+      ? res.anggota_parsial
+      : (Array.isArray(anggotaParsial) && anggotaParsial.length > 0)
+        ? anggotaParsial
+        : (Array.isArray(prefill.anggota_parsial) && prefill.anggota_parsial.length > 0)
+          ? prefill.anggota_parsial
+          : []
   };
   let extraHtml = '';
   if (needsManualNomor && !nomorValid) {
@@ -1869,26 +1882,48 @@ function renderKKResult(res, fileName, localObjectUrl) {
     '</div>';
 
   list.insertAdjacentHTML('beforeend', html);
+  // Set src preview via DOM setelah inject — blob: URL tidak bisa di-embed di HTML string
+  setKKPreviewSrc(itemId);
   updateKKUploadBlockingState();
   refreshMasjidKkSummary();
   updateSideProgress();
 }
 
-// Pratinjau foto KK — HANYA dari local object URL, tidak pernah ke Drive
+// Pratinjau foto KK — HANYA dari local object URL, tidak pernah ke Drive.
+// Render placeholder dulu, lalu src di-set via DOM setelah insertAdjacentHTML.
 function kkLocalPreviewBlock(itemId) {
   const objectUrl = _kkLocalPreviewMap.get(itemId);
-  if (!objectUrl) return '';
-  return '<div class="kk-local-preview">' +
+  // Selalu render container — src akan di-set via setKKPreviewSrc() setelah DOM inject
+  return '<div class="kk-local-preview" id="kk-preview-wrap-' + itemId + '">' +
     '<div class="kk-local-preview-label">' +
       '<i class="icon icon-image" style="font-size:11px;"></i>Preview KK' +
     '</div>' +
-    '<img src="' + objectUrl + '" alt="Preview foto KK" ' +
-      'style="width:100%;display:block;max-height:300px;object-fit:contain;background:rgba(0,0,0,0.25);">' +
+    '<img id="kk-preview-img-' + itemId + '" alt="Preview foto KK" ' +
+      'style="width:100%;display:block;max-height:300px;object-fit:contain;background:rgba(0,0,0,0.25);"' +
+      ' onerror="this.parentElement.querySelector(\'.kk-preview-fallback\').style.display=\'flex\';this.style.display=\'none\';">' +
+    '<div class="kk-preview-fallback" style="display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:32px 16px;color:rgba(255,255,255,0.4);font-size:12px;">' +
+      '<i class="icon icon-image" style="font-size:32px;opacity:0.3;"></i>' +
+      '<span>Preview tidak tersedia</span>' +
+    '</div>' +
     '<div class="kk-local-preview-hint">' +
       '<i class="icon icon-check-circle" style="font-size:11px;color:rgba(93,216,122,0.7);vertical-align:middle;margin-right:4px;"></i>' +
-      'Preview dari file lokal — tidak dikirim ke Google Drive untuk ditampilkan' +
+      'Preview dari file lokal — tidak ada request ke Google Drive' +
     '</div>' +
   '</div>';
+}
+
+// Set src preview setelah DOM inject — menghindari masalah blob: URL di HTML string
+function setKKPreviewSrc(itemId) {
+  const objectUrl = _kkLocalPreviewMap.get(itemId);
+  const img = document.getElementById('kk-preview-img-' + itemId);
+  if (!img) return;
+  if (objectUrl) {
+    img.src = objectUrl;
+  } else {
+    // Tidak ada preview lokal — sembunyikan container
+    const wrap = document.getElementById('kk-preview-wrap-' + itemId);
+    if (wrap) wrap.style.display = 'none';
+  }
 }
 
 // Form konfirmasi KK — selalu ditampilkan setelah upload (OCR sukses/gagal)
@@ -2088,6 +2123,8 @@ function toggleKKForm(itemId) {
   }
   const isHidden = wrapper.style.display === 'none';
   wrapper.style.display = isHidden ? 'block' : 'none';
+  // Re-set preview src saat form di-expand — blob: URL bisa hilang setelah hide/show
+  if (isHidden) setKKPreviewSrc(itemId);
   const editBtn = document.querySelector('#' + itemId + ' .btn-edit-kk');
   if (editBtn) {
     editBtn.style.background = isHidden ? 'rgba(0,162,234,0.15)' : 'rgba(93,216,122,0.15)';
