@@ -427,10 +427,19 @@ function sanitizePublicData(action, body) {
     alamat:      String(body.alamat      || '').slice(0, 500),
     kecamatan:   String(body.kecamatan   || '').slice(0, 100),
     kabupaten:   String(body.kabupaten   || '').slice(0, 100),
-    nama_pic:    String(body.nama_pic    || '').slice(0, 200),
+    nama_masjid: sanitizeFormula(String(body.nama_masjid || '').slice(0, 200)),
+    alamat:      sanitizeFormula(String(body.alamat      || '').slice(0, 500)),
+    kecamatan:   sanitizeFormula(String(body.kecamatan   || '').slice(0, 100)),
+    kabupaten:   sanitizeFormula(String(body.kabupaten   || '').slice(0, 100)),
+    nama_pic:    sanitizeFormula(String(body.nama_pic    || '').slice(0, 200)),
     telepon_pic: String(body.telepon_pic || '').slice(0, 20),
   };
   return {};
+}
+
+function sanitizeFormula(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/^[=+\-@|\t\r\n]+/g, '').trim();
 }
 
 function buildSafeData(action, body) {
@@ -493,7 +502,7 @@ function buildSafeData(action, body) {
         session_token: String(body.session_token || '').slice(0, 40),
         file_base64:   base64,
         mime_type:     mimeType,
-        file_name:     String(body.file_name || '').slice(0, 200)
+        file_name:     sanitizeFormula(String(body.file_name || '').slice(0, 200))
       };
     }
     case 'konfirmasiAnggota':
@@ -501,8 +510,8 @@ function buildSafeData(action, body) {
         masjid_id:     String(body.masjid_id     || '').slice(0, 20),
         session_token: String(body.session_token || '').slice(0, 40),
         kk_id:         String(body.kk_id         || '').slice(0, 30),
-        alamat_kk:     String(body.alamat_kk     || '').trim().slice(0, 500),
-        anggota_data:  Array.isArray(body.anggota_data) ? body.anggota_data.slice(0, 50).map(a => ({ nama: String(a.nama || '').slice(0, 200), jk: String(a.jk || '').slice(0, 1), umur: Number(a.umur) || 0 })) : [],
+        alamat_kk:     sanitizeFormula(String(body.alamat_kk || '').trim().slice(0, 500)),
+        anggota_data:  Array.isArray(body.anggota_data) ? body.anggota_data.slice(0, 50).map(a => ({ nama: sanitizeFormula(String(a.nama || '').slice(0, 200)), jk: String(a.jk || '').slice(0, 1), umur: Number(a.umur) || 0 })) : [],
       };
     case 'konfirmasiAnggotaManual':
       return {
@@ -510,8 +519,8 @@ function buildSafeData(action, body) {
         session_token: String(body.session_token || '').slice(0, 40),
         kk_id:         String(body.kk_id         || '').slice(0, 30),
         nomor_kk:      String(body.nomor_kk      || '').replace(/\D/g, '').slice(0, 16),
-        alamat_kk:     String(body.alamat_kk     || '').trim().slice(0, 500),
-        anggota_data:  Array.isArray(body.anggota_data) ? body.anggota_data.slice(0, 50).map(a => ({ nama: String(a.nama || '').slice(0, 200), jk: String(a.jk || '').slice(0, 1), umur: Number(a.umur) || 0 })) : [],
+        alamat_kk:     sanitizeFormula(String(body.alamat_kk || '').trim().slice(0, 500)),
+        anggota_data:  Array.isArray(body.anggota_data) ? body.anggota_data.slice(0, 50).map(a => ({ nama: sanitizeFormula(String(a.nama || '').slice(0, 200)), jk: String(a.jk || '').slice(0, 1), umur: Number(a.umur) || 0 })) : [],
       };
     case 'konfirmasiSelesaiUpload':
       return {
@@ -533,7 +542,7 @@ function buildSafeData(action, body) {
     case 'getRegistrations': return {};
     case 'getKKDetail':          return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
     case 'getKKPerluVerifikasi': return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
-    case 'resolveKKVerifikasi':  return { kk_id: String(body.kk_id || '').slice(0, 30), action: String(body.action || '').slice(0, 10), koreksi_data: body.koreksi_data || undefined };
+    case 'resolveKKVerifikasi':  return { kk_id: String(body.kk_id || '').slice(0, 30), action: String(body.action || '').slice(0, 10), koreksi_data: typeof body.koreksi_data === 'object' && body.koreksi_data ? Object.keys(body.koreksi_data).reduce((acc, k) => { acc[k] = sanitizeFormula(String(body.koreksi_data[k] || '').slice(0, 500)); return acc; }, {}) : undefined };
     case 'setJatah': {
       const jumlahSapi = parseInt(body.jumlah_sapi, 10);
       if (!Number.isInteger(jumlahSapi) || jumlahSapi <= 0) return {};
@@ -547,15 +556,15 @@ function buildSafeData(action, body) {
       return { masjid_id: String(body.masjid_id || '').slice(0, 20), nomor_wa_baru: nomorBaru };
     }
     case 'hapusMasjid':          return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
-    case 'blokirMasjid':         return { masjid_id: String(body.masjid_id || '').slice(0, 20), alasan: String(body.alasan || '').slice(0, 500) };
+    case 'blokirMasjid':         return { masjid_id: String(body.masjid_id || '').slice(0, 20), alasan: sanitizeFormula(String(body.alasan || '').slice(0, 500)) };
     case 'bukaBlokirMasjid':     return { masjid_id: String(body.masjid_id || '').slice(0, 20) };
     case 'blokirNomorWA':        return { nomor_wa: String(body.nomor_wa || '').slice(0, 20) };
     case 'bukaBlokirNomorWA':    return { nomor_wa: String(body.nomor_wa || '').slice(0, 20) };
     case 'getNomorDiblokir':     return {};
-    case 'rejectRegistration':   return { masjid_id: String(body.masjid_id || '').slice(0, 20), alasan: String(body.alasan || '').slice(0, 500) };
+    case 'rejectRegistration':   return { masjid_id: String(body.masjid_id || '').slice(0, 20), alasan: sanitizeFormula(String(body.alasan || '').slice(0, 500)) };
 
     // ── Kupon Masjid — Panitia Lokasi ────────────────────────
-    case 'validateKupon':        return { kode_kupon: String(body.kode_kupon || '').slice(0, 50) };
+    case 'validateKupon':        return { kode_kupon: sanitizeFormula(String(body.kode_kupon || '').slice(0, 50)) };
     case 'konfirmasiPengambilan': {
       const fotoMime = String(body.mime_type || '').slice(0, 50);
       if (!ALLOWED_IMAGE_MIMES.has(fotoMime)) return {};
