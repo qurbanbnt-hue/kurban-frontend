@@ -2350,98 +2350,98 @@ function parseJumlahAnggotaTertera(rawText) {
 // 5.4 parseAnggotaKeluarga — parse daftar anggota dari teks OCR
 function parseAnggotaKeluarga(rawText) {
   if (!rawText) return [];
-  const anggota = [];
- 
-  // Normalisasi line endings (\r\n → \n)
+
+  // Normalisasi line endings
   const text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const lines = text.split('\n');
- 
-  // ── Cari posisi "Nama Lengkap" sebagai anchor daftar anggota ──
-  // Pada KK standar Indonesia, daftar anggota selalu muncul
-  // SETELAH header kolom "Nama Lengkap"
+
+  // Ekstrak urutan gender dari baris NIK
+  // Format baris NIK: "XXXXXXXXXXXXXXXX PEREMPUAN KOTA XXXXXXXXXXXXXXXX LAKI-LAKI KOTA ..."
+  // Gender muncul dalam urutan yang sama dengan urutan anggota
+  const genderOrder = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!/\d{16}/.test(trimmed)) continue;
+    if (!/PEREMPUAN|LAKI|LA-LAKI|LA-LANT/i.test(trimmed)) continue;
+
+    const tokens = trimmed.split(/\s+/);
+    for (let i = 0; i < tokens.length; i++) {
+      if (/^\d{16}$/.test(tokens[i])) {
+        const g1 = (tokens[i + 1] || '').toUpperCase();
+        const g2 = (tokens[i + 2] || '').toUpperCase();
+        if (/PEREMPUAN/.test(g1)) {
+          genderOrder.push('P');
+        } else if (/LAKI|LA-LAKI|LA-LANT/.test(g1)) {
+          genderOrder.push('L');
+        } else if (/PEREMPUAN/.test(g2)) {
+          genderOrder.push('P');
+        } else {
+          genderOrder.push('L');
+        }
+      }
+    }
+    if (genderOrder.length > 0) break;
+  }
+
+  // Cari posisi "Nama Lengkap" sebagai anchor daftar anggota
+  // Nama anggota selalu muncul SETELAH header "Nama Lengkap"
   let startIdx = 0;
   for (let i = 0; i < lines.length; i++) {
     if (/Nama\s+Lengkap/i.test(lines[i].trim())) {
-      startIdx = i + 1; // mulai dari baris setelah "Nama Lengkap"
+      startIdx = i + 1;
       break;
     }
   }
- 
-  // ── Regex pengenal baris anggota ──
+
+  // Regex pengenal baris anggota
   // Format KK: "1SULASTRI SUHANDA" atau "2 TATANG SUMANDA"
-  // (nomor 1-2 digit, optional spasi, nama huruf kapital)
   const nameRegex = /^(\d{1,2})\s*([A-Z][A-Z\s]{2,60}?)$/;
- 
-  // ── Kondisi stop: HANYA footer dokumen ──
-  // CATATAN: "REPUBLIK INDONESIA" sengaja TIDAK dimasukkan karena
-  // watermark ini muncul SEBELUM daftar nama pada banyak format KK
+
+  // Stop HANYA di footer — BUKAN di "REPUBLIK INDONESIA"
+  // karena watermark itu muncul SEBELUM nama anggota
   const stopPattern = /Dikeluarkan|Ditandatangani|Status\s+Perkawinan|Kepala\s+Dinas|NIP\.|Tanda\s+Tangan/i;
- 
+
+  const anggota = [];
+
   for (let i = startIdx; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
- 
-    // Berhenti saat menemukan bagian footer
     if (stopPattern.test(line)) break;
- 
+
     const match = line.match(nameRegex);
     if (!match) continue;
- 
+
     const nomor = parseInt(match[1], 10);
     const nama  = match[2].trim();
- 
-    // Validasi: nomor masuk akal, nama bukan angka murni, minimal 3 karakter
+
     if (nomor < 1 || nomor > 30) continue;
     if (nama.length < 3) continue;
     if (/^\d+$/.test(nama)) continue;
- 
-    // Default gender L, coba baca dari baris berikutnya
-    let jk   = 'L';
-    let umur = 0;
- 
-    if (i + 1 < lines.length) {
-      const nextLine = lines[i + 1].trim();
- 
-      // Deteksi gender: cari LAKI-LAKI atau PEREMPUAN (atau L/P singkat)
-      if (/PEREMPUAN|^P$/i.test(nextLine)) {
-        jk = 'P';
-      } else if (/LAKI|^L$/i.test(nextLine)) {
-        jk = 'L';
-      }
- 
-      // Deteksi umur: angka 1-3 digit yang masuk akal (0-120)
-      const ageMatch = nextLine.match(/\b(\d{1,3})\b/);
-      if (ageMatch) {
-        const age = parseInt(ageMatch[1], 10);
-        if (age >= 0 && age <= 120) umur = age;
-      }
-    }
- 
-    anggota.push({ nama, jk, umur });
+
+    // Gender dari urutan NIK line (lebih akurat dari nextLine)
+    const jk = genderOrder[anggota.length] || 'L';
+
+    // Umur tidak bisa diekstrak reliabel dari format OCR ini
+    // Info umur ada di kolom terpisah yang OCR baca acak-acakan
+    // Masjid koreksi saat konfirmasi anggota
+    anggota.push({ nama, jk, umur: 0 });
   }
- 
-  // ── Fallback: jika startIdx=0 (Nama Lengkap tidak ketemu),
-  //    coba scan seluruh dokumen tapi skip baris sebelum nomor urut 1 ──
+
+  // Fallback jika "Nama Lengkap" tidak ditemukan sama sekali
   if (anggota.length === 0 && startIdx === 0) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line || line.length < 3) continue;
- 
-      // Stop di footer (tetap tidak stop di REPUBLIK INDONESIA)
       if (stopPattern.test(line)) break;
- 
       const match = line.match(nameRegex);
       if (!match) continue;
- 
       const nomor = parseInt(match[1], 10);
       const nama  = match[2].trim();
- 
       if (nomor < 1 || nomor > 30 || nama.length < 3 || /^\d+$/.test(nama)) continue;
- 
-      anggota.push({ nama, jk: 'L', umur: 0 });
+      anggota.push({ nama, jk: genderOrder[anggota.length] || 'L', umur: 0 });
     }
   }
- 
+
   return anggota;
 }
 

@@ -12,6 +12,8 @@ const GAS_SECRET      = process.env.GAS_SECRET;
 const JWT_SECRET_RAW  = process.env.JWT_SECRET;
 const CSRF_SECRET     = process.env.CSRF_SECRET || 'default-csrf-secret-change-in-prod';
 const JWT_EXPIRY      = '8h';
+const GAS_TIMEOUT_MS  = 30000;
+const GAS_DEFAULT_TIMEOUT_MS = 10000;
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .split(',').map(s => s.trim()).filter(Boolean);
@@ -201,14 +203,21 @@ function validatePagination(body) {
   return null;
 }
 
-async function callGas(action, data, user = null) {
+async function callGas(action, data, user = null, timeoutMs = GAS_DEFAULT_TIMEOUT_MS) {
   if (!APPS_SCRIPT_URL || !GAS_SECRET) throw new Error('Konfigurasi server tidak lengkap');
-  const res  = await fetch(`${APPS_SCRIPT_URL}?action=${encodeURIComponent(action)}`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body:    JSON.stringify({ secret: GAS_SECRET, data, user }),
-  });
-  return JSON.parse(await res.text());
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=${encodeURIComponent(action)}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body:    JSON.stringify({ secret: GAS_SECRET, data, user }),
+      signal:  controller.signal,
+    });
+    return JSON.parse(await res.text());
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // ── Main handler ──────────────────────────────────────────────
@@ -318,8 +327,13 @@ export default async function handler(req, res) {
   // ── MASJID_ACTIONS — tidak perlu JWT, hanya session_token ────
   if (MASJID_ACTIONS.has(action)) {
     const safeData = buildSafeData(action, body);
+    const gasTimeout = action === 'uploadKK' ? GAS_TIMEOUT_MS : GAS_DEFAULT_TIMEOUT_MS;
     try {
-      const result = await callGas(action, safeData, null);
+      const result = await callGas(action, safeData, null, gasTimeout);
+      if (action === 'uploadKK') {
+        console.log('[uploadKK] GAS response status_ocr:', result.status_ocr);
+        console.log('[uploadKK] has ocr_prefill:', !!result.ocr_prefill);
+      }
       return res.status(200).json(result);
     } catch (err) {
       logSecure(requestId, `MASJID_ACTION error for ${action}: ${err.message}`);
