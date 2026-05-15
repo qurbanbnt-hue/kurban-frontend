@@ -29,86 +29,82 @@
         background-position: top center;
       }
     }
-    .phone-shell { position: relative; z-index: 1; }
+    .phone-shell { position: relative; z-index: 1; width: 100%; margin: 0 auto; }
     #mRight {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      gap: 12px;
+      display: flex; flex-direction: column; min-height: 0; gap: 14px;
     }
 
-    /* ── PHONE SHELL ── */
+    /* ── SHELL & LAYOUT ── */
     .phone-shell {
-      width: 100%; margin: 0 auto;
       background: rgba(255,255,255,0.04) !important;
       backdrop-filter: blur(2px);
       border: 1px solid rgba(255,255,255,0.1) !important;
       box-shadow: 0 32px 80px rgba(0,0,0,0.5) !important;
     }
+    .masjid-layout {
+      display: flex; flex-direction: column; gap: 16px;
+    }
     @media (max-width: 899px) {
-      body.masjid-frame { padding: 16px; display: flex; justify-content: center; }
-      .phone-shell { max-width: 480px; border-radius: 28px !important; }
+      body.masjid-frame { padding: 12px; display: flex; justify-content: center; }
+      .phone-shell { max-width: 520px; border-radius: 24px !important; }
+      .m-left { padding: 0 16px; }
+      .m-right { padding: 0 16px 20px; }
     }
     @media (min-width: 900px) {
       body.masjid-frame { padding: 0 !important; display: block !important; min-height: 100vh; }
       .phone-shell {
-        max-width: 100% !important; width: 100% !important;
-        min-height: 100vh; border-radius: 0 !important;
-        border: none !important; box-shadow: none !important;
-        display: grid !important;
-        grid-template-columns: 380px 1fr !important;
-        grid-template-rows: auto 1fr !important;
+        max-width: 100% !important; width: 100% !important; min-height: 100vh;
+        border-radius: 0 !important; border: none !important; box-shadow: none !important;
+        display: flex !important; flex-direction: column !important;
         background: transparent !important; backdrop-filter: none !important;
       }
-      .m-header { grid-column: 1 / -1; }
+      .masjid-layout {
+        flex: 1; display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 24px; padding: 16px 28px 28px;
+        max-width: 1140px; margin: 0 auto; width: 100%; align-items: start;
+      }
       .m-left {
-        grid-column: 1; grid-row: 2;
-        overflow-y: auto; overflow-x: hidden; height: calc(100vh - 140px);
-        border-right: 1px solid rgba(255,255,255,0.08);
+        padding: 0; overflow-y: auto; overflow-x: hidden;
+        max-height: calc(100vh - 88px);
       }
-      .m-right {
-        grid-column: 2; grid-row: 2;
-        overflow-y: auto; height: calc(100vh - 140px);
-        padding: 24px 32px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        min-height: 0;
+      .m-right.side-panel {
+        position: sticky; top: 16px;
+        max-height: calc(100vh - 32px); overflow-y: auto;
+        padding: 0;
       }
-    }
-    @media (min-width: 1200px) {
-      .phone-shell { grid-template-columns: 420px 1fr !important; }
     }
 
-    /* ── HEADER ── */
+    /* ── HEADER (compact) ── */
     .m-header {
       background:
-        linear-gradient(150deg, rgba(10,22,40,0.82) 0%, rgba(26,74,133,0.78) 55%, rgba(44,112,183,0.75) 100%),
+        linear-gradient(150deg, rgba(10,22,40,0.88) 0%, rgba(26,74,133,0.82) 55%, rgba(44,112,183,0.78) 100%),
         url('../assets/images/bg_desktop/pekurban_portal_qurban_bnt.webp') center/cover no-repeat;
-      padding: 24px 22px 32px;
-      position: relative; overflow: hidden;
+      padding: 14px 20px 16px;
+      position: relative; overflow: hidden; flex-shrink: 0;
     }
-    .m-header::after {
-      content: '';
-      position: absolute; bottom: -1px; left: 0; right: 0;
-      height: 20px; background: transparent;
+    @media (min-width: 900px) {
+      .m-header { padding: 12px 28px 14px; }
     }
     .m-topbar {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 16px; position: relative; z-index: 2;
+      margin-bottom: 0; position: relative; z-index: 2; gap: 12px;
     }
-    .m-brand { display: flex; align-items: center; gap: 10px; }
+    .m-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .m-brand-icon {
-      width: 36px; height: 36px; border-radius: 10px;
+      width: 32px; height: 32px; border-radius: 8px;
       background: rgba(255,255,255,0.15); backdrop-filter: blur(4px);
-      display: flex; align-items: center; justify-content: center; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
     }
-    .m-brand-name { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: white; }
+    .m-brand-name { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: white; line-height: 1.2; }
     .m-brand-sub { font-size: 10px; color: rgba(255,255,255,0.45); }
-    .m-greet { position: relative; z-index: 2; }
-    .m-hi { font-size: 12px; color: rgba(255,255,255,0.6); }
-    .m-name { font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 700; color: white; margin-top: 2px; }
-    .m-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .m-greet {
+      position: relative; z-index: 2; margin-top: 10px;
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+    }
+    .m-hi { font-size: 11px; color: rgba(255,255,255,0.55); width: 100%; }
+    .m-name { font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700; color: white; line-height: 1.2; }
+    .m-sub { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.3; }
 
     /* ── VIEWS ── */
     .m-view { display: none; flex-direction: column; flex: 1; }
@@ -118,14 +114,89 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* ── SECTION CARDS & FORM GRID ── */
+    .section-card {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px; padding: 20px 18px;
+      margin-bottom: 16px;
+    }
+    .section-card-compact { padding: 16px 18px; margin-bottom: 14px; }
+    .section-card-upload {
+      border-style: dashed; border-color: rgba(0,162,234,0.35);
+      background: rgba(0,162,234,0.04);
+    }
+    .section-card-title {
+      font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700;
+      color: white; margin: 0 0 4px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-card-desc {
+      font-size: 12px; color: rgba(255,255,255,0.45); margin: 0 0 16px; line-height: 1.45;
+    }
+    .form-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px;
+    }
+    .form-field { min-width: 0; }
+    .form-field .m-field { margin-bottom: 0; }
+    .form-field-span-2 { grid-column: 1 / -1; }
+    @media (max-width: 599px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    .m-field-textarea { min-height: 88px; resize: vertical; line-height: 1.5; }
+    .submit-area {
+      margin-top: 4px; padding-top: 4px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .submit-area .m-btn-ghost { margin-top: 0; }
+
+    /* ── SIDE PANEL ── */
+    .side-panel-block {
+      display: none; flex-direction: column; gap: 14px;
+    }
+    .side-panel-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px; padding: 16px;
+    }
+    .side-panel-card h4 {
+      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700;
+      color: white; margin: 0 0 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .side-checklist { list-style: none; margin: 0; padding: 0; }
+    .side-checklist li {
+      font-size: 12px; color: rgba(255,255,255,0.5); padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;
+    }
+    .side-checklist li:last-child { border-bottom: none; padding-bottom: 0; }
+    .side-checklist li.done { color: rgba(255,255,255,0.85); }
+    .side-checklist .chk {
+      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center;
+      font-size: 10px; margin-top: 1px;
+    }
+    .side-checklist li.done .chk {
+      background: rgba(62,170,92,0.25); border-color: rgba(62,170,92,0.5); color: #5dd87a;
+    }
+    .side-progress-bar {
+      height: 6px; background: rgba(255,255,255,0.1); border-radius: 100px; overflow: hidden; margin-top: 8px;
+    }
+    .side-progress-fill {
+      height: 100%; border-radius: 100px;
+      background: linear-gradient(90deg, var(--blue), var(--sky));
+      transition: width 0.3s ease;
+    }
+    .side-progress-lbl { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 6px; }
+
     /* ── AUTH / OTP / REGISTER VIEWS ── */
-    .m-left { padding: 20px 18px; }
+    .m-left { padding: 16px 0 0; }
     .m-auth-card {
       background: rgba(255,255,255,0.08);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 20px; padding: 24px 20px;
-      margin-bottom: 14px; overflow: hidden;
+      border-radius: 20px; padding: 20px 18px;
+      margin-bottom: 0; overflow: hidden;
     }
     .m-auth-title {
       font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700;
@@ -197,11 +268,9 @@
     .otp-digit:focus { border-color: var(--sky); background: rgba(255,255,255,0.18); }
 
     /* ── DASHBOARD ── */
-    .m-dash-left { padding: 16px 18px; }
+    .m-dash-body { padding: 0; }
     .m-status-banner {
-      background: rgba(255,255,255,0.08); backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 18px;
-      padding: 18px 16px; margin-bottom: 14px;
+      background: transparent; border: none; padding: 0; margin-bottom: 0;
     }
     .m-status-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: white; margin-bottom: 4px; }
     .m-status-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
@@ -222,22 +291,24 @@
     }
     .m-kk-counter strong { color: var(--sky); font-size: 18px; font-family: 'Sora', sans-serif; }
 
-    /* Upload section */
     .m-section-title {
       font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700;
-      color: white; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+      color: white; margin: 0 0 10px; display: flex; align-items: center; gap: 8px;
     }
     .m-upload-area {
-      border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px;
-      padding: 28px 16px; text-align: center;
-      background: rgba(255,255,255,0.05); cursor: pointer;
-      transition: all 0.2s; margin-bottom: 14px;
+      border: 2px dashed rgba(0,162,234,0.45); border-radius: 18px;
+      padding: 32px 20px; text-align: center;
+      background: rgba(255,255,255,0.04); cursor: pointer;
+      transition: all 0.2s; margin-bottom: 12px;
     }
-    .m-upload-area:hover { border-color: var(--sky); background: rgba(0,162,234,0.06); }
+    .m-upload-area:hover { border-color: var(--sky); background: rgba(0,162,234,0.08); }
     .m-upload-area.disabled { opacity: 0.4; pointer-events: none; }
-    .m-upload-area i { font-size: 36px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 8px; }
-    .m-upload-area .ua-title { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.8); }
-    .m-upload-area .ua-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+    .m-upload-area i { font-size: 40px; color: var(--sky); display: block; margin-bottom: 10px; opacity: 0.85; }
+    .m-upload-area .ua-title { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.9); }
+    .m-upload-area .ua-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 6px; line-height: 1.45; }
+    .m-upload-helper {
+      font-size: 11px; color: rgba(255,255,255,0.38); line-height: 1.5; margin: 0 0 12px;
+    }
 
     /* KK result items */
     .kk-result-item {
@@ -412,13 +483,15 @@
       .kk-summary-table td::before { content: attr(data-lbl) ': '; color: rgba(255,255,255,0.4); font-size: 10px; text-transform: uppercase; }
     }
 
-    /* Right panel placeholder */
     .m-right-placeholder {
       display: flex; align-items: center; justify-content: center;
-      flex-direction: column; gap: 12px; flex: 1;
-      color: rgba(255,255,255,0.2); font-size: 14px; font-weight: 600;
+      flex-direction: column; gap: 10px; flex: 1;
+      color: rgba(255,255,255,0.35); font-size: 13px; font-weight: 600;
+      text-align: center; padding: 24px 12px;
+      background: rgba(255,255,255,0.05); border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
     }
-    .m-right-placeholder i { font-size: 48px; opacity: 0.2; }
+    .m-right-placeholder i { font-size: 40px; opacity: 0.25; color: var(--sky); }
 
     /* Upload progress */
     .upload-progress-bar {
@@ -461,10 +534,8 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════
-       LEFT PANEL (auth/otp/register/dashboard-left)
-  ═══════════════════════════════════════════ -->
-  <div class="m-left">
+  <div class="masjid-layout">
+  <div class="m-left masjid-form-col">
 
     <!-- Banner periode tutup -->
     <div class="m-banner-closed" id="bannerPeriodeTutup">
@@ -516,22 +587,49 @@
 
     <!-- ── VIEW: REGISTER ── -->
     <div class="m-view" id="viewRegister">
-      <div class="m-auth-card">
-        <div class="m-auth-title"><i class="icon icon-building-2" style="font-size:20px;vertical-align:middle;margin-right:8px;"></i>Daftar Masjid Baru</div>
-        <div class="m-auth-sub">Lengkapi data masjid Anda untuk mendaftar program kurban.</div>
-        <div class="m-error" id="registerError"></div>
-        <label class="m-field-label">Nama Masjid <span style="color:#ff8080;">*</span></label>
-        <input type="text" class="m-field" id="regNamaMasjid" placeholder="Contoh: Masjid Al-Ikhlas" maxlength="200">
-        <label class="m-field-label">Alamat <span style="color:#ff8080;">*</span></label>
-        <input type="text" class="m-field" id="regAlamat" placeholder="Jl. Merdeka No. 1">
-        <label class="m-field-label">Kecamatan <span style="color:#ff8080;">*</span></label>
-        <input type="text" class="m-field" id="regKecamatan" placeholder="Nama kecamatan">
-        <label class="m-field-label">Kabupaten/Kota <span style="color:#ff8080;">*</span></label>
-        <input type="text" class="m-field" id="regKabupaten" placeholder="Nama kabupaten/kota">
-        <label class="m-field-label">Nama PIC (Penanggung Jawab) <span style="color:#ff8080;">*</span></label>
-        <input type="text" class="m-field" id="regNamaPIC" placeholder="Nama lengkap penanggung jawab">
-        <label class="m-field-label">Nomor WhatsApp PIC</label>
-        <input type="tel" class="m-field" id="regTeleponPIC" placeholder="08xx atau +628xx" readonly style="opacity:0.7;">
+      <div class="section-card" style="padding-bottom:12px;margin-bottom:12px;">
+        <div class="m-auth-title" style="margin-bottom:4px;"><i class="icon icon-building-2" style="font-size:20px;vertical-align:middle;margin-right:8px;"></i>Daftar Masjid Baru</div>
+        <div class="m-auth-sub" style="margin-bottom:0;">Lengkapi data masjid untuk mendaftar program kurban.</div>
+      </div>
+      <div class="m-error" id="registerError"></div>
+      <div class="section-card">
+        <h3 class="section-card-title"><i class="icon icon-building-2" style="font-size:16px;color:var(--sky);"></i> Data Masjid</h3>
+        <div class="form-grid">
+          <div class="form-field form-field-span-2">
+            <label class="m-field-label">Nama Masjid <span style="color:#ff8080;">*</span></label>
+            <input type="text" class="m-field" id="regNamaMasjid" placeholder="Contoh: Masjid Al-Ikhlas" maxlength="200">
+          </div>
+          <div class="form-field">
+            <label class="m-field-label">Kecamatan <span style="color:#ff8080;">*</span></label>
+            <input type="text" class="m-field" id="regKecamatan" placeholder="Nama kecamatan">
+          </div>
+          <div class="form-field">
+            <label class="m-field-label">Kabupaten/Kota <span style="color:#ff8080;">*</span></label>
+            <input type="text" class="m-field" id="regKabupaten" placeholder="Nama kabupaten/kota">
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <h3 class="section-card-title"><i class="icon icon-user" style="font-size:16px;color:var(--sky);"></i> Penanggung Jawab</h3>
+        <div class="form-grid">
+          <div class="form-field">
+            <label class="m-field-label">Nama PIC <span style="color:#ff8080;">*</span></label>
+            <input type="text" class="m-field" id="regNamaPIC" placeholder="Nama lengkap penanggung jawab">
+          </div>
+          <div class="form-field">
+            <label class="m-field-label">Nomor WhatsApp</label>
+            <input type="tel" class="m-field" id="regTeleponPIC" placeholder="08xx atau +628xx" readonly style="opacity:0.7;">
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <h3 class="section-card-title"><i class="icon icon-map-pin" style="font-size:16px;color:var(--sky);"></i> Alamat</h3>
+        <div class="form-field">
+          <label class="m-field-label">Alamat lengkap <span style="color:#ff8080;">*</span></label>
+          <textarea class="m-field m-field-textarea" id="regAlamat" placeholder="Jl. Merdeka No. 1, RT/RW, kelurahan" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="submit-area">
         <button class="m-btn m-btn-primary" id="btnDaftar" onclick="handleRegistrationSubmit()">
           <i class="icon icon-user-plus" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Daftar &amp; Kirim OTP
         </button>
@@ -541,10 +639,9 @@
       </div>
     </div>
 
-    <!-- ── VIEW: DASHBOARD LEFT ── -->
+    <!-- ── VIEW: DASHBOARD ── -->
     <div class="m-view" id="viewDashboard">
-      <!-- Status banner -->
-      <div class="m-status-banner" id="statusBanner">
+      <div class="section-card section-card-compact" id="statusBanner">
         <div class="m-status-name" id="dashNamaMasjid">-</div>
         <div style="font-size:12px;color:rgba(255,255,255,0.5);" id="dashTelepon">-</div>
         <div class="m-status-row">
@@ -557,15 +654,14 @@
       </div>
 
       <!-- Upload section (only when status = draft) -->
-      <div id="uploadSection">
-        <div class="m-section-title">
-          <i class="icon icon-upload-cloud" style="font-size:18px;color:var(--sky);"></i>
-          Upload Kartu Keluarga
-        </div>
+      <div id="uploadSection" class="section-card section-card-upload">
+        <h3 class="section-card-title"><i class="icon icon-upload-cloud" style="font-size:16px;color:var(--sky);"></i> Dokumen</h3>
+        <p class="section-card-desc">Unggah foto Kartu Keluarga calon penerima. Satu foto = satu KK.</p>
         <div class="m-upload-area" id="uploadArea" onclick="document.getElementById('kkFileInput').click()">
           <i class="icon icon-file-plus"></i>
           <div class="ua-title">Pilih foto KK</div>
           <div class="ua-sub">JPEG, PNG, WEBP · Maks. 5 MB</div>
+          <p class="m-upload-helper">Pastikan nomor KK dan daftar anggota terbaca jelas.</p>
         </div>
         <input type="file" id="kkFileInput" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleKKFileSelected(this)">
         <div class="upload-progress-bar" id="uploadProgressBar">
@@ -576,7 +672,7 @@
         <div id="kkResultsList"></div>
 
         <!-- Konfirmasi selesai upload -->
-        <div id="selesaiUploadSection" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
+        <div id="selesaiUploadSection" class="submit-area" style="display:none;">
           <button class="m-btn m-btn-primary" id="btnSelesaiUpload" onclick="showSelesaiDialog()" style="width:100%;">
             <i class="icon icon-check-square" style="font-size:16px;vertical-align:middle;margin-right:6px;"></i>Konfirmasi Selesai Upload
           </button>
@@ -620,7 +716,32 @@
   <!-- ═══════════════════════════════════════════
        RIGHT PANEL (kupon / detail)
   ═══════════════════════════════════════════ -->
-  <div class="m-right" id="mRight">
+  <div class="m-right side-panel" id="mRight">
+
+    <div id="sidePanelAuth" class="side-panel-block side-panel-card">
+      <h4><i class="icon icon-smartphone" style="color:var(--sky);"></i> Cara masuk</h4>
+      <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:0;line-height:1.55;">Masukkan nomor WhatsApp PIC. Masjid terdaftar akan menerima OTP via WA.</p>
+    </div>
+
+    <div id="sidePanelRegister" class="side-panel-block side-panel-card">
+      <h4><i class="icon icon-list" style="color:var(--sky);"></i> Checklist pendaftaran</h4>
+      <ul class="side-checklist" id="regChecklist">
+        <li data-field="regNamaMasjid"><span class="chk"></span><span>Nama masjid</span></li>
+        <li data-field="regKecamatan"><span class="chk"></span><span>Kecamatan</span></li>
+        <li data-field="regKabupaten"><span class="chk"></span><span>Kabupaten/Kota</span></li>
+        <li data-field="regNamaPIC"><span class="chk"></span><span>Nama PIC</span></li>
+        <li data-field="regAlamat"><span class="chk"></span><span>Alamat lengkap</span></li>
+      </ul>
+    </div>
+
+    <div id="sidePanelDash" class="side-panel-block" style="display:none;flex-direction:column;gap:14px;">
+      <div class="side-panel-card" id="sidePanelProgress">
+        <h4><i class="icon icon-trending-up" style="color:var(--sky);"></i> Progres pendaftaran</h4>
+        <div class="side-progress-bar"><div class="side-progress-fill" id="sideProgressFill" style="width:0%"></div></div>
+        <p class="side-progress-lbl" id="sideProgressLbl">0 KK valid</p>
+      </div>
+    </div>
+
     <!-- Kupon section (shown when status = disetujui) -->
     <div id="kuponSection" style="display:none;">
       <div class="m-section-title">
@@ -662,6 +783,7 @@
       <span style="font-size:12px;opacity:0.6;text-align:center;max-width:200px;">Upload KK dan konfirmasi selesai untuk mendapatkan kupon kurban</span>
     </div>
   </div>
+  </div><!-- end .masjid-layout -->
 
   <!-- ═══════════════════════════════════════════
        DIALOG: Konfirmasi Selesai Upload
@@ -785,6 +907,43 @@ function showView(viewId) {
   document.querySelectorAll('.m-view').forEach(v => v.classList.remove('active'));
   const el = document.getElementById(viewId);
   if (el) el.classList.add('active');
+  syncSidePanel(viewId);
+}
+
+function syncSidePanel(viewId) {
+  const auth = document.getElementById('sidePanelAuth');
+  const reg = document.getElementById('sidePanelRegister');
+  const dashWrap = document.getElementById('sidePanelDash');
+  if (auth) auth.style.display = (viewId === 'viewAuth' || viewId === 'viewOTP') ? 'flex' : 'none';
+  if (reg) reg.style.display = viewId === 'viewRegister' ? 'flex' : 'none';
+  if (dashWrap) {
+    if (viewId === 'viewDashboard' && document.getElementById('uploadSection')?.style.display !== 'none') {
+      dashWrap.style.display = 'flex';
+      updateSideProgress();
+    } else dashWrap.style.display = 'none';
+  }
+  if (viewId === 'viewRegister') updateRegChecklist();
+}
+function updateRegChecklist() {
+  const list = document.getElementById('regChecklist');
+  if (!list) return;
+  list.querySelectorAll('li[data-field]').forEach(li => {
+    const inp = document.getElementById(li.getAttribute('data-field'));
+    const ok = inp && String(inp.value || '').trim().length > 0;
+    li.classList.toggle('done', ok);
+    const chk = li.querySelector('.chk');
+    if (chk) chk.textContent = ok ? '\u2713' : '';
+  });
+}
+function updateSideProgress() {
+  const fill = document.getElementById('sideProgressFill');
+  const lbl = document.getElementById('sideProgressLbl');
+  if (!fill || !lbl) return;
+  const valid = kkValidCount || 0;
+  const total = document.querySelectorAll('#kkResultsList .kk-result-item').length;
+  const pct = valid > 0 ? Math.min(100, 35 + valid * 20) : (total > 0 ? 15 : 5);
+  fill.style.width = pct + '%';
+  lbl.textContent = valid + ' KK valid' + (total ? ' · ' + total + ' diunggah' : '') + ' · konfirmasi selesai untuk review';
 }
 
 function showError(elId, msg) {
@@ -1186,13 +1345,17 @@ function updateStatusUI(status, kkValid) {
   kuponSection.style.display = 'none';
   rightPlaceholder.style.display = 'flex';
   if (draftKkSummarySection) draftKkSummarySection.style.display = 'none';
+  const sideDash = document.getElementById('sidePanelDash');
+  if (sideDash) sideDash.style.display = 'none';
 
   if (status === 'draft') {
     uploadSection.style.display = 'block';
     if (draftKkSummarySection) {
       draftKkSummarySection.style.display = 'flex';
       rightPlaceholder.style.display = 'none';
+      if (sideDash) sideDash.style.display = 'flex';
       refreshMasjidKkSummary();
+      updateSideProgress();
     }
     // Jika periode tutup, nonaktifkan upload KK
     if (_periodeTutup) {
@@ -1344,7 +1507,7 @@ function refreshMasjidKkSummary() {
   if (!wrap) return;
   const items = document.querySelectorAll('#kkResultsList .kk-result-item');
   if (!items.length) {
-    wrap.innerHTML = '<p class="kk-summary-empty">Belum ada KK diunggah pada sesi ini. Gunakan panel kiri untuk mengunggah foto KK.</p>';
+    wrap.innerHTML = '<p class="kk-summary-empty">Belum ada KK diunggah. Gunakan kartu Dokumen di kiri untuk mengunggah foto KK.</p>';
     return;
   }
   const statusLbl = {
@@ -1442,6 +1605,7 @@ function renderKKResult(res, fileName) {
   list.insertAdjacentHTML('beforeend', html);
   updateKKUploadBlockingState();
   refreshMasjidKkSummary();
+  updateSideProgress();
 }
 
 // Pratinjau foto KK (file_id Drive) di atas form — tidak perlu unggah ulang.
@@ -1906,6 +2070,10 @@ function downloadKupon() {
 document.addEventListener('DOMContentLoaded', () => {
   initOTPInputs();
   initPage();
+  ['regNamaMasjid','regKecamatan','regKabupaten','regNamaPIC','regAlamat'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updateRegChecklist);
+  });
 });
 </script>
 </div><!-- end .phone-shell -->
